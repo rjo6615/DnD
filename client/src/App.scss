@@ -6887,3 +6887,183 @@ h1 {
     min-width: 0;
   }
 }
+
+/* RealmTracker arcane identity layer: magic-infused technology without ornate medieval chrome. */
+:root {
+  --realm-navy: #07111f;
+  --realm-charcoal: #090c12;
+  --realm-midnight: #0d1c34;
+  --realm-glass: rgba(8, 18, 36, 0.82);
+  --realm-icy: #8fc8ff;
+  --realm-cyan: #38e8ff;
+  --realm-violet: #b85cff;
+  --realm-amber: #f3b35f;
+  --realm-health: #49d98a;
+  --realm-danger: #ff5c72;
+  --realm-gold: #d7b46a;
+  --realm-rune-lines:
+    linear-gradient(120deg, transparent 0 47%, rgba(92, 232, 255, 0.05) 48% 50%, transparent 51% 100%),
+    radial-gradient(circle at 18% 22%, rgba(56, 232, 255, 0.08), transparent 24%),
+    radial-gradient(circle at 84% 78%, rgba(184, 92, 255, 0.07), transparent 28%);
+}
+
+.footer-character-slot {
+  --combat-panel-bg:
+    var(--realm-rune-lines),
+    linear-gradient(145deg, rgba(5, 11, 23, 0.96), rgba(11, 25, 48, 0.93) 56%, rgba(4, 9, 18, 0.97));
+  --combat-panel-border: rgba(109, 209, 255, 0.28);
+  --combat-focus-ring: 0 0 0 3px rgba(56, 232, 255, 0.24), 0 0 22px rgba(56, 232, 255, 0.34);
+}
+
+.footer-character-slot__footer-rail,
+.footer-character-slot__resources-drawer,
+.footer-character-slot__damage,
+.footer-character-slot__slots,
+.footer-actions-menu,
+.footer-actions-inline,
+.footer-character-slot__resources-toggle.btn,
+.footer-resources-section,
+.spell-slot-section {
+  position: relative;
+  isolation: isolate;
+}
+
+.footer-character-slot__footer-rail::before,
+.footer-character-slot__resources-drawer::before,
+.footer-resources-section::before,
+.spell-slot-section::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent, rgba(56, 232, 255, 0.08), transparent),
+    repeating-linear-gradient(90deg, transparent 0 32px, rgba(215, 180, 106, 0.035) 33px 34px, transparent 35px 72px);
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.85), transparent 78%);
+  opacity: 0.75;
+  z-index: -1;
+}
+
+.footer-character-slot__footer-rail::after,
+.footer-character-slot__resources-drawer::after {
+  content: '✦';
+  position: absolute;
+  top: 10px;
+  right: 18px;
+  color: rgba(56, 232, 255, 0.18);
+  font-size: 0.82rem;
+  text-shadow: 0 0 18px rgba(56, 232, 255, 0.8);
+  pointer-events: none;
+}
+
+.footer-btn.btn,
+.footer-btn.btn-link,
+.footer-pass-log-button.btn,
+.footer-character-slot__resources-toggle.btn,
+.footer-character-slot__crit-button.btn,
+.footer-character-slot__health-mini-button {
+  transition: transform 180ms cubic-bezier(.2,1.35,.35,1), box-shadow 180ms ease, filter 180ms ease, border-color 180ms ease;
+}
+
+.footer-btn.btn:not(:disabled):hover,
+.footer-btn.btn-link:not(:disabled):hover,
+.footer-pass-log-button.btn:not(:disabled):hover,
+.footer-character-slot__resources-toggle.btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15) saturate(1.08);
+  box-shadow: 0 0 0 1px rgba(143, 200, 255, 0.18), 0 0 22px rgba(56, 232, 255, 0.18), 0 14px 28px rgba(0, 0, 0, 0.38) !important;
+}
+
+.footer-btn.btn:not(:disabled):active,
+.footer-btn.btn-link:not(:disabled):active,
+.footer-pass-log-button.btn:not(:disabled):active,
+.footer-character-slot__resources-toggle.btn:not(:disabled):active {
+  transform: translateY(0) scale(0.96);
+  box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.38), 0 0 12px rgba(56, 232, 255, 0.16) !important;
+}
+
+.footer-btn.btn:disabled,
+.footer-pass-log-button.btn:disabled,
+.footer-character-slot__resources-toggle.btn:disabled {
+  opacity: 0.42;
+  filter: grayscale(0.55);
+  box-shadow: none !important;
+}
+
+.footer-btn.is-active,
+.footer-character-slot__resources-toggle[aria-expanded='true'] {
+  border-color: rgba(215, 180, 106, 0.88) !important;
+  box-shadow: 0 0 0 1px rgba(215, 180, 106, 0.32), inset 0 0 18px rgba(56, 232, 255, 0.16), 0 0 18px rgba(215, 180, 106, 0.22) !important;
+}
+
+.spell-slot {
+  background:
+    radial-gradient(circle at 50% 16%, rgba(56, 232, 255, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(13, 31, 60, 0.78), rgba(5, 12, 26, 0.9));
+  border: 1px solid rgba(143, 200, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -14px 24px rgba(0,0,0,0.18), 0 10px 22px rgba(0,0,0,0.26);
+}
+
+.spell-slot .slot-small {
+  transform: rotate(45deg);
+  border-radius: 4px 7px 4px 7px;
+  transition: transform 170ms cubic-bezier(.2,1.35,.35,1), box-shadow 170ms ease, filter 170ms ease;
+}
+
+.spell-slot .slot-small:hover {
+  transform: rotate(45deg) scale(1.18);
+  filter: brightness(1.28);
+  animation: realm-slot-pulse 900ms ease-out;
+}
+
+.spell-slot .slot-small:active {
+  transform: rotate(45deg) scale(0.82);
+  box-shadow: 0 0 0 6px rgba(56, 232, 255, 0.18), 0 0 24px rgba(56, 232, 255, 0.42);
+}
+
+.spell-slot .slot-active {
+  background: radial-gradient(circle at 32% 28%, #dff7ff, var(--realm-icy) 28%, #167ee8 72%);
+  border-color: rgba(204, 245, 255, 0.92);
+  box-shadow: 0 0 8px rgba(143, 200, 255, 0.9), 0 0 18px rgba(56, 232, 255, 0.44), inset 0 0 7px rgba(255,255,255,0.36);
+}
+
+.warlock-slot .slot-active {
+  background: radial-gradient(circle at 32% 28%, #f4d7ff, var(--realm-violet) 34%, #6524c9 76%);
+  border-color: rgba(239, 201, 255, 0.94);
+  box-shadow: 0 0 10px rgba(184, 92, 255, 0.88), 0 0 22px rgba(184, 92, 255, 0.46), inset 0 0 7px rgba(255,255,255,0.3);
+}
+
+.spell-slot .slot-used {
+  background: radial-gradient(circle at 35% 30%, rgba(92, 116, 145, 0.34), rgba(6, 10, 20, 0.94) 74%);
+  border-color: rgba(83, 103, 134, 0.48);
+  box-shadow: inset 0 2px 7px rgba(0,0,0,0.62);
+}
+
+.spell-slot-section--pact {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(184, 92, 255, 0.22), transparent 40%),
+    linear-gradient(180deg, rgba(54, 22, 88, 0.48), rgba(8, 14, 32, 0.64));
+  border: 1px solid rgba(184, 92, 255, 0.24);
+}
+
+.footer-resource-row {
+  --resource-accent: currentColor;
+  border: 1px solid rgba(143, 200, 255, 0.12);
+  background:
+    radial-gradient(circle at 10% 50%, color-mix(in srgb, var(--resource-accent) 24%, transparent), transparent 38%),
+    linear-gradient(135deg, rgba(14, 29, 55, 0.82), rgba(6, 13, 27, 0.78));
+}
+
+.footer-resource-row__icon {
+  box-shadow: inset 0 0 0 1px currentColor, 0 0 18px color-mix(in srgb, currentColor 36%, transparent);
+}
+
+.footer-resource-row__pips span.is-filled {
+  box-shadow: 0 0 10px currentColor;
+}
+
+@keyframes realm-slot-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(56, 232, 255, 0.32), 0 0 18px rgba(56, 232, 255, 0.52); }
+  100% { box-shadow: 0 0 0 10px rgba(56, 232, 255, 0), 0 0 18px rgba(56, 232, 255, 0.42); }
+}
