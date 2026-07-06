@@ -5674,18 +5674,36 @@ export default function ZombiesCharacterSheet() {
                 <Panel className="combat-hud-dock__resources" aria-label="Combat resources">
                   {footerClassResources.length > 0 && (
                     <div className="combat-hud-dock__resource-rail" aria-label="Class resources">
-                      {footerClassResources.map((resource) => (
-                        <div
-                          key={resource.id}
-                          className="combat-hud-resource-tile"
-                          style={{ '--hud-resource-accent': resource.color }}
-                          title={`${resource.name}: ${resource.current ?? '—'}/${resource.max ?? '—'}`}
-                        >
-                          <span className="combat-hud-resource-tile__icon" aria-hidden="true">{resource.icon}</span>
-                          <span className="combat-hud-resource-tile__value">{resource.current ?? '—'}/{resource.max ?? '—'}</span>
-                          <span className="visually-hidden">{resource.name}</span>
-                        </div>
-                      ))}
+                      {footerClassResources.map((resource) => {
+                        const isFocusResource = resource.id === 'monk-focus';
+                        const resourceMax = Number(resource.max);
+                        const handleResourceActivate = (event, action = 'spend') => {
+                          if (!isFocusResource || !Number.isFinite(resourceMax) || resourceMax <= 0) {
+                            return;
+                          }
+                          event.preventDefault();
+                          handleCastSpell('focus', action, resourceMax);
+                        };
+
+                        return (
+                          <button
+                            key={resource.id}
+                            type="button"
+                            className="combat-hud-resource-tile"
+                            style={{ '--hud-resource-accent': resource.color }}
+                            title={isFocusResource ? `${resource.name}: click to spend, right-click to restore, double-click to reset` : `${resource.name}: ${resource.current ?? '—'}/${resource.max ?? '—'}`}
+                            aria-label={`${resource.name}: ${resource.current ?? '—'} of ${resource.max ?? '—'}`}
+                            onClick={(event) => handleResourceActivate(event, event.shiftKey ? 'restore' : 'spend')}
+                            onContextMenu={(event) => handleResourceActivate(event, 'restore')}
+                            onDoubleClick={(event) => handleResourceActivate(event, 'reset')}
+                            disabled={!isFocusResource}
+                          >
+                            <span className="combat-hud-resource-tile__icon" aria-hidden="true">{resource.icon}</span>
+                            <span className="combat-hud-resource-tile__name">{resource.name}</span>
+                            <span className="combat-hud-resource-tile__value">{resource.current ?? '—'}/{resource.max ?? '—'}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                   {form && (
@@ -5698,7 +5716,7 @@ export default function ZombiesCharacterSheet() {
                       shortRestCount={shortRestCount}
                       onActionSurge={handleActionSurge}
                       showTurnSlots={false}
-                      showFocusSlot
+                      showFocusSlot={false}
                     />
                   )}
                 </Panel>
