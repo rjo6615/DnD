@@ -550,6 +550,7 @@ const CampaignMapBoard = ({
   const mapZoomTargetRef = useRef(MAP_ZOOM_DEFAULT);
   const mapZoomAnimationStateRef = useRef({ lastTimestamp: null });
   const touchZoomStateRef = useRef(null);
+  const gestureZoomStartRef = useRef(MAP_ZOOM_DEFAULT);
   const resolvedMapZoom = useMemo(() => clampMapZoom(mapZoom), [mapZoom]);
   const rotationDragStateRef = useRef(null);
   const rotationMoveHandlerRef = useRef(null);
@@ -949,12 +950,36 @@ const CampaignMapBoard = ({
       }
     };
 
+    const handleGestureStart = (event) => {
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+      gestureZoomStartRef.current = clampMapZoom(mapZoomTargetRef.current);
+    };
+
+    const handleGestureChange = (event) => {
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
+      const scale = Number(event?.scale);
+      if (!Number.isFinite(scale) || scale <= 0) {
+        return;
+      }
+
+      scheduleMapZoomUpdate(clampMapZoom(gestureZoomStartRef.current * scale));
+    };
+
     boardElement.addEventListener('touchmove', preventNativePinchZoom, { passive: false });
+    boardElement.addEventListener('gesturestart', handleGestureStart, { passive: false });
+    boardElement.addEventListener('gesturechange', handleGestureChange, { passive: false });
 
     return () => {
       boardElement.removeEventListener('touchmove', preventNativePinchZoom);
+      boardElement.removeEventListener('gesturestart', handleGestureStart);
+      boardElement.removeEventListener('gesturechange', handleGestureChange);
     };
-  }, [allowWheelZoom]);
+  }, [allowWheelZoom, scheduleMapZoomUpdate]);
 
   useEffect(() => {
     const boardElement = boardRef.current;
