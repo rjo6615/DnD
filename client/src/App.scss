@@ -8083,3 +8083,89 @@ h1 {
   grid-template-columns: 48px;
   align-self: center;
 }
+
+/* Final footer compaction: stack menu controls under primary actions and give spell/resource labels breathing room. */
+.combat-hud-dock {
+  grid-template-rows: auto auto;
+  align-items: stretch;
+}
+
+.combat-hud-dock__status,
+.combat-hud-dock__resources {
+  grid-row: 1 / span 2;
+}
+
+.combat-hud-dock__primary {
+  grid-column: 3;
+  grid-row: 1;
+  min-height: 64px;
+  align-self: end;
+}
+
+.combat-hud-dock__secondary {
+  grid-column: 3;
+  grid-row: 2;
+  min-height: 56px;
+  max-width: 420px;
+  justify-content: center;
+  align-content: center;
+  align-self: start;
+}
+
+.combat-hud-dock__resources {
+  min-height: 148px;
+}
+
+.combat-hud-dock__resource-rail {
+  height: 136px;
+  max-height: 136px;
+  grid-auto-rows: 62px;
+}
+
+.combat-hud-resource-tile {
+  min-height: 62px;
+}
+
+.combat-hud-dock .spell-slot-container {
+  min-height: 136px;
+  height: 136px;
+  padding-block: 8px;
+}
+
+.combat-hud-dock .spell-slot-section {
+  min-height: 124px;
+  gap: 10px;
+}
+
+.combat-hud-dock .spell-slot-section__label {
+  min-height: 16px;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+}
+
+.combat-hud-dock .spell-slot-section--pact {
+  width: 104px;
+  min-width: 104px;
+  max-width: 104px;
+  align-items: center;
+}
+
+.combat-hud-dock .spell-slot-section--pact .spell-slot-section__label {
+  text-align: center;
+}
+
+@media (min-width: 901px) {
+  .combat-hud-dock {
+    grid-template-columns: 360px minmax(620px, 760px) minmax(420px, 520px);
+  }
+}
+
+@media (max-width: 900px) {
+  .combat-hud-dock__status,
+  .combat-hud-dock__resources,
+  .combat-hud-dock__primary,
+  .combat-hud-dock__secondary {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
