@@ -8169,3 +8169,117 @@ h1 {
     grid-row: auto;
   }
 }
+
+/* Empty-space cleanup: size the HUD to its content instead of stretching large vacant panels. */
+.combat-hud-dock {
+  width: fit-content;
+  max-width: calc(100vw - 32px);
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+}
+
+.combat-hud-dock__status,
+.combat-hud-dock__resources,
+.combat-hud-dock__primary,
+.combat-hud-dock__secondary {
+  min-height: 0;
+}
+
+.combat-hud-dock__status {
+  width: 320px;
+  min-width: 320px;
+  padding: 8px;
+  gap: 8px;
+}
+
+.combat-hud-dock__status .footer-character-slot__portrait {
+  min-height: 48px;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-inline {
+  min-height: 48px;
+}
+
+.combat-hud-dock__resources {
+  width: auto;
+  min-height: 132px;
+  padding: 6px;
+  gap: 6px;
+}
+
+.combat-hud-dock__resource-rail {
+  width: 148px;
+  height: 124px;
+  max-height: 124px;
+  grid-template-columns: repeat(2, 68px);
+  grid-auto-rows: 58px;
+}
+
+.combat-hud-resource-tile {
+  min-height: 58px;
+}
+
+.combat-hud-dock .spell-slot-container {
+  width: auto;
+  min-width: 464px;
+  min-height: 124px;
+  height: 124px;
+  padding: 6px;
+  gap: 8px;
+}
+
+.combat-hud-dock .spell-slot-section {
+  min-height: 112px;
+  gap: 8px;
+}
+
+.combat-hud-dock .spell-slot-section--regular {
+  min-width: 268px;
+}
+
+.combat-hud-dock .spell-slot-section--pact {
+  width: 96px;
+  min-width: 96px;
+  max-width: 96px;
+}
+
+.combat-hud-dock__primary,
+.combat-hud-dock__secondary {
+  width: fit-content;
+  max-width: 360px;
+  padding: 6px;
+  justify-self: center;
+}
+
+.combat-hud-dock__primary {
+  min-height: 64px;
+}
+
+.combat-hud-dock__secondary {
+  min-height: 108px;
+}
+
+.combat-hud-dock__secondary .footer-btn {
+  flex: 0 0 48px;
+}
+
+@media (min-width: 901px) {
+  .combat-hud-dock {
+    grid-template-columns: 320px auto 360px;
+  }
+}
+
+@media (max-width: 900px) {
+  .combat-hud-dock {
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+  }
+
+  .combat-hud-dock__status,
+  .combat-hud-dock .spell-slot-container {
+    width: 100%;
+    min-width: 0;
+  }
+}
