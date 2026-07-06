@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Button, Spinner } from 'react-bootstrap';
 
@@ -36,6 +36,7 @@ const FooterCharacterSlot = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
   const [pendingHealth, setPendingHealth] = useState(null);
+  const dragStateRef = useRef(null);
   const [damageHighlightClass, setDamageHighlightClass] = useState('');
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
 
@@ -58,6 +59,14 @@ const FooterCharacterSlot = ({
   const numericCurrent = Number.isFinite(effectiveCurrent) ? effectiveCurrent : 0;
   const displayCurrent = Number.isFinite(effectiveCurrent) ? Math.round(effectiveCurrent) : '—';
   const displayMax = Number.isFinite(resolvedMax) ? Math.round(resolvedMax) : '—';
+  const healthPercent = useMemo(() => {
+    if (!Number.isFinite(numericCurrent) || !Number.isFinite(resolvedMax) || resolvedMax <= 0) {
+      return 0;
+    }
+
+    return Math.max(0, Math.min(100, Math.round((numericCurrent / resolvedMax) * 100)));
+  }, [numericCurrent, resolvedMax]);
+
   const displayArmorClass = useMemo(() => {
     if (armorClass === null || armorClass === undefined) {
       return '—';
@@ -232,6 +241,80 @@ const FooterCharacterSlot = ({
     updateHealth(next);
   };
 
+
+  const handleHealthDragStart = useCallback(
+    (event) => {
+      if (!characterId || resolvedCurrent === null || !Number.isFinite(resolvedCurrent)) {
+        return;
+      }
+
+      dragStateRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startHealth: resolvedCurrent,
+        previewHealth: resolvedCurrent,
+      };
+      setPendingHealth(resolvedCurrent);
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      event.currentTarget.dataset.dragging = 'true';
+    },
+    [characterId, resolvedCurrent]
+  );
+
+  const handleHealthDragMove = useCallback(
+    (event) => {
+      const dragState = dragStateRef.current;
+      if (!dragState || dragState.pointerId !== event.pointerId) {
+        return;
+      }
+
+      const delta = Math.round((event.clientX - dragState.startX) / 8);
+      const next = clampHealthValue(dragState.startHealth + delta);
+      if (next === null || next === dragState.previewHealth) {
+        return;
+      }
+
+      dragState.previewHealth = next;
+      setPendingHealth(next);
+    },
+    [clampHealthValue]
+  );
+
+  const finishHealthDrag = useCallback(
+    (event) => {
+      const dragState = dragStateRef.current;
+      if (!dragState || dragState.pointerId !== event.pointerId) {
+        return;
+      }
+
+      dragStateRef.current = null;
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+      delete event.currentTarget.dataset.dragging;
+
+      if (dragState.previewHealth !== resolvedCurrent) {
+        updateHealth(dragState.previewHealth);
+      } else {
+        setPendingHealth(null);
+      }
+    },
+    [resolvedCurrent, updateHealth]
+  );
+
+  const cancelHealthDrag = useCallback(
+    (event) => {
+      const dragState = dragStateRef.current;
+      if (!dragState || dragState.pointerId !== event.pointerId) {
+        return;
+      }
+
+      dragStateRef.current = null;
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+      delete event.currentTarget.dataset.dragging;
+      setPendingHealth(null);
+    },
+    []
+  );
+
   useEffect(() => {
     if (
       pendingHealth !== null &&
@@ -314,12 +397,19 @@ const FooterCharacterSlot = ({
             <div className="footer-character-slot__portrait-health">
               <div
                 className="footer-character-slot__health-inline"
+                style={{ '--footer-character-health-percent': `${healthPercent}%` }}
                 role="group"
-                aria-label="Character health controls"
+                aria-label="Character health controls. Drag left or right to adjust health."
+                title="Drag left or right to adjust health"
+                onPointerDown={handleHealthDragStart}
+                onPointerMove={handleHealthDragMove}
+                onPointerUp={finishHealthDrag}
+                onPointerCancel={cancelHealthDrag}
               >
                 <button
                   type="button"
                   className="footer-character-slot__health-mini-button footer-character-slot__health-mini-button--decrease"
+                  onPointerDown={(event) => event.stopPropagation()}
                   onClick={() => handleAdjustHealth(-1)}
                   disabled={!canDecrease}
                   aria-label="Decrease health"
@@ -344,6 +434,7 @@ const FooterCharacterSlot = ({
                 <button
                   type="button"
                   className="footer-character-slot__health-mini-button footer-character-slot__health-mini-button--increase"
+                  onPointerDown={(event) => event.stopPropagation()}
                   onClick={() => handleAdjustHealth(1)}
                   disabled={!canIncrease}
                   aria-label="Increase health"
