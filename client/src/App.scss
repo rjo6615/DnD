@@ -8701,38 +8701,10 @@ h1 {
   grid-template-columns: repeat(4, 58px);
   grid-auto-rows: 48px;
   width: 244px;
-  height: 104px;
-  max-height: 104px;
+  height: 58px;
+  max-height: 58px;
   overflow: hidden;
   align-items: stretch;
-}
-
-.combat-hud-dock__turn-slots {
-  display: flex;
-  justify-content: center;
-  width: 244px;
-  min-height: 46px;
-}
-
-.combat-hud-dock__turn-slots .spell-slot-container {
-  display: flex;
-  justify-content: center;
-  min-width: 0;
-  min-height: 46px;
-  height: 46px;
-  padding: 0;
-  gap: 6px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.combat-hud-dock__turn-slots .spell-slot {
-  width: 74px;
-  min-width: 74px;
-  height: 42px;
-  min-height: 42px;
-  padding: 4px 6px;
 }
 
 .combat-hud-resource-tile {
