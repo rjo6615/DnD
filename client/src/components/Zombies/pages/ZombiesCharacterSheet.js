@@ -3483,6 +3483,7 @@ export default function ZombiesCharacterSheet() {
     return null;
   }, [form]);
 
+  const [mobileHudPanel, setMobileHudPanel] = useState(null);
   const [footerDamageSummary, setFooterDamageSummary] = useState({
     value: null,
     isCritical: false,
@@ -5647,6 +5648,22 @@ export default function ZombiesCharacterSheet() {
           >
             <Container fluid className="footer-container hud-footer-container">
               <Dock className="combat-hud-dock" aria-label="Combat HUD dock">
+                <div className="combat-hud-mobile-tabs" aria-label="Mobile HUD sections">
+                  <button
+                    type="button"
+                    className={`combat-hud-mobile-tab ${mobileHudPanel === 'resources' ? 'is-active' : ''}`}
+                    onClick={() => setMobileHudPanel((panel) => (panel === 'resources' ? null : 'resources'))}
+                  >
+                    Resources
+                  </button>
+                  <button
+                    type="button"
+                    className={`combat-hud-mobile-tab ${mobileHudPanel === 'menu' ? 'is-active' : ''}`}
+                    onClick={() => setMobileHudPanel((panel) => (panel === 'menu' ? null : 'menu'))}
+                  >
+                    Menu
+                  </button>
+                </div>
                 <Panel className="combat-hud-dock__status" aria-label="Character status">
                   <FooterCharacterSlot
                     characterFigurine={characterFigurine}
@@ -5671,7 +5688,7 @@ export default function ZombiesCharacterSheet() {
                   </div>
                 </Panel>
 
-                <Panel className="combat-hud-dock__resources" aria-label="Combat resources">
+                <Panel className={`combat-hud-dock__resources ${mobileHudPanel === 'resources' ? 'is-mobile-open' : ''}`} aria-label="Combat resources">
                   {footerClassResources.length > 0 && (
                     <div className="combat-hud-dock__resource-rail" aria-label="Class resources">
                       {footerClassResources.map((resource) => {
@@ -5738,7 +5755,7 @@ export default function ZombiesCharacterSheet() {
                   </HudButton>
                 </Toolbar>
 
-                <Toolbar className="combat-hud-dock__secondary" aria-label="Secondary actions">
+                <Toolbar className={`combat-hud-dock__secondary ${mobileHudPanel === 'menu' ? 'is-mobile-open' : ''}`} aria-label="Secondary actions">
                   {footerMenuButtons.map((action) => {
                     const icons = { characterInfo: UserRound, stats: Dumbbell, skills: Gem, feats: Sparkles, inventory: Backpack, equipment: Shield, shop: Package, spells: BookOpen, help: CircleHelp, map: Settings };
                     const Icon = icons[action.key] || Settings;

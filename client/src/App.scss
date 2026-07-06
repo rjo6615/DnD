@@ -8326,3 +8326,119 @@ h1 {
     overflow-y: hidden;
   }
 }
+
+.combat-hud-mobile-tabs {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .hud-footer-navbar.footer-navbar.navbar {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  }
+
+  .combat-hud-dock {
+    width: min(100% - 16px, 520px);
+    max-width: min(100% - 16px, 520px);
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 22px;
+  }
+
+  .combat-hud-mobile-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    order: 1;
+  }
+
+  .combat-hud-mobile-tab {
+    min-height: 40px;
+    border-radius: 14px;
+    border: 1px solid rgba(228, 211, 169, 0.18);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--hud-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .combat-hud-mobile-tab.is-active {
+    color: var(--hud-text);
+    border-color: rgba(215, 168, 79, 0.72);
+    background: rgba(215, 168, 79, 0.14);
+  }
+
+  .combat-hud-dock__resources,
+  .combat-hud-dock__secondary {
+    display: none;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open,
+  .combat-hud-dock__secondary.is-mobile-open {
+    display: grid;
+  }
+
+  .combat-hud-dock__resources {
+    order: 2;
+    min-height: 0;
+    max-height: 34vh;
+    overflow: auto;
+  }
+
+  .combat-hud-dock__status {
+    order: 3;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .combat-hud-dock__primary {
+    order: 4;
+    width: 100%;
+    justify-content: center;
+    min-height: 64px;
+  }
+
+  .combat-hud-dock__secondary {
+    order: 5;
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    grid-template-columns: repeat(5, 56px);
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .combat-hud-dock__secondary.is-mobile-open {
+    display: grid;
+  }
+
+  .combat-hud-dock__resource-rail {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(80px, 1fr));
+    overflow: visible;
+  }
+
+  .combat-hud-resource-tile {
+    min-height: 76px;
+  }
+
+  .combat-hud-dock .spell-slot-container {
+    min-height: 104px;
+    height: auto;
+    overflow-x: auto;
+  }
+
+  .combat-hud-dock__status .footer-character-slot__health-inline {
+    min-height: 48px;
+  }
+
+  .hud-pass-turn-button.btn {
+    min-width: 168px;
+  }
+}
