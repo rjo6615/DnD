@@ -5723,22 +5723,6 @@ export default function ZombiesCharacterSheet() {
                 </Panel>
 
                 <Panel className={`combat-hud-dock__resources ${mobileHudPanel === 'resources' ? 'is-mobile-open' : ''}`} aria-label="Combat resources">
-                  {form && (
-                    <div className="combat-hud-dock__turn-slots" aria-label="Turn action tracking">
-                      <SpellSlots
-                        form={form}
-                        used={usedSlots}
-                        onToggleSlot={handleCastSpell}
-                        actionCount={actionCount}
-                        longRestCount={longRestCount}
-                        shortRestCount={shortRestCount}
-                        onActionSurge={handleActionSurge}
-                        showTurnSlots
-                        showSpellSlots={false}
-                        showFocusSlot={false}
-                      />
-                    </div>
-                  )}
                   {footerClassResources.length > 0 && (
                     <div className="combat-hud-dock__resource-rail" aria-label="Class resources">
                       {footerClassResources.map((resource) => {
