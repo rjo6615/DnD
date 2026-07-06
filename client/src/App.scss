@@ -8283,3 +8283,46 @@ h1 {
     min-width: 0;
   }
 }
+
+/* Center the tightened HUD and prevent the resource rail from clipping two rows of class resources. */
+.hud-footer-container.footer-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.hud-footer-navbar.footer-navbar.navbar {
+  left: 0;
+  right: 0;
+  justify-content: center;
+}
+
+.combat-hud-dock {
+  margin-inline: auto;
+}
+
+.combat-hud-dock__resource-rail {
+  width: 160px;
+  height: 132px;
+  max-height: 132px;
+  grid-template-columns: repeat(2, 72px);
+  grid-auto-rows: 60px;
+  overflow: hidden;
+}
+
+.combat-hud-resource-tile {
+  min-height: 60px;
+}
+
+@media (max-width: 900px) {
+  .hud-footer-container.footer-container {
+    justify-content: center;
+  }
+
+  .combat-hud-dock__resource-rail {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+}
