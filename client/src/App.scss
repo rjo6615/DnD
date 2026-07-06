@@ -7388,3 +7388,141 @@ h1 {
     padding: 0;
   }
 }
+
+/* Unified fantasy action bar and redesigned draggable health capsule. */
+.combat-hud-dock {
+  position: relative;
+  isolation: isolate;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(22, 18, 14, 0.86) 0%, rgba(7, 10, 16, 0.94) 58%, rgba(3, 5, 9, 0.96) 100%),
+    radial-gradient(circle at 18% 0%, rgba(200, 150, 74, 0.24), transparent 32%),
+    radial-gradient(circle at 72% 100%, rgba(70, 116, 180, 0.18), transparent 36%);
+  border: 1px solid rgba(228, 190, 112, 0.28);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 237, 196, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.72);
+}
+
+.combat-hud-dock::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  z-index: -1;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(90deg, rgba(255,255,255,0.04), transparent 18%, transparent 82%, rgba(255,255,255,0.04));
+  pointer-events: none;
+}
+
+.combat-hud-dock > .hud-panel,
+.combat-hud-dock > .hud-toolbar {
+  background: rgba(4, 8, 14, 0.48);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+  backdrop-filter: none;
+}
+
+.combat-hud-dock__status {
+  grid-template-columns: 96px 1fr;
+  align-items: center;
+  gap: 8px;
+  border-color: rgba(94, 133, 212, 0.28);
+}
+
+.combat-hud-dock__status .footer-character-slot__profile-card {
+  width: 96px;
+  justify-content: flex-start;
+}
+
+.combat-hud-dock__status .footer-character-slot__portrait {
+  width: 84px;
+  height: 84px;
+}
+
+.combat-hud-dock__status .footer-character-slot__portrait-ring {
+  padding: 7px;
+  background:
+    radial-gradient(circle at 50% 54%, rgba(24, 42, 82, 0.92), rgba(5, 9, 18, 0.95)),
+    conic-gradient(from 210deg, #274a8a, #14233f, #caa35b, #14233f, #274a8a);
+  box-shadow: 0 0 0 2px rgba(45, 75, 140, 0.8), 0 0 24px rgba(55, 96, 190, 0.35);
+}
+
+.combat-hud-dock__status .footer-character-slot__portrait-health {
+  bottom: -12px;
+  width: 132px;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-inline {
+  min-height: 38px;
+  width: 132px;
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+  border: 1px solid rgba(122, 166, 255, 0.42);
+  background:
+    linear-gradient(90deg, rgba(35, 61, 126, 0.95), rgba(10, 18, 36, 0.96)),
+    linear-gradient(90deg, rgba(226, 67, 60, 0.72), rgba(73, 180, 89, 0.72));
+  box-shadow: 0 10px 24px rgba(0,0,0,0.46), inset 0 1px 0 rgba(255,255,255,0.16);
+}
+
+.combat-hud-dock__status .footer-character-slot__health-inline[data-dragging="true"] {
+  border-color: rgba(255, 214, 122, 0.72);
+  box-shadow: 0 0 0 3px rgba(255, 196, 84, 0.16), 0 14px 28px rgba(0,0,0,0.5);
+}
+
+.combat-hud-dock__status .footer-character-slot__health-readout {
+  min-width: 70px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-current {
+  font-size: 1rem;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-max {
+  font-size: 0.7rem;
+  color: rgba(236, 243, 255, 0.72);
+}
+
+.combat-hud-dock__status .footer-character-slot__health-mini-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(43, 68, 138, 0.96);
+  border-color: rgba(138, 176, 255, 0.28);
+}
+
+.combat-hud-dock__status .footer-character-slot__armor-class {
+  top: -6px;
+  right: -8px;
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(15, 23, 44, 0.98), rgba(6, 9, 18, 0.98));
+  border-color: rgba(231, 211, 166, 0.64);
+}
+
+.combat-hud-dock__stat-pills {
+  align-content: center;
+}
+
+.combat-hud-pill {
+  min-height: 32px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.07);
+}
+
+@media (max-width: 900px) {
+  .combat-hud-dock {
+    padding: 10px;
+    border-radius: 24px 24px 18px 18px;
+  }
+
+  .combat-hud-dock__status {
+    grid-template-columns: 104px 1fr;
+  }
+}
