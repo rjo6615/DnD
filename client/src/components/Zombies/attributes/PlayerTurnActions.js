@@ -1962,6 +1962,7 @@ const sortedSpells = useMemo(() => {
 
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
 const [damageValue, setDamageValue] = useState(0);
+  const [hasDamageRoll, setHasDamageRoll] = useState(false);
   const [damageLog, setDamageLog] = useState([]);
   const [showLog, setShowLog] = useState(false);
   const [activeDice, setActiveDice] = useState([]);
@@ -2032,6 +2033,7 @@ const updateDamageValueWithAnimation = (
 ) => {
   setPulseClass('');
   setDamageValue(newValue);
+  setHasDamageRoll(newValue !== undefined);
   const details = Array.isArray(extra?.diceRolls) ? extra.diceRolls : [];
   triggerDiceAnimation(details);
   setLastRollTimestamp(Date.now());
@@ -2307,7 +2309,7 @@ const damageAmountStyle = {
           id="damageAmount"
           ref={damageAmountRef}
           style={damageAmountStyle}
-          className={`${pulseClass} ${isCritical ? 'critical-active' : ''} ${
+          className={`${hasDamageRoll ? 'damage-roller--visible' : 'damage-roller--hidden'} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${
             isFumble ? 'critical-failure' : ''
           }`}
         >
