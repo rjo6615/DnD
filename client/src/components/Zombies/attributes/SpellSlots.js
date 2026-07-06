@@ -229,10 +229,18 @@ export default function SpellSlots({
           <div className="spell-slot-section__label">Spell Levels</div>
           <div className="spell-slot-section__grid">
             {renderGroup(slotData, 'regular')}
+            {warlockLevels.length > 0 && (
+              <div className="spell-slot-section spell-slot-section--pact spell-slot-section--pact-inline" aria-label="Pact magic spell slots">
+                <div className="spell-slot-section__label">Pact Magic</div>
+                <div className="spell-slot-section__grid">
+                  {renderGroup(warlockData, 'warlock')}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
-      {showSpellSlots && warlockLevels.length > 0 && (
+      {showSpellSlots && regularLevels.length === 0 && warlockLevels.length > 0 && (
         <div className="spell-slot-section spell-slot-section--pact" aria-label="Pact magic spell slots">
           <div className="spell-slot-section__label">Pact Magic</div>
           <div className="spell-slot-section__grid">
