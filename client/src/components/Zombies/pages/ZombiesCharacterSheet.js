@@ -3484,6 +3484,7 @@ export default function ZombiesCharacterSheet() {
   }, [form]);
 
   const [mobileHudPanel, setMobileHudPanel] = useState(null);
+  const [isDamagePopupDismissed, setIsDamagePopupDismissed] = useState(false);
   const [footerDamageSummary, setFooterDamageSummary] = useState({
     value: null,
     isCritical: false,
@@ -3526,6 +3527,18 @@ export default function ZombiesCharacterSheet() {
       return next;
     });
   }, []);
+
+
+  useEffect(() => {
+    if (footerDamageSummary.value !== null && footerDamageSummary.value !== undefined) {
+      setIsDamagePopupDismissed(false);
+    }
+  }, [footerDamageSummary.timestamp, footerDamageSummary.value]);
+
+  const shouldShowDamagePopup =
+    footerDamageSummary.value !== null &&
+    footerDamageSummary.value !== undefined &&
+    !isDamagePopupDismissed;
 
   const footerHealth = useMemo(() => {
     if (!form || typeof form !== 'object') {
@@ -5637,6 +5650,27 @@ export default function ZombiesCharacterSheet() {
               />
             </div>
           </div>
+          {shouldShowDamagePopup && (
+            <div className="combat-hud-damage-popup" role="status" aria-live="polite">
+              <button
+                type="button"
+                className="combat-hud-damage-popup__close"
+                onClick={() => setIsDamagePopupDismissed(true)}
+                aria-label="Close damage popup"
+              >
+                ×
+              </button>
+              <span className="combat-hud-damage-popup__label">Damage</span>
+              <strong className="combat-hud-damage-popup__value">{footerDamageSummary.value}</strong>
+              <button
+                type="button"
+                className="combat-hud-damage-popup__log"
+                onClick={() => handleFooterQuickAction(openDamageLog)}
+              >
+                Log
+              </button>
+            </div>
+          )}
           <Navbar
             fixed="bottom"
             data-bs-theme="dark"
@@ -5742,17 +5776,6 @@ export default function ZombiesCharacterSheet() {
                   <IconButton label="Clear rolled dice" className="hud-action-button" onClick={() => handleFooterQuickAction(clearDamageDice)}><FaDiceD20 /></IconButton>
                   <IconButton label="Open dice roller" className="hud-action-button" onClick={() => handleFooterQuickAction(openDiceRoller)}><Dice5 size={24} /></IconButton>
                   <IconButton label="Open attack actions" className="hud-action-button hud-action-button--attack" onClick={() => handleFooterQuickAction(openAttackModal)}><Swords size={28} /></IconButton>
-                  <button
-                    type="button"
-                    className={`combat-hud-damage-chip ${footerDamageSummary.isCritical ? 'is-critical' : ''} ${footerDamageSummary.isFumble ? 'is-fumble' : ''}`}
-                    onClick={() => handleFooterQuickAction(openDamageLog)}
-                    aria-label="Open damage log"
-                    title="Open damage log"
-                  >
-                    <span className="combat-hud-damage-chip__label">Damage</span>
-                    <strong className="combat-hud-damage-chip__value">{footerDamageSummary.value ?? 0}</strong>
-                    <span className="combat-hud-damage-chip__log">Log</span>
-                  </button>
                   <HudButton
                     type="button"
                     variant="primary"

@@ -8609,3 +8609,81 @@ h1 {
     flex: 1 1 168px;
   }
 }
+
+/* Damage totals now appear as a dismissible center-screen popup, not in the action bar. */
+.combat-hud-damage-popup {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  z-index: 1080;
+  transform: translate(-50%, -50%);
+  min-width: 144px;
+  padding: 16px 20px 14px;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  border-radius: 22px;
+  border: 1px solid rgba(132, 176, 248, 0.45);
+  background: rgba(6, 10, 18, 0.92);
+  color: var(--hud-text);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62), inset 0 0 0 1px rgba(255,255,255,0.06);
+  pointer-events: auto;
+}
+
+.combat-hud-damage-popup__close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: var(--hud-text);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.combat-hud-damage-popup__label,
+.combat-hud-damage-popup__log {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hud-muted);
+}
+
+.combat-hud-damage-popup__value {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.combat-hud-damage-popup__log {
+  border: 0;
+  background: transparent;
+  color: var(--hud-text);
+  padding: 2px 8px;
+}
+
+/* Prevent mobile Resources drawer content from being clipped on the right edge. */
+@media (max-width: 900px) {
+  .combat-hud-dock__resources.is-mobile-open {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail,
+  .combat-hud-dock__resources.is-mobile-open .spell-slot-container {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .spell-slot-container {
+    padding-inline: 18px;
+  }
+}
