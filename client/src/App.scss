@@ -8442,3 +8442,20 @@ h1 {
     min-width: 168px;
   }
 }
+
+/* Mobile HP bar full-width correction. */
+@media (max-width: 900px) {
+  .combat-hud-dock__status .footer-character-slot,
+  .combat-hud-dock__status .footer-character-slot__profile-card,
+  .combat-hud-dock__status .footer-character-slot__profile,
+  .combat-hud-dock__status .footer-character-slot__portrait,
+  .combat-hud-dock__status .footer-character-slot__portrait-health,
+  .combat-hud-dock__status .footer-character-slot__health-inline {
+    width: 100%;
+    max-width: none;
+  }
+
+  .combat-hud-dock__status .footer-character-slot__profile-card {
+    flex: 1 1 100%;
+  }
+}
