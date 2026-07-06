@@ -5130,10 +5130,41 @@ export default function ZombiesCharacterSheet() {
       .filter((entry) => entry.name);
   }, []);
 
-  const footerClassResources = useMemo(
-    () => normalizeFooterCollection(form?.classResources || form?.resources),
-    [form?.classResources, form?.resources, normalizeFooterCollection]
-  );
+  const footerClassResources = useMemo(() => {
+    const existingResources = normalizeFooterCollection(form?.classResources || form?.resources);
+    const classLevels = (form?.occupation || []).reduce((acc, occupationEntry) => {
+      const name = String(
+        occupationEntry?.Name ?? occupationEntry?.Occupation ?? occupationEntry?.name ?? ''
+      ).toLowerCase();
+      const level = Number(occupationEntry?.Level ?? occupationEntry?.level ?? 0) || 0;
+      if (name && level > 0) {
+        acc[name] = (acc[name] || 0) + level;
+      }
+      return acc;
+    }, {});
+    const abilityModifier = (score) => Math.max(1, Math.floor(((Number(score) || 10) - 10) / 2));
+    const derivedResources = [];
+    const pushResource = (resource) => {
+      if (!resource || (resource.max !== '∞' && (!Number.isFinite(Number(resource.max)) || Number(resource.max) <= 0))) return;
+      const duplicate = existingResources.some((entry) =>
+        String(entry.name || '').toLowerCase() === String(resource.name || '').toLowerCase()
+      );
+      if (!duplicate) derivedResources.push(resource);
+    };
+
+    const monkFocusMax = getMonkFocusPoints(form);
+    pushResource({ id: 'monk-focus', icon: '✋', name: 'Ki / Focus', current: Math.max(monkFocusMax - (Number(usedSlots?.focus) || 0), 0), max: monkFocusMax, color: '#f6ad55' });
+    pushResource({ id: 'rage', icon: '🔥', name: 'Rage', current: classLevels.barbarian >= 20 ? '∞' : (classLevels.barbarian >= 17 ? 6 : classLevels.barbarian >= 12 ? 5 : classLevels.barbarian >= 6 ? 4 : classLevels.barbarian >= 3 ? 3 : classLevels.barbarian >= 1 ? 2 : 0), max: classLevels.barbarian >= 20 ? '∞' : (classLevels.barbarian >= 17 ? 6 : classLevels.barbarian >= 12 ? 5 : classLevels.barbarian >= 6 ? 4 : classLevels.barbarian >= 3 ? 3 : classLevels.barbarian >= 1 ? 2 : 0), color: '#f56565' });
+    if (classLevels.bard) pushResource({ id: 'bardic-inspiration', icon: '🎵', name: 'Bardic Inspiration', current: abilityModifier(form?.cha), max: abilityModifier(form?.cha), color: '#d6bcfa' });
+    if (classLevels.sorcerer) pushResource({ id: 'sorcery-points', icon: '✦', name: 'Sorcery Points', current: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, max: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, color: '#90cdf4' });
+    if (classLevels.cleric) pushResource({ id: 'channel-divinity', icon: '☀', name: 'Channel Divinity', current: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, max: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, color: '#faf089' });
+    if (classLevels.druid) pushResource({ id: 'wild-shape', icon: '🐾', name: 'Wild Shape', current: classLevels.druid >= 20 ? '∞' : classLevels.druid >= 2 ? 2 : 0, max: classLevels.druid >= 20 ? '∞' : classLevels.druid >= 2 ? 2 : 0, color: '#68d391' });
+    if (classLevels.fighter) pushResource({ id: 'second-wind', icon: '❤', name: 'Second Wind', current: classLevels.fighter >= 1 ? 1 : 0, max: classLevels.fighter >= 1 ? 1 : 0, color: '#fc8181' });
+    if (classLevels.fighter) pushResource({ id: 'action-surge', icon: '⚡', name: 'Action Surge', current: classLevels.fighter >= 17 ? 2 : classLevels.fighter >= 2 ? 1 : 0, max: classLevels.fighter >= 17 ? 2 : classLevels.fighter >= 2 ? 1 : 0, color: '#f6e05e' });
+    if (classLevels.paladin) pushResource({ id: 'lay-on-hands', icon: '✚', name: 'Lay on Hands', current: classLevels.paladin ? classLevels.paladin * 5 : 0, max: classLevels.paladin ? classLevels.paladin * 5 : 0, color: '#9ae6b4' });
+
+    return [...derivedResources, ...existingResources];
+  }, [form, normalizeFooterCollection, usedSlots?.focus]);
   const footerActiveBonuses = useMemo(
     () => normalizeFooterCollection(form?.activeBonuses || form?.bonuses || form?.activeEffects),
     [form?.activeBonuses, form?.bonuses, form?.activeEffects, normalizeFooterCollection]
@@ -5181,6 +5212,9 @@ export default function ZombiesCharacterSheet() {
                 </span>
                 <span className="footer-resource-row__value">
                   {resource.current ?? '—'}{resource.max ? `/${resource.max}` : ''}
+                </span>
+                <span className="footer-resource-row__controls" aria-hidden="true">
+                  <span>−</span><span>+</span>
                 </span>
               </div>
             ))}
