@@ -7821,3 +7821,61 @@ h1 {
 .combat-hud-resource-tile:disabled {
   opacity: 1;
 }
+
+/* Alignment cleanup: center HP value and vertically balance resources/spell slots in the HUD panel. */
+.combat-hud-dock__status .footer-character-slot__health-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 12px;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-readout {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 0;
+  margin: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-inline::before {
+  display: none;
+}
+
+.combat-hud-dock__resources {
+  align-items: center;
+  justify-items: center;
+}
+
+.combat-hud-dock__resource-rail {
+  align-self: center;
+  justify-self: center;
+  max-height: 140px;
+  overflow-x: hidden;
+}
+
+.combat-hud-dock .spell-slot-container {
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  padding-top: 0;
+}
+
+.combat-hud-dock .spell-slot-section {
+  align-self: center;
+  align-items: center;
+}
+
+.combat-hud-dock .spell-slot-section__label {
+  align-self: center;
+}
+
+@media (max-width: 900px) {
+  .combat-hud-dock__resource-rail {
+    justify-self: stretch;
+  }
+}
