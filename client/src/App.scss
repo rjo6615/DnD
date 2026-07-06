@@ -7193,3 +7193,198 @@ h1 {
   .hud-pass-turn-button.btn { flex: 1 1 auto; min-width: 128px; }
   .combat-hud-dock .spell-slot-container { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Combat HUD correction pass: keep the liked action dock, but make status/resources a compact HUD instead of inherited panels. */
+.combat-hud-dock__status .footer-character-slot {
+  --footer-character-portrait-size: 72px;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.combat-hud-dock__status .footer-character-slot__profile-card {
+  width: 88px;
+  margin: 0;
+  align-items: center;
+}
+
+.combat-hud-dock__status .footer-character-slot__profile {
+  gap: 0;
+}
+
+.combat-hud-dock__status .footer-character-slot__hud,
+.combat-hud-dock__status .footer-character-slot__footer-rail,
+.combat-hud-dock__status .footer-character-slot__damage {
+  display: none;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-inline {
+  min-height: 32px;
+  border-radius: 999px;
+  transform: translateY(8px);
+}
+
+.combat-hud-dock__status .footer-character-slot__health-mini-button {
+  width: 32px;
+  height: 32px;
+}
+
+.combat-hud-dock__status .footer-character-slot__health-readout {
+  min-width: 72px;
+  font-size: 0.8rem;
+}
+
+.combat-hud-dock__status .footer-character-slot__armor-class {
+  top: 0;
+  right: -2px;
+}
+
+.combat-hud-dock__resources {
+  max-height: 176px;
+  overflow: hidden;
+}
+
+.combat-hud-dock .spell-slot-container {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.combat-hud-dock .spell-slot-section {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  grid-template-rows: 18px 56px;
+  gap: 6px;
+  align-items: end;
+}
+
+.combat-hud-dock .spell-slot-section__label {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.combat-hud-dock .spell-slot-section__grid {
+  grid-row: 2;
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.combat-hud-dock .spell-slot,
+.combat-hud-dock .spell-slot.focus-slot {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  min-height: 56px;
+  padding: 6px;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 4px;
+  border-radius: 12px;
+  background: rgba(6, 12, 24, 0.72);
+  border: 1px solid rgba(108, 171, 255, 0.25);
+}
+
+.combat-hud-dock .spell-slot .slot-level {
+  position: static;
+  transform: none;
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.combat-hud-dock .spell-slot .slot-boxes {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 3px;
+  max-height: 44px;
+}
+
+.combat-hud-dock .spell-slot .slot-small,
+.combat-hud-dock .spell-slot .action-circle,
+.combat-hud-dock .spell-slot .bonus-circle {
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  min-height: 10px;
+  border-width: 1px;
+}
+
+.combat-hud-dock .focus-slot .focus-icon-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.combat-hud-dock .focus-slot .focus-count {
+  top: 3px;
+  font-size: 0.85rem;
+}
+
+.combat-hud-dock .focus-slot .focus-icon,
+.combat-hud-dock .focus-slot .focus-icon--glow {
+  padding-top: 14px;
+  font-size: 1.25rem;
+}
+
+.combat-hud-dock__resource-grid {
+  overflow-y: auto;
+  align-content: start;
+  max-height: 152px;
+}
+
+.combat-hud-dock__resource-grid .hud-resource-counter {
+  min-height: 44px;
+  max-height: 52px;
+}
+
+@media (min-width: 901px) {
+  .combat-hud-dock {
+    grid-template-columns: 264px minmax(520px, 760px) auto minmax(224px, 320px);
+  }
+}
+
+@media (max-width: 900px) {
+  .combat-hud-dock__resources {
+    max-height: 152px;
+    grid-template-columns: 1fr;
+    overflow: hidden;
+  }
+
+  .combat-hud-dock .spell-slot-container {
+    grid-template-columns: none;
+    min-height: 76px;
+  }
+
+  .combat-hud-dock__resource-grid {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-height: 56px;
+  }
+
+  .combat-hud-dock__resource-grid .hud-resource-counter {
+    min-width: 168px;
+  }
+
+  .combat-hud-dock__status {
+    grid-template-columns: 96px 1fr;
+    align-items: center;
+  }
+
+  .combat-hud-dock__status .combat-hud-dock__stat-pills {
+    padding: 0;
+  }
+}
