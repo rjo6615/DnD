@@ -8035,3 +8035,51 @@ h1 {
     grid-template-columns: 360px minmax(568px, 720px) auto minmax(204px, 292px);
   }
 }
+
+/* Spell label crop fix: labels get their own readable row above the slot grid. */
+.combat-hud-dock .spell-slot-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 108px;
+}
+
+.combat-hud-dock .spell-slot-section__label {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  overflow: visible;
+  white-space: nowrap;
+  position: relative;
+  z-index: 2;
+}
+
+.combat-hud-dock .spell-slot-section__grid {
+  grid-row: auto;
+  align-self: start;
+}
+
+.combat-hud-dock .spell-slot-section--regular {
+  min-width: 256px;
+}
+
+.combat-hud-dock .spell-slot-section--pact {
+  width: 92px;
+  min-width: 92px;
+  max-width: 92px;
+}
+
+.combat-hud-dock .spell-slot-section--pact .spell-slot-section__label {
+  max-width: none;
+  text-overflow: clip;
+}
+
+.combat-hud-dock .spell-slot-section--pact .spell-slot-section__grid {
+  grid-template-columns: 48px;
+  align-self: center;
+}
