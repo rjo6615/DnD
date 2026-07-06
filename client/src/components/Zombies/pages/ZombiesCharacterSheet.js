@@ -5153,15 +5153,15 @@ export default function ZombiesCharacterSheet() {
     };
 
     const monkFocusMax = getMonkFocusPoints(form);
-    pushResource({ id: 'monk-focus', icon: '✋', name: 'Ki / Focus', current: Math.max(monkFocusMax - (Number(usedSlots?.focus) || 0), 0), max: monkFocusMax, color: '#f6ad55' });
-    pushResource({ id: 'rage', icon: '🔥', name: 'Rage', current: classLevels.barbarian >= 20 ? '∞' : (classLevels.barbarian >= 17 ? 6 : classLevels.barbarian >= 12 ? 5 : classLevels.barbarian >= 6 ? 4 : classLevels.barbarian >= 3 ? 3 : classLevels.barbarian >= 1 ? 2 : 0), max: classLevels.barbarian >= 20 ? '∞' : (classLevels.barbarian >= 17 ? 6 : classLevels.barbarian >= 12 ? 5 : classLevels.barbarian >= 6 ? 4 : classLevels.barbarian >= 3 ? 3 : classLevels.barbarian >= 1 ? 2 : 0), color: '#f56565' });
-    if (classLevels.bard) pushResource({ id: 'bardic-inspiration', icon: '🎵', name: 'Bardic Inspiration', current: abilityModifier(form?.cha), max: abilityModifier(form?.cha), color: '#d6bcfa' });
-    if (classLevels.sorcerer) pushResource({ id: 'sorcery-points', icon: '✦', name: 'Sorcery Points', current: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, max: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, color: '#90cdf4' });
-    if (classLevels.cleric) pushResource({ id: 'channel-divinity', icon: '☀', name: 'Channel Divinity', current: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, max: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, color: '#faf089' });
-    if (classLevels.druid) pushResource({ id: 'wild-shape', icon: '🐾', name: 'Wild Shape', current: classLevels.druid >= 20 ? '∞' : classLevels.druid >= 2 ? 2 : 0, max: classLevels.druid >= 20 ? '∞' : classLevels.druid >= 2 ? 2 : 0, color: '#68d391' });
-    if (classLevels.fighter) pushResource({ id: 'second-wind', icon: '❤', name: 'Second Wind', current: classLevels.fighter >= 1 ? 1 : 0, max: classLevels.fighter >= 1 ? 1 : 0, color: '#fc8181' });
-    if (classLevels.fighter) pushResource({ id: 'action-surge', icon: '⚡', name: 'Action Surge', current: classLevels.fighter >= 17 ? 2 : classLevels.fighter >= 2 ? 1 : 0, max: classLevels.fighter >= 17 ? 2 : classLevels.fighter >= 2 ? 1 : 0, color: '#f6e05e' });
-    if (classLevels.paladin) pushResource({ id: 'lay-on-hands', icon: '✚', name: 'Lay on Hands', current: classLevels.paladin ? classLevels.paladin * 5 : 0, max: classLevels.paladin ? classLevels.paladin * 5 : 0, color: '#9ae6b4' });
+    pushResource({ id: 'monk-focus', icon: '✋', name: 'Ki / Focus', current: Math.max(monkFocusMax - (Number(usedSlots?.focus) || 0), 0), max: monkFocusMax, color: '#38e8ff' });
+    pushResource({ id: 'rage', icon: '🔥', name: 'Rage', current: classLevels.barbarian >= 20 ? '∞' : (classLevels.barbarian >= 17 ? 6 : classLevels.barbarian >= 12 ? 5 : classLevels.barbarian >= 6 ? 4 : classLevels.barbarian >= 3 ? 3 : classLevels.barbarian >= 1 ? 2 : 0), max: classLevels.barbarian >= 20 ? '∞' : (classLevels.barbarian >= 17 ? 6 : classLevels.barbarian >= 12 ? 5 : classLevels.barbarian >= 6 ? 4 : classLevels.barbarian >= 3 ? 3 : classLevels.barbarian >= 1 ? 2 : 0), color: '#f0733f' });
+    if (classLevels.bard) pushResource({ id: 'bardic-inspiration', icon: '🎵', name: 'Bardic Inspiration', current: abilityModifier(form?.cha), max: abilityModifier(form?.cha), color: '#d7b46a' });
+    if (classLevels.sorcerer) pushResource({ id: 'sorcery-points', icon: '✦', name: 'Sorcery Points', current: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, max: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, color: '#b85cff' });
+    if (classLevels.cleric) pushResource({ id: 'channel-divinity', icon: '☀', name: 'Channel Divinity', current: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, max: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, color: '#f3d98a' });
+    if (classLevels.druid) pushResource({ id: 'wild-shape', icon: '🐾', name: 'Wild Shape', current: classLevels.druid >= 20 ? '∞' : classLevels.druid >= 2 ? 2 : 0, max: classLevels.druid >= 20 ? '∞' : classLevels.druid >= 2 ? 2 : 0, color: '#49d98a' });
+    if (classLevels.fighter) pushResource({ id: 'second-wind', icon: '❤', name: 'Second Wind', current: classLevels.fighter >= 1 ? 1 : 0, max: classLevels.fighter >= 1 ? 1 : 0, color: '#ff5c72' });
+    if (classLevels.fighter) pushResource({ id: 'action-surge', icon: '⚡', name: 'Action Surge', current: classLevels.fighter >= 17 ? 2 : classLevels.fighter >= 2 ? 1 : 0, max: classLevels.fighter >= 17 ? 2 : classLevels.fighter >= 2 ? 1 : 0, color: '#f3b35f' });
+    if (classLevels.paladin) pushResource({ id: 'lay-on-hands', icon: '✚', name: 'Lay on Hands', current: classLevels.paladin ? classLevels.paladin * 5 : 0, max: classLevels.paladin ? classLevels.paladin * 5 : 0, color: '#f5d27b' });
 
     return [...derivedResources, ...existingResources];
   }, [form, normalizeFooterCollection, usedSlots?.focus]);
@@ -5202,7 +5202,7 @@ export default function ZombiesCharacterSheet() {
           <h3>Class Resources</h3>
           <div className="footer-resources-list">
             {footerClassResources.map((resource) => (
-              <div className="footer-resource-row" key={resource.id}>
+              <div className="footer-resource-row" key={resource.id} style={{ '--resource-accent': resource.color }}>
                 <span className="footer-resource-row__icon" style={{ color: resource.color }}>{resource.icon}</span>
                 <span className="footer-resource-row__name">{resource.name}</span>
                 <span className="footer-resource-row__pips" aria-hidden="true">
@@ -5226,7 +5226,7 @@ export default function ZombiesCharacterSheet() {
           <h3>Active Bonuses</h3>
           <div className="footer-resources-list">
             {footerActiveBonuses.map((bonus) => (
-              <div className="footer-resource-row" key={bonus.id}>
+              <div className="footer-resource-row" key={bonus.id} style={{ '--resource-accent': bonus.color }}>
                 <span className="footer-resource-row__icon" style={{ color: bonus.color }}>{bonus.icon}</span>
                 <span className="footer-resource-row__name">{bonus.name}</span>
                 <span className="footer-resource-row__duration">{bonus.duration || '—'}</span>
@@ -5240,7 +5240,7 @@ export default function ZombiesCharacterSheet() {
           <h3>Conditions</h3>
           <div className="footer-resources-list">
             {footerConditions.map((condition) => (
-              <div className="footer-resource-row" key={condition.id}>
+              <div className="footer-resource-row" key={condition.id} style={{ '--resource-accent': condition.color }}>
                 <span className="footer-resource-row__icon" style={{ color: condition.color }}>{condition.icon}</span>
                 <span className="footer-resource-row__name">{condition.name}</span>
                 <span className="footer-resource-row__duration">{condition.duration || '—'}</span>
