@@ -6742,3 +6742,148 @@ h1 {
     width: 100%;
   }
 }
+
+/* Final combat dock containment and click-through corrections */
+.footer-character-slot__resources-drawer[aria-hidden='true'] {
+  visibility: hidden;
+  pointer-events: none !important;
+}
+
+.footer-character-slot--resources-open .footer-character-slot__resources-drawer {
+  visibility: visible;
+}
+
+.footer-resources-drawer-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: max-content;
+  max-width: 100%;
+  gap: 16px;
+}
+
+.footer-resources-section {
+  flex: 0 1 280px;
+}
+
+.footer-resources-section--spell-slots {
+  flex-basis: clamp(330px, 38vw, 540px);
+}
+
+.footer-resources-section--spell-slots .spell-slot-section__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 56px));
+  justify-content: start;
+}
+
+.footer-resources-section--spell-slots .spell-slot-section--pact .spell-slot-section__grid {
+  grid-template-columns: repeat(auto-fill, minmax(44px, 56px));
+}
+
+.footer-btn--clear-dice,
+.footer-btn--dice,
+.footer-btn--attack {
+  --footer-action-button-size: 48px;
+  width: var(--footer-action-button-size) !important;
+  height: var(--footer-action-button-size) !important;
+  min-width: var(--footer-action-button-size) !important;
+  min-height: var(--footer-action-button-size) !important;
+  flex: 0 0 var(--footer-action-button-size) !important;
+  padding: 0 !important;
+}
+
+.footer-btn--clear-dice .footer-btn__clear-dice-icon,
+.footer-btn--dice .footer-btn__dice-icon,
+.footer-btn--attack .footer-btn__attack-image {
+  width: 30px !important;
+  height: 30px !important;
+  max-width: 30px;
+  max-height: 30px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.footer-btn--dice {
+  font-size: 30px !important;
+}
+
+@media (min-width: 761px) {
+  .footer-character-slot__resources-drawer {
+    width: auto;
+    max-width: min(92vw, 1040px);
+  }
+}
+
+@media (max-width: 600px) {
+  .footer-character-slot {
+    --footer-character-portrait-size: 54px;
+    grid-template-columns: 64px minmax(0, 1fr) minmax(96px, auto);
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .footer-character-slot__profile-card {
+    width: 64px;
+    flex-basis: 64px;
+  }
+
+  .footer-character-slot__damage {
+    min-height: 48px;
+    padding: 6px 8px;
+  }
+
+  .footer-character-slot__resources-toggle.btn {
+    min-width: 96px;
+    min-height: 48px;
+    padding: 6px 8px;
+  }
+
+  .footer-actions-menu {
+    display: none !important;
+  }
+
+  .footer-actions-wrapper {
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+  }
+
+  .footer-actions-inline {
+    border-radius: 16px;
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .footer-actions-inline > .footer-pass-log-button {
+    min-width: 88px;
+    min-height: 48px;
+  }
+
+  .footer-character-slot__resources-drawer {
+    bottom: calc(100% + 8px);
+    max-height: min(54vh, 430px);
+    width: calc(100vw - 20px);
+  }
+
+  .footer-resources-drawer-content {
+    display: flex;
+    width: 100%;
+    max-width: none;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .footer-resources-section {
+    flex: 0 0 min(84vw, 360px);
+    scroll-snap-align: start;
+  }
+
+  .footer-resources-section--spell-slots .spell-slot-section__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .footer-resources-section--spell-slots .spell-slot {
+    min-width: 0;
+  }
+}
