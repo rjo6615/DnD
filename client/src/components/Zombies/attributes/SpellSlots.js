@@ -224,8 +224,22 @@ export default function SpellSlots({
           </div>
         </div>
       )}
-      {showSpellSlots && regularLevels.length > 0 && renderGroup(slotData, 'regular')}
-      {showSpellSlots && warlockLevels.length > 0 && renderGroup(warlockData, 'warlock')}
+      {showSpellSlots && regularLevels.length > 0 && (
+        <div className="spell-slot-section spell-slot-section--regular" aria-label="Prepared spell slots">
+          <div className="spell-slot-section__label">Spell Levels</div>
+          <div className="spell-slot-section__grid">
+            {renderGroup(slotData, 'regular')}
+          </div>
+        </div>
+      )}
+      {showSpellSlots && warlockLevels.length > 0 && (
+        <div className="spell-slot-section spell-slot-section--pact" aria-label="Pact magic spell slots">
+          <div className="spell-slot-section__label">Pact Magic</div>
+          <div className="spell-slot-section__grid">
+            {renderGroup(warlockData, 'warlock')}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
