@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { io } from "socket.io-client";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
-import { Nav, Navbar, Container, Button } from 'react-bootstrap';
+import { Navbar, Container } from 'react-bootstrap';
 import '../../../App.scss';
 import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
@@ -44,12 +44,13 @@ import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import { getMonkFocusPoints } from '../../../utils/monk';
 import { FaDiceD20 } from "react-icons/fa";
+import { Backpack, BookOpen, CircleHelp, Dice5, Dumbbell, Gem, HeartPulse, Package, Settings, Shield, Sparkles, Swords, UserRound } from "lucide-react";
+import { Button as HudButton, Dock, IconButton, Panel, Toolbar } from "../common/HudPrimitives";
 import hasteIcon from "../../../images/spell-haste-icon.png";
 import largeFormIcon from "../../../images/large-form-icon.png";
 import dragonWingsIcon from "../../../images/dragon-wings-icon.png";
 import adrenalineRushIcon from "../../../images/adrenaline-rush.png";
 import speakWithAnimalsIcon from "../../../images/speak-with-animal.png";
-import sword from "../../../images/sword.png";
 import ShopModal from "../attributes/ShopModal";
 import InventoryModal from "../attributes/InventoryModal";
 import EquipmentModal from "../attributes/EquipmentModal";
@@ -5183,75 +5184,6 @@ export default function ZombiesCharacterSheet() {
     footerClassResources.length + footerActiveBonuses.length + footerConditions.length +
     (hasFooterSpellSlots ? 1 : 0);
 
-  const footerResourcesDrawer = form && footerHiddenResourceCount > 0 ? (
-    <div className="footer-resources-drawer-content">
-      {hasFooterSpellSlots && (
-        <section className="footer-resources-section footer-resources-section--spell-slots">
-          <h3>Spell Slots</h3>
-          <SpellSlots
-            form={form}
-            used={usedSlots}
-            onToggleSlot={handleCastSpell}
-            showTurnSlots={false}
-            showFocusSlot={false}
-          />
-        </section>
-      )}
-      {footerClassResources.length > 0 && (
-        <section className="footer-resources-section">
-          <h3>Class Resources</h3>
-          <div className="footer-resources-list">
-            {footerClassResources.map((resource) => (
-              <div className="footer-resource-row" key={resource.id} style={{ '--resource-accent': resource.color }}>
-                <span className="footer-resource-row__icon" style={{ color: resource.color }}>{resource.icon}</span>
-                <span className="footer-resource-row__name">{resource.name}</span>
-                <span className="footer-resource-row__pips" aria-hidden="true">
-                  {Number.isFinite(Number(resource.max)) && Array.from({ length: Math.min(Number(resource.max), 8) }).map((_, i) => (
-                    <span key={i} className={i < Number(resource.current || 0) ? 'is-filled' : ''} />
-                  ))}
-                </span>
-                <span className="footer-resource-row__value">
-                  {resource.current ?? '—'}{resource.max ? `/${resource.max}` : ''}
-                </span>
-                <span className="footer-resource-row__controls" aria-hidden="true">
-                  <span>−</span><span>+</span>
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      {footerActiveBonuses.length > 0 && (
-        <section className="footer-resources-section">
-          <h3>Active Bonuses</h3>
-          <div className="footer-resources-list">
-            {footerActiveBonuses.map((bonus) => (
-              <div className="footer-resource-row" key={bonus.id} style={{ '--resource-accent': bonus.color }}>
-                <span className="footer-resource-row__icon" style={{ color: bonus.color }}>{bonus.icon}</span>
-                <span className="footer-resource-row__name">{bonus.name}</span>
-                <span className="footer-resource-row__duration">{bonus.duration || '—'}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      {footerConditions.length > 0 && (
-        <section className="footer-resources-section">
-          <h3>Conditions</h3>
-          <div className="footer-resources-list">
-            {footerConditions.map((condition) => (
-              <div className="footer-resource-row" key={condition.id} style={{ '--resource-accent': condition.color }}>
-                <span className="footer-resource-row__icon" style={{ color: condition.color }}>{condition.icon}</span>
-                <span className="footer-resource-row__name">{condition.name}</span>
-                <span className="footer-resource-row__duration">{condition.duration || '—'}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
-  ) : null;
-
   const DOCKABLE_MODAL_CONFIG = useMemo(
     () => ({
       characterInfo: {
@@ -5708,120 +5640,104 @@ export default function ZombiesCharacterSheet() {
             fixed="bottom"
             data-bs-theme="dark"
             style={{ backgroundColor: 'transparent' }}
-            className={[overlaySurfaceClassName, 'footer-navbar']
+            className={[overlaySurfaceClassName, 'footer-navbar hud-footer-navbar']
               .filter(Boolean)
               .join(' ')}
-            aria-label="Character sheet footer actions"
+            aria-label="Combat HUD dock"
           >
-            <Container className="footer-container">
-              <Nav className="footer-nav">
-                <FooterCharacterSlot
-                  characterFigurine={characterFigurine}
-                  characterId={characterId}
-                  characterName={footerCharacterName}
-                  currentHealth={footerHealth.current}
-                  maxHealth={footerHealth.max}
-                  armorClass={footerArmorClass}
-                  onHealthChange={handleHealthChange}
-                  damageSummary={footerDamageSummary}
-                  onOpenDamageLog={() => handleFooterQuickAction(openDamageLog)}
-                  spellSlots={
-                    form ? (
-                      <SpellSlots
-                        form={form}
-                        used={usedSlots}
-                        onToggleSlot={handleCastSpell}
-                        actionCount={actionCount}
-                        longRestCount={longRestCount}
-                        shortRestCount={shortRestCount}
-                        onActionSurge={handleActionSurge}
-                        showSpellSlots={false}
-                        showFocusSlot={false}
-                      />
-                    ) : null
-                  }
-                  resourcesDrawer={footerResourcesDrawer}
-                  hiddenResourceCount={footerHiddenResourceCount}
-                  actions={
-                    <div className="footer-actions-wrapper">
-                      <div className="footer-actions-inline">
-                        <Button
-                          variant="link"
-                          className="footer-btn footer-btn--clear-dice"
-                          type="button"
-                          onClick={() => handleFooterQuickAction(clearDamageDice)}
-                          aria-label="Clear rolled dice"
-                          title="Clear dice"
+            <Container fluid className="footer-container hud-footer-container">
+              <Dock className="combat-hud-dock" aria-label="Combat HUD dock">
+                <Panel className="combat-hud-dock__status" aria-label="Character status">
+                  <FooterCharacterSlot
+                    characterFigurine={characterFigurine}
+                    characterId={characterId}
+                    characterName={footerCharacterName}
+                    currentHealth={footerHealth.current}
+                    maxHealth={footerHealth.max}
+                    armorClass={footerArmorClass}
+                    onHealthChange={handleHealthChange}
+                    damageSummary={footerDamageSummary}
+                    onOpenDamageLog={() => handleFooterQuickAction(openDamageLog)}
+                    spellSlots={null}
+                    resourcesDrawer={null}
+                    hiddenResourceCount={footerHiddenResourceCount}
+                    actions={null}
+                    onToggleCritical={toggleCriticalFromFooter}
+                  />
+                  <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
+                    <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
+                    <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
+                    <span className="combat-hud-pill"><Sparkles size={16} /> {footerConditions.length || 'No'} conditions</span>
+                  </div>
+                </Panel>
+
+                <Panel className="combat-hud-dock__resources" aria-label="Combat resources">
+                  {footerClassResources.length > 0 && (
+                    <div className="combat-hud-dock__resource-rail" aria-label="Class resources">
+                      {footerClassResources.map((resource) => (
+                        <div
+                          key={resource.id}
+                          className="combat-hud-resource-tile"
+                          style={{ '--hud-resource-accent': resource.color }}
+                          title={`${resource.name}: ${resource.current ?? '—'}/${resource.max ?? '—'}`}
                         >
-                          <span className="footer-btn__clear-dice-icon" aria-hidden="true">
-                            <FaDiceD20
-                              className="footer-btn__clear-dice-icon-die"
-                              aria-hidden="true"
-                              focusable="false"
-                            />
-                          </span>
-                        </Button>
-                        <Button
-                          variant="link"
-                          className="footer-btn footer-btn--dice"
-                          type="button"
-                          onClick={() => handleFooterQuickAction(openDiceRoller)}
-                          aria-label="Open dice roller"
-                          title="Dice roller"
-                        >
-                          <FaDiceD20
-                            className="footer-btn__dice-icon"
-                            aria-hidden="true"
-                            focusable="false"
-                          />
-                        </Button>
-                        <Button
-                          variant="link"
-                          className="footer-btn footer-btn--attack"
-                          type="button"
-                          onClick={() => handleFooterQuickAction(openAttackModal)}
-                          aria-label="Open attack actions"
-                          title="Attack options"
-                        >
-                          <img
-                            src={sword}
-                            alt=""
-                            aria-hidden="true"
-                            className="footer-btn__attack-image"
-                          />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline-light"
-                          className="footer-pass-log-button"
-                          disabled={passDisabled}
-                          onClick={() => handleFooterQuickAction(handlePassTurn)}
-                          aria-label="Pass turn"
-                          title="Pass turn"
-                        >
-                          Pass ➔
-                        </Button>
-                      </div>
-                      <div className="footer-actions-menu">
-                        {footerMenuButtons.map((action) => (
-                          <Button
-                            key={action.key}
-                            variant={action.variant}
-                            className={action.className}
-                            style={action.style}
-                            onClick={() => handleFooterQuickAction(action.onClick)}
-                            aria-label={action.ariaLabel}
-                            title={action.title}
-                          >
-                            {action.content}
-                          </Button>
-                        ))}
-                      </div>
+                          <span className="combat-hud-resource-tile__icon" aria-hidden="true">{resource.icon}</span>
+                          <span className="combat-hud-resource-tile__value">{resource.current ?? '—'}/{resource.max ?? '—'}</span>
+                          <span className="visually-hidden">{resource.name}</span>
+                        </div>
+                      ))}
                     </div>
-                  }
-                  onToggleCritical={toggleCriticalFromFooter}
-                />
-              </Nav>
+                  )}
+                  {form && (
+                    <SpellSlots
+                      form={form}
+                      used={usedSlots}
+                      onToggleSlot={handleCastSpell}
+                      actionCount={actionCount}
+                      longRestCount={longRestCount}
+                      shortRestCount={shortRestCount}
+                      onActionSurge={handleActionSurge}
+                      showTurnSlots={false}
+                      showFocusSlot
+                    />
+                  )}
+                </Panel>
+
+                <Toolbar className="combat-hud-dock__primary" aria-label="Primary combat actions">
+                  <IconButton label="Clear rolled dice" className="hud-action-button" onClick={() => handleFooterQuickAction(clearDamageDice)}><FaDiceD20 /></IconButton>
+                  <IconButton label="Open dice roller" className="hud-action-button" onClick={() => handleFooterQuickAction(openDiceRoller)}><Dice5 size={24} /></IconButton>
+                  <IconButton label="Open attack actions" className="hud-action-button hud-action-button--attack" onClick={() => handleFooterQuickAction(openAttackModal)}><Swords size={28} /></IconButton>
+                  <HudButton
+                    type="button"
+                    variant="primary"
+                    className="hud-pass-turn-button"
+                    disabled={passDisabled}
+                    onClick={() => handleFooterQuickAction(handlePassTurn)}
+                    aria-label="Pass turn"
+                    title="Pass turn"
+                  >
+                    Pass Turn
+                  </HudButton>
+                </Toolbar>
+
+                <Toolbar className="combat-hud-dock__secondary" aria-label="Secondary actions">
+                  {footerMenuButtons.map((action) => {
+                    const icons = { characterInfo: UserRound, stats: Dumbbell, skills: Gem, feats: Sparkles, inventory: Backpack, equipment: Shield, shop: Package, spells: BookOpen, help: CircleHelp, map: Settings };
+                    const Icon = icons[action.key] || Settings;
+                    return (
+                      <IconButton
+                        key={action.key}
+                        label={action.ariaLabel || action.title}
+                        className={action.className}
+                        style={action.style}
+                        onClick={() => handleFooterQuickAction(action.onClick)}
+                      >
+                        <Icon size={20} />
+                      </IconButton>
+                    );
+                  })}
+                </Toolbar>
+              </Dock>
             </Container>
           </Navbar>
         </>
