@@ -2018,7 +2018,7 @@ const MapModal = ({
             map={previewMap}
             tokens={boardTokens}
             disabled={isBoardDisabled}
-            allowWheelZoom={!isBackground}
+            allowWheelZoom
             onTokenPositionChange={
               canManipulateTokens ? handleTokenPositionChange : undefined
             }

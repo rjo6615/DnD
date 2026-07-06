@@ -100,6 +100,20 @@ const DEFAULT_GRID_DIMENSION = 24;
 const MAP_ZOOM_EPSILON = 0.0005;
 const MAP_ZOOM_ANIMATION_TIME_CONSTANT_MS = 90;
 
+const getTouchDistance = (touches) => {
+  if (!touches || touches.length < 2) {
+    return null;
+  }
+
+  const first = touches[0];
+  const second = touches[1];
+  const deltaX = Number(second.clientX) - Number(first.clientX);
+  const deltaY = Number(second.clientY) - Number(first.clientY);
+  const distance = Math.hypot(deltaX, deltaY);
+
+  return Number.isFinite(distance) && distance > 0 ? distance : null;
+};
+
 const resolveElementScale = (element) => {
   if (!element || typeof element.getBoundingClientRect !== 'function') {
     return { x: 1, y: 1 };
@@ -535,6 +549,8 @@ const CampaignMapBoard = ({
   const mapZoomRafRef = useRef(null);
   const mapZoomTargetRef = useRef(MAP_ZOOM_DEFAULT);
   const mapZoomAnimationStateRef = useRef({ lastTimestamp: null });
+  const touchZoomStateRef = useRef(null);
+  const gestureZoomStartRef = useRef(MAP_ZOOM_DEFAULT);
   const resolvedMapZoom = useMemo(() => clampMapZoom(mapZoom), [mapZoom]);
   const rotationDragStateRef = useRef(null);
   const rotationMoveHandlerRef = useRef(null);
@@ -872,6 +888,98 @@ const CampaignMapBoard = ({
     },
     [allowWheelZoom, scheduleMapZoomUpdate]
   );
+
+
+  const handleTouchStart = useCallback(
+    (event) => {
+      if (!allowWheelZoom) {
+        return;
+      }
+
+      const touches = event?.touches;
+      const distance = getTouchDistance(touches);
+      if (distance === null) {
+        touchZoomStateRef.current = null;
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      touchZoomStateRef.current = {
+        distance,
+        zoom: clampMapZoom(mapZoomTargetRef.current),
+      };
+    },
+    [allowWheelZoom]
+  );
+
+  const handleTouchMove = useCallback(
+    (event) => {
+      if (!allowWheelZoom) {
+        return;
+      }
+
+      const distance = getTouchDistance(event?.touches);
+      const state = touchZoomStateRef.current;
+      if (distance === null || !state || !Number.isFinite(state.distance) || state.distance <= 0) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      const nextZoom = clampMapZoom(state.zoom * (distance / state.distance));
+      scheduleMapZoomUpdate(nextZoom);
+    },
+    [allowWheelZoom, scheduleMapZoomUpdate]
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    touchZoomStateRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    const boardElement = boardRef.current;
+
+    if (!boardElement || !allowWheelZoom) {
+      return () => {};
+    }
+
+    const preventNativePinchZoom = (event) => {
+      if (event?.touches && event.touches.length >= 2) {
+        event.preventDefault();
+      }
+    };
+
+    const handleGestureStart = (event) => {
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+      gestureZoomStartRef.current = clampMapZoom(mapZoomTargetRef.current);
+    };
+
+    const handleGestureChange = (event) => {
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
+      const scale = Number(event?.scale);
+      if (!Number.isFinite(scale) || scale <= 0) {
+        return;
+      }
+
+      scheduleMapZoomUpdate(clampMapZoom(gestureZoomStartRef.current * scale));
+    };
+
+    boardElement.addEventListener('touchmove', preventNativePinchZoom, { passive: false });
+    boardElement.addEventListener('gesturestart', handleGestureStart, { passive: false });
+    boardElement.addEventListener('gesturechange', handleGestureChange, { passive: false });
+
+    return () => {
+      boardElement.removeEventListener('touchmove', preventNativePinchZoom);
+      boardElement.removeEventListener('gesturestart', handleGestureStart);
+      boardElement.removeEventListener('gesturechange', handleGestureChange);
+    };
+  }, [allowWheelZoom, scheduleMapZoomUpdate]);
 
   useEffect(() => {
     const boardElement = boardRef.current;
@@ -1993,6 +2101,10 @@ const CampaignMapBoard = ({
       )}
       style={boardStyle}
       onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     >
       {title && <h5 className="campaign-map-board__title">{title}</h5>}
       {imageSrc ? (
