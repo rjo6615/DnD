@@ -8538,3 +8538,74 @@ h1 {
 .campaign-map-board__tokens-layer {
   touch-action: pinch-zoom;
 }
+
+/* Mobile resource drawer/damage polish. */
+.combat-hud-damage-chip {
+  min-height: 56px;
+  min-width: 88px;
+  padding: 6px 10px;
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  border-radius: 16px;
+  border: 1px solid rgba(132, 176, 248, 0.32);
+  background: rgba(8, 13, 24, 0.82);
+  color: var(--hud-text);
+}
+
+.combat-hud-damage-chip__label,
+.combat-hud-damage-chip__log {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hud-muted);
+}
+
+.combat-hud-damage-chip__value {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.combat-hud-damage-chip.is-critical {
+  border-color: rgba(255, 207, 93, 0.78);
+}
+
+.combat-hud-damage-chip.is-fumble {
+  border-color: rgba(255, 92, 114, 0.78);
+}
+
+@media (max-width: 900px) {
+  .combat-hud-dock__resources.is-mobile-open {
+    padding: 12px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail {
+    padding: 10px;
+    gap: 8px;
+    grid-template-columns: repeat(4, minmax(96px, 1fr));
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .spell-slot-container {
+    padding: 12px 14px;
+    scroll-padding-inline: 14px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .spell-slot-section--regular {
+    padding-left: 4px;
+  }
+
+  .combat-hud-dock__primary {
+    flex-wrap: wrap;
+  }
+
+  .combat-hud-damage-chip {
+    order: 4;
+    min-width: 96px;
+    flex: 0 0 96px;
+  }
+
+  .hud-pass-turn-button.btn {
+    flex: 1 1 168px;
+  }
+}

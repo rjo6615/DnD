@@ -5742,6 +5742,17 @@ export default function ZombiesCharacterSheet() {
                   <IconButton label="Clear rolled dice" className="hud-action-button" onClick={() => handleFooterQuickAction(clearDamageDice)}><FaDiceD20 /></IconButton>
                   <IconButton label="Open dice roller" className="hud-action-button" onClick={() => handleFooterQuickAction(openDiceRoller)}><Dice5 size={24} /></IconButton>
                   <IconButton label="Open attack actions" className="hud-action-button hud-action-button--attack" onClick={() => handleFooterQuickAction(openAttackModal)}><Swords size={28} /></IconButton>
+                  <button
+                    type="button"
+                    className={`combat-hud-damage-chip ${footerDamageSummary.isCritical ? 'is-critical' : ''} ${footerDamageSummary.isFumble ? 'is-fumble' : ''}`}
+                    onClick={() => handleFooterQuickAction(openDamageLog)}
+                    aria-label="Open damage log"
+                    title="Open damage log"
+                  >
+                    <span className="combat-hud-damage-chip__label">Damage</span>
+                    <strong className="combat-hud-damage-chip__value">{footerDamageSummary.value ?? 0}</strong>
+                    <span className="combat-hud-damage-chip__log">Log</span>
+                  </button>
                   <HudButton
                     type="button"
                     variant="primary"
