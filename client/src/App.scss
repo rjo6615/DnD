@@ -8493,3 +8493,48 @@ h1 {
     box-sizing: border-box;
   }
 }
+
+/* Mobile resources panel fix: resources stack above spell slots instead of squeezing spells off-screen. */
+@media (max-width: 900px) {
+  .combat-hud-dock__resources.is-mobile-open {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    grid-auto-rows: auto;
+    align-items: stretch;
+    gap: 10px;
+    max-height: 42vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail {
+    grid-row: 1;
+    width: 100%;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .spell-slot-container {
+    grid-row: 2;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .spell-slot-section--regular {
+    min-width: max-content;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .spell-slot-section--pact {
+    flex: 0 0 104px;
+  }
+}
+
+/* Allow mobile pinch gestures to reach the map/background instead of being fully suppressed by legacy touch-action rules. */
+.map-modal-background__board,
+.map-modal-background__board-inner,
+.campaign-map-board,
+.campaign-map-board__stage,
+.campaign-map-board__tokens-layer {
+  touch-action: pinch-zoom;
+}
