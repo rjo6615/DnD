@@ -8459,3 +8459,37 @@ h1 {
     flex: 1 1 100%;
   }
 }
+
+/* Strong mobile HP stretch: override legacy portrait-sized footer slot rules. */
+@media (max-width: 900px) {
+  .combat-hud-dock__status .footer-character-slot {
+    display: block !important;
+  }
+
+  .combat-hud-dock__status .footer-character-slot__profile-card,
+  .combat-hud-dock__status .footer-character-slot__profile,
+  .combat-hud-dock__status .footer-character-slot__portrait,
+  .combat-hud-dock__status .footer-character-slot__portrait-health {
+    display: block !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+  }
+
+  .combat-hud-dock__status .footer-character-slot__portrait-health {
+    position: relative !important;
+    inset: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+  }
+
+  .combat-hud-dock__status .footer-character-slot__health-inline {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box;
+  }
+}
