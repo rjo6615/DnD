@@ -8786,3 +8786,43 @@ h1 {
   touch-action: none;
   overscroll-behavior: contain;
 }
+
+/* Mobile follow-up: pact magic should be a normal spell cube, and opened resources should stay four-wide. */
+.combat-hud-dock .spell-slot-section--regular > .spell-slot-section__grid > .warlock-slot {
+  grid-column: 5;
+  grid-row: 2;
+  border-color: rgba(190, 98, 255, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(190, 98, 255, 0.18), 0 0 18px rgba(190, 98, 255, 0.24);
+}
+
+.combat-hud-dock .spell-slot-section--regular > .spell-slot-section__grid > .warlock-slot .slot-small {
+  border-color: rgba(218, 147, 255, 0.92);
+  box-shadow: 0 0 8px rgba(202, 112, 255, 0.7), inset 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 900px) {
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-resource-tile {
+    min-width: 0;
+    min-height: 48px;
+    padding: 3px 2px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-resource-tile__icon {
+    font-size: 1.1rem;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-resource-tile__name {
+    font-size: 0.46rem;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-resource-tile__value {
+    font-size: 0.54rem;
+  }
+}

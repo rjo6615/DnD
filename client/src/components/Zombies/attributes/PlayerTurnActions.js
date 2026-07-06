@@ -2096,6 +2096,16 @@ const [pulseClass, setPulseClass] = useState('');
 
 useEffect(() => {
   if (typeof onDamageSummaryChange === 'function') {
+    if (!hasDamageRoll) {
+      onDamageSummaryChange({
+        value: null,
+        isCritical: false,
+        isFumble: false,
+        timestamp: null,
+      });
+      return;
+    }
+
     onDamageSummaryChange({
       value: damageValue,
       isCritical,
@@ -2103,7 +2113,7 @@ useEffect(() => {
       timestamp: lastRollTimestamp || null,
     });
   }
-}, [onDamageSummaryChange, damageValue, isCritical, isFumble, lastRollTimestamp]);
+}, [onDamageSummaryChange, hasDamageRoll, damageValue, isCritical, isFumble, lastRollTimestamp]);
 
 useEffect(() => {
   if (!lastRollTimestamp) {
