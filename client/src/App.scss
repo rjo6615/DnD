@@ -8992,3 +8992,507 @@ h1 {
     padding-bottom: 28px;
   }
 }
+
+/* RealmTracker Modal Design System
+   Audit summary: existing modals repeated Bootstrap headers/footers, inline 70vh body scrolling,
+   black generic cards, mixed close/dock buttons, table-like shop/inventory panels, and uneven grids.
+   These global primitives standardize current and future dialogs without removing existing behavior. */
+:root {
+  --realm-void: #050814;
+  --realm-navy: #081426;
+  --realm-surface: rgba(9, 18, 34, 0.94);
+  --realm-surface-2: rgba(16, 30, 52, 0.82);
+  --realm-border: rgba(151, 190, 255, 0.22);
+  --realm-border-strong: rgba(231, 196, 112, 0.38);
+  --realm-gold: #d8b76a;
+  --realm-blue: #4ea1ff;
+  --realm-purple: #9b70ff;
+  --realm-text: #f4f7ff;
+  --realm-muted: #a9b7ca;
+  --realm-danger: #ff6071;
+  --realm-success: #56d585;
+}
+
+.modal-backdrop.show { opacity: 0.72; backdrop-filter: blur(6px); }
+.modal.show .modal-dialog { animation: realmModalEnter 220ms cubic-bezier(.2,.9,.2,1); }
+@keyframes realmModalEnter { from { opacity: 0; transform: translateY(18px) scale(.975); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.modal:not(.map-editor-modal) .modal-dialog { max-width: min(96vw, 1220px); }
+.modal-sm.modal-dialog, .modal-dialog.modal-sm { max-width: min(92vw, 560px) !important; }
+.modal-md.modal-dialog, .modal-dialog.modal-md { max-width: min(94vw, 780px) !important; }
+
+.modal-content,
+.dnd-modal .modal-content,
+.modern-card {
+  position: relative;
+  overflow: hidden;
+  color: var(--realm-text) !important;
+  border: 1px solid var(--realm-border) !important;
+  border-radius: 18px !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(78, 161, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 82% 10%, rgba(155, 112, 255, 0.12), transparent 30%),
+    linear-gradient(145deg, rgba(12, 24, 43, 0.96), rgba(3, 7, 16, 0.98) 62%) !important;
+  box-shadow: 0 28px 80px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 1px rgba(216,183,106,.08) !important;
+  isolation: isolate;
+}
+.modal-content::before, .modern-card::before {
+  content: ''; position: absolute; inset: 10px; border: 1px solid rgba(216,183,106,.14); border-radius: 14px; pointer-events: none; z-index: -1;
+  background: linear-gradient(90deg, rgba(216,183,106,.28), transparent 18%, transparent 82%, rgba(216,183,106,.28)) top/100% 1px no-repeat;
+}
+
+.modal-header, .modern-card .modal-header, .card-header.modal-header {
+  min-height: 72px; padding: 16px 72px !important; border-bottom: 1px solid var(--realm-border) !important;
+  background: linear-gradient(180deg, rgba(15,32,56,.96), rgba(7,13,27,.9)) !important;
+  position: sticky; top: 0; z-index: 10; align-items: center; justify-content: center;
+}
+.modal-title { color: var(--realm-text); font-weight: 800; letter-spacing: .01em; text-shadow: 0 0 24px rgba(78,161,255,.32); }
+.modal-header .btn-close { position: absolute; right: 18px; top: 18px; filter: invert(1); opacity: .85; border: 1px solid var(--realm-border); border-radius: 12px; padding: .7rem; background-color: rgba(255,255,255,.06); }
+.dock-control { border-radius: 12px; border-color: var(--realm-border-strong); background: rgba(9,18,34,.82); color: var(--realm-text); }
+.dock-control--left { left: 18px; } .dock-control--right { right: 18px; }
+
+.modal-body, .modern-card .modal-body {
+  padding: 24px !important; color: var(--realm-text) !important; background: rgba(2,6,14,.22);
+  scrollbar-color: rgba(216,183,106,.6) rgba(255,255,255,.08); scrollbar-width: thin;
+}
+.modal-dialog-scrollable .modal-body, .modern-card .modal-body[style*="overflowY"] { max-height: min(72vh, 860px) !important; overflow-y: auto !important; }
+.modal-footer, .modern-card .modal-footer, .card-footer.modal-footer {
+  position: sticky; bottom: 0; z-index: 10; padding: 16px 24px !important; border-top: 1px solid var(--realm-border) !important;
+  background: linear-gradient(180deg, rgba(5,10,21,.88), rgba(8,16,30,.97)) !important; gap: 12px;
+}
+
+.modal .card, .skill-card, .attack-card, .equipment-slot-card, .shop-item-card, .inventory-item-card, .feature-card {
+  border: 1px solid var(--realm-border) !important; border-radius: 16px !important;
+  background: linear-gradient(145deg, rgba(18,32,54,.86), rgba(7,12,25,.9)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 14px 30px rgba(0,0,0,.28);
+}
+.modal .btn, .action-btn, .hud-button {
+  border-radius: 12px !important; border: 1px solid rgba(151,190,255,.25) !important; font-weight: 700;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+}
+.modal .btn:hover, .action-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(78,161,255,.18); }
+.modal .btn-primary, .action-btn.close-btn, .close-btn { background: linear-gradient(135deg, #1b74ff, #45a4ff) !important; border-color: rgba(115,190,255,.8) !important; color: #fff !important; }
+.modal .btn-danger { background: linear-gradient(135deg, #8b1e31, #e33b52) !important; }
+.modal .btn-success { background: linear-gradient(135deg, #1c6c45, #35b869) !important; }
+
+.modal .form-control, .modal .form-select, .modal input, .modal select, .realm-search-bar {
+  color: var(--realm-text) !important; background-color: rgba(8,18,33,.9) !important; border: 1px solid var(--realm-border) !important; border-radius: 12px !important;
+}
+.modal .form-control:focus, .modal .form-select:focus { box-shadow: 0 0 0 .2rem rgba(78,161,255,.22) !important; border-color: var(--realm-blue) !important; }
+.modal .nav-tabs { border-bottom: 1px solid var(--realm-border); gap: 8px; }
+.modal .nav-tabs .nav-link { color: var(--realm-muted); border: 1px solid transparent; border-radius: 12px 12px 0 0; }
+.modal .nav-tabs .nav-link.active { color: var(--realm-text); background: linear-gradient(180deg, rgba(78,161,255,.18), rgba(8,18,33,.94)); border-color: var(--realm-border); border-bottom-color: transparent; }
+
+.skills-card-grid, .attack-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.skill-card { padding: 16px; text-align: left; display: grid; gap: 12px; }
+.skill-card-header { display:flex; justify-content:space-between; gap:12px; align-items:start; }
+.skill-card-name { font-size:1.05rem; font-weight:800; }
+.skill-card-ability, .skill-card-metric-label { color: var(--realm-muted); text-transform: uppercase; letter-spacing: .1em; font-size: .76rem; }
+.skill-card-metrics { display:grid; grid-template-columns: repeat(2,1fr); gap:8px; }
+.skill-card-metric { padding:10px; border-radius:12px; background:rgba(255,255,255,.04); }
+.skill-card-metric-value { display:block; font-size:1.45rem; font-weight:900; color:#fff; }
+.skill-card-toggles { display:flex; gap:16px; flex-wrap:wrap; }
+.skill-card-actions .btn-link { color: var(--realm-blue) !important; }
+
+.spell-card, [class*="spell-card"] { background: linear-gradient(145deg, rgba(28,20,46,.88), rgba(8,14,30,.92)) !important; border-color: rgba(155,112,255,.28) !important; }
+.spell-card::after, [class*="spell-card"]::after { content:''; display:block; height:1px; margin-top:10px; background:linear-gradient(90deg, transparent, rgba(216,183,106,.42), transparent); }
+.points-container { gap: 8px; color: var(--realm-text); } .points-value { color: var(--realm-success) !important; }
+
+.damage-log__segment, .modal li:not(.nav-item) { border-radius: 12px; }
+.modal ul.list-unstyled > li:not(.roll-separator) { text-align:left; padding:12px 14px; margin-bottom:8px; background:rgba(14,27,48,.72); border-left:3px solid var(--realm-blue); }
+.roll-separator { height:1px; background:linear-gradient(90deg, transparent, var(--realm-border-strong), transparent); margin:10px 0; }
+
+.realm-modal-shell, .realm-section, .realm-info-card, .realm-stat-card, .realm-scrollable-panel { border:1px solid var(--realm-border); border-radius:16px; background:var(--realm-surface-2); }
+.realm-modal-header, .realm-modal-footer, .realm-action-bar, .realm-toolbar { display:flex; align-items:center; gap:12px; }
+.realm-modal-body, .realm-scrollable-panel { overflow:auto; }
+.realm-resource-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; color:#f0e8ff; background:rgba(155,112,255,.18); border:1px solid rgba(155,112,255,.28); }
+.realm-empty-state { padding:32px; text-align:center; color:var(--realm-muted); border:1px dashed var(--realm-border); border-radius:16px; }
+
+@media (max-width: 768px) {
+  .modal-dialog { align-items: flex-end !important; min-height: 100%; margin: 0 !important; max-width: 100% !important; }
+  .modal-content, .modern-card { border-radius: 22px 22px 0 0 !important; max-height: 92vh; }
+  .modal-header { padding: 14px 60px !important; min-height: 64px; }
+  .modal-body { padding: 16px !important; }
+  .skills-card-grid, .attack-card-grid { grid-template-columns: 1fr; gap: 12px; }
+}
+
+/* Modal usability refinements: readable text, reliable mobile scrolling, denser mobile grids. */
+.modal-content,
+.modal-content .card,
+.modern-card,
+.modern-card .card,
+.modal .card-body,
+.modal .card-title,
+.modal .card-text,
+.modal p,
+.modal label,
+.modal small,
+.modal li,
+.modal td,
+.modal th,
+.modal .dropdown-menu,
+.modal .text-dark,
+.modal .text-body,
+.modal .text-secondary,
+.modal .text-muted {
+  color: var(--realm-text) !important;
+}
+
+.modal .text-muted,
+.modal small,
+.modal .card-subtitle,
+.modal .stat-card-label,
+.modal .skill-card-ability,
+.modal .skill-card-metric-label,
+.modal .stat-card-metric-label,
+.modal .character-info-label {
+  color: var(--realm-muted) !important;
+}
+
+.modal .dropdown-menu,
+.modal .list-group-item,
+.modal table,
+.modal .table,
+.modal .alert:not(.alert-danger):not(.alert-warning):not(.alert-success) {
+  background: rgba(8, 18, 33, 0.96) !important;
+  border-color: var(--realm-border) !important;
+}
+
+.modal .alert-warning {
+  color: #fff4cc !important;
+  background: linear-gradient(135deg, rgba(112, 77, 12, 0.86), rgba(57, 38, 6, 0.92)) !important;
+  border-color: rgba(216, 183, 106, 0.5) !important;
+}
+
+.modal-dialog {
+  max-height: calc(100dvh - 2rem);
+}
+
+.modal-content,
+.modal-content > .card,
+.modern-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem);
+  min-height: 0;
+}
+
+.modal-body,
+.modern-card .modal-body,
+.card-body.modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.attack-card-grid,
+.skills-card-grid,
+.stat-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.stat-card,
+.skill-card {
+  padding: 12px !important;
+  gap: 10px;
+}
+
+.stat-card-body,
+.skill-card-metrics {
+  gap: 8px;
+}
+
+.stat-card-metric,
+.skill-card-metric {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .modal-dialog {
+    max-height: 100dvh;
+  }
+
+  .modal-content,
+  .modal-content > .card,
+  .modern-card {
+    max-height: 92dvh;
+  }
+
+  .skills-card-grid,
+  .stat-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .attack-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
+    gap: 10px;
+  }
+
+  .skill-card-name,
+  .stat-card-key {
+    font-size: 0.95rem;
+  }
+
+  .skill-card-metric-value,
+  .stat-card-metric-value {
+    font-size: 1.1rem;
+  }
+
+  .skill-card-toggles {
+    gap: 8px;
+    font-size: 0.82rem;
+  }
+
+  .modal-footer,
+  .modern-card .modal-footer,
+  .card-footer.modal-footer {
+    padding: 12px 16px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .skills-card-grid,
+  .stat-card-grid {
+    grid-template-columns: repeat(2, minmax(132px, 1fr));
+    overflow-x: auto;
+  }
+}
+
+/* Shop modal: purse/cart command bar above inventory-style category tabs. */
+.shop-modal-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--realm-border);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(216, 183, 106, 0.16), transparent 32%),
+    linear-gradient(135deg, rgba(10, 22, 40, 0.94), rgba(5, 10, 22, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 14px 28px rgba(0, 0, 0, 0.24);
+}
+
+.shop-modal-currency {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.shop-modal-currency__label,
+.shop-cart-btn__label {
+  color: var(--realm-gold) !important;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.shop-modal-currency > span:not(.shop-modal-currency__label):not(.visually-hidden) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid rgba(216, 183, 106, 0.24);
+  border-radius: 999px;
+  color: var(--realm-text) !important;
+  background: rgba(255, 255, 255, 0.045);
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.shop-modal-currency__coin svg {
+  font-size: 0.95rem;
+  filter: drop-shadow(0 0 6px rgba(216, 183, 106, 0.28));
+}
+
+.shop-modal-currency__coin strong {
+  color: var(--realm-text) !important;
+  font-weight: 900;
+}
+
+.shop-modal-currency__coin--platinum svg { color: #dbe7ff; }
+.shop-modal-currency__coin--gold svg { color: #f5c95f; }
+.shop-modal-currency__coin--silver svg { color: #c8d2df; }
+.shop-modal-currency__coin--copper svg { color: #d48a55; }
+
+.shop-cart-btn--toolbar {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  gap: 12px;
+  min-width: 176px;
+  min-height: 58px;
+  padding: 8px 14px !important;
+  border-color: rgba(151, 190, 255, 0.3) !important;
+  background: linear-gradient(145deg, rgba(18, 32, 54, 0.9), rgba(8, 14, 28, 0.94)) !important;
+}
+
+.shop-cart-btn--active {
+  border-color: rgba(216, 183, 106, 0.78) !important;
+  background:
+    radial-gradient(circle at 22% 0%, rgba(255, 223, 128, 0.34), transparent 36%),
+    linear-gradient(135deg, rgba(47, 34, 9, 0.96), rgba(19, 34, 62, 0.96)) !important;
+  box-shadow: 0 0 0 1px rgba(216, 183, 106, 0.22), 0 0 28px rgba(216, 183, 106, 0.24) !important;
+}
+
+.shop-cart-btn--active::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 15px;
+  border: 1px solid rgba(216, 183, 106, 0.42);
+  pointer-events: none;
+  animation: realmCartPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes realmCartPulse {
+  0%, 100% { opacity: 0.35; box-shadow: 0 0 0 rgba(216, 183, 106, 0); }
+  50% { opacity: 0.9; box-shadow: 0 0 18px rgba(216, 183, 106, 0.32); }
+}
+
+.shop-cart-btn__icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.shop-cart-btn__badge {
+  position: absolute;
+  top: -9px;
+  right: -10px;
+  box-shadow: 0 0 0 2px rgba(8, 14, 28, 0.96);
+}
+
+.shop-cart-btn__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.shop-cart-btn__meta {
+  color: var(--realm-text) !important;
+  font-size: 0.86rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.shop-modal-tabs {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 18px !important;
+  padding: 0 !important;
+  border-bottom: 1px solid var(--realm-border) !important;
+  background: transparent !important;
+}
+
+.shop-modal-tabs .nav-tabs {
+  gap: 6px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+}
+
+.shop-modal-tabs .nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.shop-modal-tabs .nav-tabs .nav-link {
+  min-width: 116px;
+  padding: 12px 18px;
+  text-align: center;
+  background: rgba(9, 18, 34, 0.68);
+}
+
+.shop-modal-tabs .nav-tabs .nav-link.active {
+  background: linear-gradient(180deg, rgba(20, 34, 58, 0.98), rgba(12, 22, 40, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 768px) {
+  .shop-modal-toolbar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .shop-modal-currency > span:not(.shop-modal-currency__label):not(.visually-hidden) {
+    min-height: 30px;
+    padding: 5px 8px;
+    font-size: 0.86rem;
+  }
+
+  .shop-cart-btn--toolbar {
+    width: 100%;
+    justify-self: stretch;
+    justify-content: center;
+    min-height: 52px;
+  }
+
+  .shop-modal-tabs .nav-tabs .nav-link {
+    min-width: 104px;
+    padding: 10px 14px;
+  }
+}
+
+/* Fine tune the shop cart glyph so it is optically centered inside its icon well. */
+.shop-cart-btn__icon-wrap > svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: block;
+}
+
+/* Keep the cart count badge tucked outside the icon well so it does not cover the cart glyph. */
+.shop-cart-btn__badge {
+  top: -12px;
+  right: -14px;
+  z-index: 2;
+  min-width: 24px;
+}
+
+/* Production polish: make the cart count a small corner badge, not an overlay on the glyph. */
+.shop-cart-btn__badge.badge {
+  top: -10px;
+  right: -11px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 0 0 2px rgba(8, 14, 28, 0.98), 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+/* Cart badge lives on the button corner, not inside the cart icon well. */
+.shop-cart-btn--toolbar > .shop-cart-btn__badge.badge {
+  position: absolute !important;
+  top: -8px !important;
+  right: -8px !important;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px !important;
+  z-index: 4;
+  pointer-events: none;
+}
