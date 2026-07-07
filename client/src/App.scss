@@ -8701,10 +8701,38 @@ h1 {
   grid-template-columns: repeat(4, 58px);
   grid-auto-rows: 48px;
   width: 244px;
-  height: 58px;
-  max-height: 58px;
+  height: 104px;
+  max-height: 104px;
   overflow: hidden;
   align-items: stretch;
+}
+
+.combat-hud-dock__turn-slots {
+  display: flex;
+  justify-content: center;
+  width: 244px;
+  min-height: 46px;
+}
+
+.combat-hud-dock__turn-slots .spell-slot-container {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  min-height: 46px;
+  height: 46px;
+  padding: 0;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.combat-hud-dock__turn-slots .spell-slot {
+  width: 74px;
+  min-width: 74px;
+  height: 42px;
+  min-height: 42px;
+  padding: 4px 6px;
 }
 
 .combat-hud-resource-tile {
@@ -8824,5 +8852,120 @@ h1 {
 
   .combat-hud-dock__resources.is-mobile-open .combat-hud-resource-tile__value {
     font-size: 0.54rem;
+  }
+}
+
+/* Keep the desktop combat HUD layout stable while adding turn trackers above class resources. */
+@media (min-width: 901px) {
+  .combat-hud-dock__resources {
+    grid-template-columns: 244px minmax(340px, auto);
+    grid-template-rows: 150px;
+    align-items: stretch;
+  }
+
+  .combat-hud-dock__turn-slots {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    justify-self: center;
+    min-height: 40px;
+    height: 40px;
+    z-index: 1;
+  }
+
+  .combat-hud-dock__turn-slots .spell-slot-container {
+    min-height: 40px;
+    height: 40px;
+  }
+
+  .combat-hud-dock__turn-slots .spell-slot {
+    width: 62px;
+    min-width: 62px;
+    height: 36px;
+    min-height: 36px;
+    padding: 3px 6px;
+  }
+
+  .combat-hud-dock__resource-rail {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: end;
+    justify-self: center;
+    margin-top: 46px;
+  }
+
+  .combat-hud-dock__resources > .spell-slot-container {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+  }
+}
+
+/* Color-code turn action trackers in the combat HUD. */
+.combat-hud-dock__turn-slots .action-slot {
+  border-color: rgba(74, 222, 128, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.14), 0 0 18px rgba(34, 197, 94, 0.2);
+}
+
+.combat-hud-dock__turn-slots .bonus-slot {
+  border-color: rgba(250, 204, 21, 0.76);
+  box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.14), 0 0 18px rgba(234, 179, 8, 0.22);
+}
+
+.combat-hud-dock__turn-slots .action-circle.slot-active {
+  background: radial-gradient(circle at 32% 28%, #dcfce7, #22c55e 38%, #15803d 78%);
+  border-color: rgba(187, 247, 208, 0.96);
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.92), 0 0 18px rgba(34, 197, 94, 0.48), inset 0 0 7px rgba(255, 255, 255, 0.34);
+}
+
+.combat-hud-dock__turn-slots .bonus-circle.slot-active {
+  background: radial-gradient(circle at 32% 28%, #fef9c3, #facc15 38%, #ca8a04 78%);
+  border-color: rgba(254, 240, 138, 0.96);
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.92), 0 0 18px rgba(234, 179, 8, 0.5), inset 0 0 7px rgba(255, 255, 255, 0.34);
+}
+
+/* Mobile HUD refinements: action trackers first, roomier resources, and no map title overlay. */
+@media (max-width: 900px) {
+  .campaign-map-board__title {
+    display: none;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open {
+    max-height: 50vh;
+    padding-bottom: 16px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__turn-slots {
+    grid-row: 1;
+    width: 100%;
+    min-height: 48px;
+    height: 48px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__turn-slots .spell-slot-container {
+    min-height: 48px;
+    height: 48px;
+    overflow: visible;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__turn-slots .spell-slot {
+    width: 96px;
+    min-width: 96px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail {
+    grid-row: 2;
+    min-height: 128px;
+    padding-bottom: 16px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-resource-tile {
+    min-height: 58px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open > .spell-slot-container {
+    grid-row: 3;
   }
 }
