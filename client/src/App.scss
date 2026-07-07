@@ -9691,3 +9691,89 @@ h1 {
   .realm-home-command__intro strong, .realm-home-section-heading h2 { font-size: 1.15rem; }
   .realm-home-action-card { min-height: 96px; }
 }
+
+/* Mobile containment pass: prevent horizontal clipping, restore full-page scrolling, and keep logout at the bottom. */
+.realm-home-shell,
+.realm-home-layout,
+.realm-home-command,
+.realm-home-lower,
+.realm-home-sidecar,
+.realm-home-recent,
+.realm-profile-summary,
+.realm-home-action-card,
+.realm-recent-campaign-card {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.realm-home-shell {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.realm-home-hero h1,
+.realm-home-action-card__title,
+.realm-home-action-card__description,
+.realm-recent-campaign-card__body,
+.realm-profile-summary strong {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 720px) {
+  .realm-home-layout {
+    min-height: auto;
+    padding-bottom: calc(max(22px, env(safe-area-inset-bottom)) + 22px);
+    grid-template-rows: auto;
+  }
+
+  .realm-home-hero {
+    overflow: hidden;
+  }
+
+  .realm-home-hero h1 {
+    width: 100%;
+    font-size: clamp(2.35rem, 10.5vw, 3.55rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+  }
+
+  .realm-home-hero__welcome,
+  .realm-home-hero__subtitle,
+  .realm-home-hero__version {
+    max-width: calc(100vw - 40px);
+  }
+
+  .realm-home-lower {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .realm-home-sidecar {
+    order: 2;
+    grid-row: auto;
+  }
+
+  .realm-home-recent {
+    order: 1;
+  }
+
+  .realm-profile-summary {
+    align-self: stretch;
+  }
+
+  .realm-profile-summary__logout {
+    margin-top: 0.25rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .realm-home-hero h1 {
+    font-size: clamp(2rem, 10vw, 2.65rem);
+  }
+
+  .realm-home-action-card {
+    width: 100%;
+  }
+}
