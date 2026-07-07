@@ -811,7 +811,46 @@ export default function ShopModal({
           style={{ maxHeight: '80vh', overflowY: 'auto' }}
         >
           <Tab.Container activeKey={currentTab} onSelect={handleSelectTab}>
-            <div className="modal-tab-header d-flex justify-content-between align-items-center mb-3">
+            <div className="shop-modal-toolbar">
+              <div className="shop-modal-currency" aria-label="Available currency">
+                <span className="shop-modal-currency__label">Purse</span>
+                <span className="visually-hidden">{`PP ${pp} • GP ${gp} • SP ${sp} • CP ${cp}`}</span>
+                <span>PP {pp}</span>
+                <span>GP {gp}</span>
+                <span>SP {sp}</span>
+                <span>CP {cp}</span>
+              </div>
+              <Button
+                variant={cart.length > 0 ? 'primary' : 'outline-secondary'}
+                className={`shop-cart-btn shop-cart-btn--toolbar ${
+                  cart.length > 0 ? 'shop-cart-btn--active' : ''
+                }`}
+                aria-label={`View cart, ${cart.length} item${cart.length === 1 ? '' : 's'}`}
+                onClick={() => setShowCart(true)}
+              >
+                <span className="shop-cart-btn__icon-wrap">
+                  <FaShoppingCart size={20} />
+                  <Badge
+                    bg={cart.length > 0 ? 'warning' : 'secondary'}
+                    text={cart.length > 0 ? 'dark' : undefined}
+                    pill
+                    className="shop-cart-btn__badge"
+                  >
+                    {cart.length}
+                  </Badge>
+                </span>
+                <span className="shop-cart-btn__content">
+                  <span className="shop-cart-btn__label">Cart</span>
+                  <span className="shop-cart-btn__meta">
+                    {cart.length > 0
+                      ? `${cart.length} item${cart.length === 1 ? '' : 's'} • ${formattedTotalCost}`
+                      : 'Empty'}
+                  </span>
+                </span>
+              </Button>
+            </div>
+
+            <div className="modal-tab-header shop-modal-tabs">
               <Nav variant="tabs" className="mb-0">
                 {tabConfigs.map(({ key, title }) => (
                   <Nav.Item key={key}>
@@ -819,24 +858,6 @@ export default function ShopModal({
                   </Nav.Item>
                 ))}
               </Nav>
-              <div className="ms-auto d-flex align-items-center gap-3 text-nowrap">
-                <span>PP {pp} • GP {gp} • SP {sp} • CP {cp}</span>
-                <Button
-                  variant="outline-secondary"
-                  className="shop-cart-btn position-relative"
-                  aria-label="View cart"
-                  onClick={() => setShowCart(true)}
-                >
-                  <FaShoppingCart size={20} />
-                  <Badge
-                    bg="secondary"
-                    pill
-                    className="position-absolute top-0 start-100 translate-middle"
-                  >
-                    {cart.length}
-                  </Badge>
-                </Button>
-              </div>
             </div>
             <Tab.Content>
               {tabConfigs.map(({ key, render }) => {

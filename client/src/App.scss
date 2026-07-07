@@ -9260,3 +9260,174 @@ h1 {
     overflow-x: auto;
   }
 }
+
+/* Shop modal: purse/cart command bar above inventory-style category tabs. */
+.shop-modal-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--realm-border);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(216, 183, 106, 0.16), transparent 32%),
+    linear-gradient(135deg, rgba(10, 22, 40, 0.94), rgba(5, 10, 22, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 14px 28px rgba(0, 0, 0, 0.24);
+}
+
+.shop-modal-currency {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.shop-modal-currency__label,
+.shop-cart-btn__label {
+  color: var(--realm-gold) !important;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.shop-modal-currency span:not(.shop-modal-currency__label):not(.visually-hidden) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid rgba(216, 183, 106, 0.24);
+  border-radius: 999px;
+  color: var(--realm-text) !important;
+  background: rgba(255, 255, 255, 0.045);
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.shop-cart-btn--toolbar {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 156px;
+  min-height: 58px;
+  padding: 8px 14px !important;
+  border-color: rgba(151, 190, 255, 0.3) !important;
+  background: linear-gradient(145deg, rgba(18, 32, 54, 0.9), rgba(8, 14, 28, 0.94)) !important;
+}
+
+.shop-cart-btn--active {
+  border-color: rgba(216, 183, 106, 0.78) !important;
+  background:
+    radial-gradient(circle at 22% 0%, rgba(255, 223, 128, 0.34), transparent 36%),
+    linear-gradient(135deg, rgba(47, 34, 9, 0.96), rgba(19, 34, 62, 0.96)) !important;
+  box-shadow: 0 0 0 1px rgba(216, 183, 106, 0.22), 0 0 28px rgba(216, 183, 106, 0.24) !important;
+}
+
+.shop-cart-btn--active::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 15px;
+  border: 1px solid rgba(216, 183, 106, 0.42);
+  pointer-events: none;
+  animation: realmCartPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes realmCartPulse {
+  0%, 100% { opacity: 0.35; box-shadow: 0 0 0 rgba(216, 183, 106, 0); }
+  50% { opacity: 0.9; box-shadow: 0 0 18px rgba(216, 183, 106, 0.32); }
+}
+
+.shop-cart-btn__icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.shop-cart-btn__badge {
+  position: absolute;
+  top: -9px;
+  right: -10px;
+  box-shadow: 0 0 0 2px rgba(8, 14, 28, 0.96);
+}
+
+.shop-cart-btn__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.shop-cart-btn__meta {
+  color: var(--realm-text) !important;
+  font-size: 0.86rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.shop-modal-tabs {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 18px !important;
+  padding: 0 !important;
+  border-bottom: 1px solid var(--realm-border) !important;
+  background: transparent !important;
+}
+
+.shop-modal-tabs .nav-tabs {
+  gap: 6px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+}
+
+.shop-modal-tabs .nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.shop-modal-tabs .nav-tabs .nav-link {
+  min-width: 116px;
+  padding: 12px 18px;
+  text-align: center;
+  background: rgba(9, 18, 34, 0.68);
+}
+
+.shop-modal-tabs .nav-tabs .nav-link.active {
+  background: linear-gradient(180deg, rgba(20, 34, 58, 0.98), rgba(12, 22, 40, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 768px) {
+  .shop-modal-toolbar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .shop-modal-currency span:not(.shop-modal-currency__label):not(.visually-hidden) {
+    min-height: 30px;
+    padding: 5px 8px;
+    font-size: 0.86rem;
+  }
+
+  .shop-cart-btn--toolbar {
+    width: 100%;
+    justify-content: flex-start;
+    min-height: 52px;
+  }
+
+  .shop-modal-tabs .nav-tabs .nav-link {
+    min-width: 104px;
+    padding: 10px 14px;
+  }
+}
