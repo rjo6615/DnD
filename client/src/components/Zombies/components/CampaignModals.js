@@ -1,6 +1,64 @@
-import React from "react";
-import { Button, Card, Form, Modal, Table } from "react-bootstrap";
+import React, { useMemo, useState } from "react";
+import { Button, Card, Form, Modal } from "react-bootstrap";
 import { Link } from "react-router-dom";
+
+const getCampaignName = (campaign) => campaign?.campaignName || campaign?.name || "Untitled Realm";
+const getDungeonMaster = (campaign) => campaign?.dungeonMaster || campaign?.dm || campaign?.dmName || campaign?.owner || "Dungeon Master";
+const getPlayerCount = (campaign) => {
+  if (Array.isArray(campaign?.players)) return campaign.players.length;
+  if (typeof campaign?.playerCount === "number") return campaign.playerCount;
+  return 0;
+};
+const getCharacterCount = (campaign) => {
+  if (Array.isArray(campaign?.characters)) return campaign.characters.length;
+  if (typeof campaign?.characterCount === "number") return campaign.characterCount;
+  return getPlayerCount(campaign);
+};
+const getSessionCount = (campaign) => campaign?.sessions?.length || campaign?.sessionCount || 0;
+const getLastActive = (campaign) => campaign?.lastActive || campaign?.updatedAt || campaign?.lastOpened || "Awaiting first session";
+const campaignInitials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "RT";
+
+function CampaignSearch({ value, onChange, placeholder }) {
+  return (
+    <label className="realm-campaign-search">
+      <span className="realm-campaign-search__icon" aria-hidden="true">✦</span>
+      <span className="visually-hidden">Search campaigns</span>
+      <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
+    </label>
+  );
+}
+
+function EmptyState({ title, message, actionLabel, onAction }) {
+  return (
+    <div className="realm-campaign-empty" role="status">
+      <div className="realm-campaign-empty__sigil" aria-hidden="true">✧</div>
+      <h3>{title}</h3>
+      <p>{message}</p>
+      {actionLabel && onAction && (
+        <Button className="realm-campaign-button realm-campaign-button--secondary" type="button" onClick={onAction}>
+          {actionLabel}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function CampaignModalShell({ show, onHide, eyebrow, title, subtitle, children, footer }) {
+  return (
+    <Modal className="dnd-modal realm-campaign-modal" dialogClassName="realm-campaign-modal__dialog" centered show={show} onHide={onHide}>
+      <Card className="dnd-background realm-campaign-panel">
+        <div className="realm-campaign-panel__glow" aria-hidden="true" />
+        <header className="realm-campaign-panel__header">
+          <span>{eyebrow}</span>
+          <h2>{title}</h2>
+          <p>{subtitle}</p>
+        </header>
+        <Card.Body className="realm-campaign-panel__body">{children}</Card.Body>
+        {footer && <Modal.Footer className="realm-campaign-panel__footer">{footer}</Modal.Footer>}
+      </Card>
+    </Modal>
+  );
+}
 
 export default function CampaignModals({
   playerCampaigns,
@@ -15,155 +73,119 @@ export default function CampaignModals({
   updateCreateCampaignForm,
   submitCreateCampaign,
 }) {
+  const [joinSearch, setJoinSearch] = useState("");
+  const [hostSearch, setHostSearch] = useState("");
+
+  const filteredPlayerCampaigns = useMemo(() => {
+    const search = joinSearch.trim().toLowerCase();
+    if (!search) return playerCampaigns;
+    return playerCampaigns.filter((campaign) => `${getCampaignName(campaign)} ${getDungeonMaster(campaign)}`.toLowerCase().includes(search));
+  }, [joinSearch, playerCampaigns]);
+
+  const filteredDmCampaigns = useMemo(() => {
+    const search = hostSearch.trim().toLowerCase();
+    if (!search) return dmCampaigns;
+    return dmCampaigns.filter((campaign) => getCampaignName(campaign).toLowerCase().includes(search));
+  }, [hostSearch, dmCampaigns]);
+
   return (
     <>
-      <Modal
-        className="dnd-modal"
-        centered
+      <CampaignModalShell
         show={showJoinCampaignModal}
         onHide={closeJoinCampaignModal}
+        eyebrow="Campaign Browser"
+        title="Join Campaign"
+        subtitle="Choose the party you want to adventure with next."
+        footer={<Button className="realm-campaign-button realm-campaign-button--secondary" type="button" onClick={closeJoinCampaignModal}>Close</Button>}
       >
-        <div className="text-center">
-          <Card className="dnd-background">
-            <Card.Title>Join Campaign</Card.Title>
-
-            <Card.Body>
-              <Table striped bordered hover>
-                <thead>
-                  <tr>
-                    <th>Campaign Name</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {playerCampaigns.map((campaign) => (
-                    <tr key={campaign.campaignName}>
-                      <td>{campaign.campaignName}</td>
-                      <td>
-                        <Link
-                          className="btn btn-link"
-                          to={`/zombies-character-select/${campaign.campaignName}`}
-                        >
-                          <Button
-                            style={{ borderColor: "transparent" }}
-                            className="fantasy-button"
-                            type="button"
-                            onClick={closeJoinCampaignModal}
-                          >
-                            Join
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card.Body>
-            <Modal.Footer>
-              <Button variant="secondary" onClick={closeJoinCampaignModal}>
-                Close
-              </Button>
-            </Modal.Footer>
-          </Card>
+        <div className="realm-campaign-toolbar">
+          <CampaignSearch value={joinSearch} onChange={setJoinSearch} placeholder="Search realms or dungeon masters" />
+          <span>{filteredPlayerCampaigns.length} available</span>
         </div>
-      </Modal>
+        {filteredPlayerCampaigns.length > 0 ? (
+          <div className="realm-campaign-grid realm-campaign-grid--join">
+            {filteredPlayerCampaigns.map((campaign) => {
+              const name = getCampaignName(campaign);
+              return (
+                <Link className="realm-campaign-card realm-campaign-card--join" key={name} to={`/zombies-character-select/${name}`} onClick={closeJoinCampaignModal}>
+                  <div className="realm-campaign-card__art" aria-hidden="true"><span>{campaignInitials(name)}</span></div>
+                  <div className="realm-campaign-card__content">
+                    <span className="realm-campaign-card__eyebrow">D&D 5e · {getLastActive(campaign)}</span>
+                    <h3>{name}</h3>
+                    <p>{campaign?.description || `Run by ${getDungeonMaster(campaign)} with ${getPlayerCount(campaign)} players at the table.`}</p>
+                    <div className="realm-campaign-card__meta">
+                      <span>DM {getDungeonMaster(campaign)}</span>
+                      <span>{getPlayerCount(campaign)} players</span>
+                      <span>5e</span>
+                    </div>
+                  </div>
+                  <span className="realm-campaign-button realm-campaign-button--primary">Join</span>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState title="No open portals" message="No matching player campaigns are ready yet. Try another search or create a new realm from the command deck." />
+        )}
+      </CampaignModalShell>
 
-      <Modal
-        className="dnd-modal"
-        centered
+      <CampaignModalShell
         show={showHostCampaignModal}
         onHide={closeHostCampaignModal}
+        eyebrow="World Launcher"
+        title="Host Campaign"
+        subtitle="Select a realm, gather the party, and launch tonight's session."
+        footer={<Button className="realm-campaign-button realm-campaign-button--secondary" type="button" onClick={closeHostCampaignModal}>Close</Button>}
       >
-        <div className="text-center">
-          <Card className="dnd-background">
-            <Card.Title>Host Campaign</Card.Title>
-
-            <Card.Body>
-              <Table striped bordered hover>
-                <thead>
-                  <tr>
-                    <th>Campaign Name</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dmCampaigns.map((campaign) => (
-                    <tr key={campaign.campaignName}>
-                      <td>{campaign.campaignName}</td>
-                      <td>
-                        <Link
-                          className="btn btn-link"
-                          to={`/zombies-dm/${campaign.campaignName}`}
-                        >
-                          <Button
-                            style={{ borderColor: "transparent" }}
-                            className="hostCampaign"
-                            type="button"
-                            onClick={closeHostCampaignModal}
-                          >
-                            Host
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card.Body>
-            <Modal.Footer>
-              <Button variant="secondary" onClick={closeHostCampaignModal}>
-                Close
-              </Button>
-            </Modal.Footer>
-          </Card>
+        <div className="realm-campaign-toolbar">
+          <CampaignSearch value={hostSearch} onChange={setHostSearch} placeholder="Search hosted worlds" />
+          <span>{filteredDmCampaigns.length} worlds</span>
         </div>
-      </Modal>
+        {filteredDmCampaigns.length > 0 ? (
+          <div className="realm-campaign-grid realm-campaign-grid--host">
+            {filteredDmCampaigns.map((campaign) => {
+              const name = getCampaignName(campaign);
+              return (
+                <Link className="realm-campaign-card realm-campaign-card--host" key={name} to={`/zombies-dm/${name}`} onClick={closeHostCampaignModal}>
+                  <div className="realm-campaign-card__content">
+                    <span className="realm-campaign-card__eyebrow">Last opened · {getLastActive(campaign)}</span>
+                    <h3>{name}</h3>
+                    <div className="realm-campaign-card__meta realm-campaign-card__meta--launcher">
+                      <span>DM badge</span><span>{campaign?.status || "Ready"}</span><span>{getCharacterCount(campaign)} characters</span><span>{getSessionCount(campaign)} sessions</span>
+                    </div>
+                  </div>
+                  <span className="realm-campaign-button realm-campaign-button--primary">Host</span>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState title="No worlds found" message="Your hosted campaign list is empty. Create a new realm to prepare your next adventure." onAction={closeHostCampaignModal} actionLabel="Back to command deck" />
+        )}
+      </CampaignModalShell>
 
-      <Modal
-        centered
-        className="dnd-modal"
+      <CampaignModalShell
         show={showCreateCampaignModal}
         onHide={closeCreateCampaignModal}
+        eyebrow="New Realm Setup"
+        title="Create Campaign"
+        subtitle="Name the world now. Artwork, player invites, and launch options can grow here next."
       >
-        <div className="text-center">
-          <Card className="dnd-background">
-            <Card.Title>Create Campaign</Card.Title>
-            <Card.Body>
-              <div className="text-center">
-                <Form onSubmit={submitCreateCampaign} className="px-5">
-                  <Form.Group className="mb-3 pt-3">
-                    <Form.Label className="text-light">Campaign Name</Form.Label>
-                    <Form.Control
-                      className="mb-2"
-                      onChange={(e) =>
-                        updateCreateCampaignForm({
-                          campaignName: e.target.value,
-                        })
-                      }
-                      type="text"
-                      value={createCampaignForm.campaignName}
-                      placeholder="Enter campaign name"
-                    />
-                  </Form.Group>
-                  <div className="text-center">
-                    <Button variant="primary" type="submit">
-                      Create
-                    </Button>
-                    <Button
-                      className="ms-4"
-                      variant="secondary"
-                      type="button"
-                      onClick={closeCreateCampaignModal}
-                    >
-                      Close
-                    </Button>
-                  </div>
-                </Form>
-              </div>
-            </Card.Body>
-          </Card>
-        </div>
-      </Modal>
+        <Form onSubmit={submitCreateCampaign} className="realm-create-campaign-form">
+          <div className="realm-create-campaign-form__art" aria-hidden="true"><span>+</span><strong>Artwork slot</strong></div>
+          <div className="realm-create-campaign-form__fields">
+            <label className="realm-floating-field">
+              <input onChange={(e) => updateCreateCampaignForm({ campaignName: e.target.value })} type="text" value={createCampaignForm.campaignName} placeholder=" " />
+              <span>Campaign name</span>
+            </label>
+            <p>Give your realm a memorable title. You can add maps, characters, and encounters after creation.</p>
+            <div className="realm-create-campaign-form__actions">
+              <Button className="realm-campaign-button realm-campaign-button--primary" type="submit">Create Campaign</Button>
+              <Button className="realm-campaign-button realm-campaign-button--secondary" type="button" onClick={closeCreateCampaignModal}>Close</Button>
+            </div>
+          </div>
+        </Form>
+      </CampaignModalShell>
     </>
   );
 }
