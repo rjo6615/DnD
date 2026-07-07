@@ -135,6 +135,16 @@ shortbow: {
   mastery: "vex",
   proficient: false,
 },
+sling: {
+  name: "Sling",
+  category: "simple ranged",
+  damage: "1d4 bludgeoning",
+  properties: ["ammunition (30/120)"],
+  weight: 0,
+  cost: "1 sp",
+  mastery: "slow",
+  proficient: false,
+},
 battleaxe: {
   name: "Battleaxe",
   category: "martial melee",

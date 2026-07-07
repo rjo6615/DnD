@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Modal, Card, Tab, Button, Nav, Badge } from 'react-bootstrap';
+import { Alert, Modal, Card, Tab, Button, Nav } from 'react-bootstrap';
 import { FaCoins, FaShoppingCart } from 'react-icons/fa';
 import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
@@ -864,14 +864,7 @@ export default function ShopModal({
                       : 'Empty'}
                   </span>
                 </span>
-                <Badge
-                  bg={cart.length > 0 ? 'warning' : 'secondary'}
-                  text={cart.length > 0 ? 'dark' : undefined}
-                  pill
-                  className="shop-cart-btn__badge"
-                >
-                  {cart.length}
-                </Badge>
+                <span className="visually-hidden">{cart.length}</span>
               </Button>
             </div>
 
