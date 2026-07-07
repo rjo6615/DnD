@@ -1,12 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Row, Col, Form, Alert, Button, Badge, Modal } from 'react-bootstrap';
-import {
-  GiStoneAxe,
-  GiBowArrow,
-  GiBroadsword,
-  GiCrossbow,
-  GiCrossedSwords,
-} from 'react-icons/gi';
+import ItemIcon from '../common/ItemIcon';
 import apiFetch from '../../utils/apiFetch';
 
 /** @typedef {import('../../../../types/weapon').Weapon} Weapon */
@@ -327,12 +321,6 @@ function WeaponList({
     return <div>Loading...</div>;
   }
 
-  const categoryIcons = {
-    'simple melee': GiStoneAxe,
-    'simple ranged': GiBowArrow,
-    'martial melee': GiBroadsword,
-    'martial ranged': GiCrossbow,
-  };
 
   const handleAddToCart = (weapon) => () => {
     const payload = {
@@ -476,13 +464,12 @@ function WeaponList({
             copyIndex,
             copyCount,
           }) => {
-            const Icon = categoryIcons[weapon.category] || GiCrossedSwords;
             return (
               <Col key={reactKey}>
                 <Card className="weapon-card h-100">
                   <Card.Body className="d-flex flex-column">
                   <div className="d-flex justify-content-center mb-2">
-                    <Icon size={40} title={weapon.category} />
+                    <ItemIcon item={weapon} itemType="weapon" category={weapon.category} size={44} />
                   </div>
                   <Card.Title>{weapon.displayName || weapon.name}</Card.Title>
                   <Card.Text>Damage: {weapon.damage}</Card.Text>

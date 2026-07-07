@@ -1,16 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Row, Col, Alert, Button, Modal, Badge, Form } from 'react-bootstrap';
-import {
-  GiAmmoBox,
-  GiBackpack,
-  GiChariot,
-  GiHammerNails,
-  GiHorseHead,
-  GiPotionBall,
-  GiSaddle,
-  GiSailboat,
-  GiTreasureMap,
-} from 'react-icons/gi';
+import ItemIcon from '../common/ItemIcon';
 import apiFetch from '../../utils/apiFetch';
 import { rollDiceWithBox, setDiceBoxThemeColor } from '../../utils/diceBoxManager';
 import {
@@ -30,17 +20,6 @@ const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
   return acc;
 }, {});
 
-const categoryIcons = {
-  'adventuring gear': GiBackpack,
-  ammunition: GiAmmoBox,
-  consumable: GiPotionBall,
-  tool: GiHammerNails,
-  mount: GiHorseHead,
-  'tack and harness': GiSaddle,
-  vehicle: GiChariot,
-  'water vehicle': GiSailboat,
-  custom: GiTreasureMap,
-};
 
 const renderBonuses = (bonuses, labels) =>
   Object.entries(bonuses || {})
@@ -790,11 +769,6 @@ function ItemList({
       ) : (
         <Row className="row-cols-2 row-cols-lg-3 g-3">
           {displayEntries.map(({ reactKey, dataKey, item }) => {
-            const categoryKey =
-              typeof item.category === 'string'
-                ? item.category.toLowerCase()
-                : '';
-            const Icon = categoryIcons[categoryKey] || GiTreasureMap;
             const canUseItem = ownedOnly && isConsumableItem(item);
             const quantity = ownedOnly ? item.ownedCount ?? 0 : 0;
             return (
@@ -807,7 +781,7 @@ function ItemList({
                   ) : null}
                   <Card.Body className="d-flex flex-column">
                     <div className="d-flex justify-content-center mb-2">
-                      <Icon size={40} title={item.category} />
+                      <ItemIcon item={item} itemType="item" category={item.category} size={44} />
                     </div>
                     <Card.Title>{item.displayName || item.name}</Card.Title>
                     <Card.Text>Category: {item.category}</Card.Text>

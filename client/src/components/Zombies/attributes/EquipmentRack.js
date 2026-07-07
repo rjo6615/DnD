@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { Form, Button } from 'react-bootstrap';
 import { EQUIPMENT_SLOT_LAYOUT } from './equipmentSlots';
+import ItemIcon from '../../common/ItemIcon';
 import styles from './EquipmentRack.module.scss';
 
 const FLAT_SLOTS = EQUIPMENT_SLOT_LAYOUT.flat();
@@ -188,25 +189,6 @@ const SLOT_LAYOUT = {
   bottomRow: ['mainHand', 'offHand', 'ranged', 'ringLeft', 'ringRight'],
 };
 
-const SLOT_ICONS = {
-  head: '🪖',
-  eyes: '👁️',
-  neck: '🧿',
-  shoulders: '🛡️',
-  chest: '👕',
-  back: '🎒',
-  arms: '💪',
-  wrists: '⛓️',
-  hands: '🧤',
-  waist: '🧷',
-  legs: '🦵',
-  feet: '🥾',
-  mainHand: '⚔️',
-  offHand: '🛡️',
-  ranged: '🏹',
-  ringLeft: '💍',
-  ringRight: '💍',
-};
 
 const getItemName = (item) => {
   if (!item) return '';
@@ -357,11 +339,12 @@ export default function EquipmentRack({
     return (
       <div key={slot.key} className={styles.slot}>
         <div className={styles.slotHeader}>
-          {SLOT_ICONS[slot.key] ? (
-            <span aria-hidden="true" className={styles.slotIcon}>
-              {SLOT_ICONS[slot.key]}
-            </span>
-          ) : null}
+          <ItemIcon
+            equipmentSlot={slot.key}
+            size={28}
+            className={styles.slotIcon}
+            title={slot.label}
+          />
           <span className={styles.slotLabel}>{slot.label}</span>
         </div>
         <div
