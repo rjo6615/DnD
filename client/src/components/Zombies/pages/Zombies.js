@@ -43,7 +43,7 @@ function RecentCampaignCard({ campaign, role, onResume }) {
   );
 }
 
-function ProfileSummary({ username, campaignCount, characterCount }) {
+function ProfileSummary({ username, campaignCount, characterCount, onLogout }) {
   return (
     <aside className="realm-profile-summary" aria-label="Account summary">
       <div className="realm-profile-summary__avatar"><i className="fa-solid fa-user-astronaut" /></div>
@@ -55,16 +55,11 @@ function ProfileSummary({ username, campaignCount, characterCount }) {
         <span><i className="fa-solid fa-crown" /> {campaignCount} Campaigns</span>
         <span><i className="fa-solid fa-shield-halved" /> {characterCount} Characters</span>
       </div>
+      <button type="button" className="realm-profile-summary__logout" onClick={onLogout}>
+        <i className="fa-solid fa-door-open" aria-hidden="true" />
+        <span>Logout</span>
+      </button>
     </aside>
-  );
-}
-
-function QuickAction({ icon, label }) {
-  return (
-    <button type="button" className="realm-quick-action">
-      <i className={icon} />
-      <span>{label}</span>
-    </button>
   );
 }
 
@@ -148,7 +143,6 @@ export default function Zombies() {
             <HomeActionCard icon="fa-solid fa-compass" title="Join Campaign" description="Connect to an existing adventure." meta={`${playerCampaigns.length} joined realms`} onClick={openJoinCampaignModal} featured />
             <HomeActionCard icon="fa-solid fa-crown" title="Host Campaign" description="Launch your active campaign." meta={`${dmCampaigns.length} hosted realms`} onClick={openHostCampaignModal} />
             <HomeActionCard icon="fa-solid fa-wand-sparkles" title="Create Campaign" description="Start building a new world." meta="Forge a new table" onClick={openCreateCampaignModal} />
-            <HomeActionCard icon="fa-solid fa-door-open" title="Logout" description="Return to account selection." meta="End session" onClick={handleLogout} />
           </div>
         </section>
 
@@ -178,13 +172,12 @@ export default function Zombies() {
           </div>
 
           <div className="realm-home-sidecar">
-            <ProfileSummary username={username} campaignCount={campaignCount} characterCount={characterCount} />
-            <div className="realm-home-quick-actions hud-card" aria-label="Quick actions">
-              <QuickAction icon="fa-solid fa-users" label="Create Character" />
-              <QuickAction icon="fa-solid fa-scroll" label="Import Character" />
-              <QuickAction icon="fa-solid fa-book-open" label="Documentation" />
-              <QuickAction icon="fa-solid fa-gear" label="Settings" />
-            </div>
+            <ProfileSummary
+              username={username}
+              campaignCount={campaignCount}
+              characterCount={characterCount}
+              onLogout={handleLogout}
+            />
           </div>
         </section>
       </section>
