@@ -8969,3 +8969,17 @@ h1 {
     grid-row: 3;
   }
 }
+
+/* Give mobile class resource rows enough vertical rhythm to avoid overlap. */
+@media (max-width: 900px) {
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail {
+    grid-auto-rows: minmax(74px, auto);
+    row-gap: 10px;
+    min-height: 158px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-resource-tile {
+    min-height: 74px;
+    padding-block: 6px;
+  }
+}
