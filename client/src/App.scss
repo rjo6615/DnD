@@ -9459,3 +9459,11 @@ h1 {
   transform: translate(-50%, -50%);
   display: block;
 }
+
+/* Keep the cart count badge tucked outside the icon well so it does not cover the cart glyph. */
+.shop-cart-btn__badge {
+  top: -12px;
+  right: -14px;
+  z-index: 2;
+  min-width: 24px;
+}
