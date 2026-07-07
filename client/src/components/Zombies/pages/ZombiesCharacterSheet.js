@@ -5800,7 +5800,7 @@ export default function ZombiesCharacterSheet() {
                 </Panel>
 
                 <Toolbar className="combat-hud-dock__primary" aria-label="Primary combat actions">
-                  <IconButton label="Clear rolled dice" className="hud-action-button" onClick={() => handleFooterQuickAction(clearDamageDice)}><FaDiceD20 /></IconButton>
+                  <IconButton label="Clear rolled dice" className="hud-action-button hud-action-button--clear-dice" onClick={() => handleFooterQuickAction(clearDamageDice)}><span className="hud-clear-dice-button__icon" aria-hidden="true"><FaDiceD20 /></span></IconButton>
                   <IconButton label="Open dice roller" className="hud-action-button" onClick={() => handleFooterQuickAction(openDiceRoller)}><Dice5 size={24} /></IconButton>
                   <IconButton label="Open attack actions" className="hud-action-button hud-action-button--attack" onClick={() => handleFooterQuickAction(openAttackModal)}><Swords size={28} /></IconButton>
                   <HudButton
