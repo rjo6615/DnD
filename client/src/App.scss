@@ -9818,3 +9818,26 @@ h1 {
     padding-bottom: 0;
   }
 }
+
+/* Home viewport polish: keep the dashboard framed and allow route-level scrolling despite the app shell default. */
+html:has(.realm-home-shell),
+body:has(.realm-home-shell) {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+.realm-home-layout {
+  width: min(1040px, calc(100vw - 48px));
+}
+
+@media (max-width: 720px) {
+  .realm-home-layout {
+    width: min(100vw - 28px, 1040px);
+  }
+}
+
+@media (max-width: 420px) {
+  .realm-home-layout {
+    width: min(100vw - 18px, 1040px);
+  }
+}
