@@ -8983,3 +8983,11 @@ h1 {
     padding-block: 6px;
   }
 }
+
+/* Add extra bottom clearance for the opened mobile resources rail. */
+@media (max-width: 900px) {
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail {
+    min-height: 174px;
+    padding-bottom: 28px;
+  }
+}
