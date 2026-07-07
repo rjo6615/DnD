@@ -22,7 +22,7 @@ describe('CampaignMapBoard pointer interactions', () => {
     render(
       <CampaignMapBoard
         map={baseMap}
-        tokens={[{ ...baseToken, ...overrides.token }]}
+        tokens={overrides.tokens || [{ ...baseToken, ...overrides.token }]}
         onTokenDragStart={overrides.onTokenDragStart}
         onTokenDrag={overrides.onTokenDrag}
         onTokenDragEnd={overrides.onTokenDragEnd}
@@ -230,6 +230,94 @@ describe('CampaignMapBoard pointer interactions', () => {
     fireEvent(tokenElement, pointerUpEvent);
 
     expect(pointerUpEvent.defaultPrevented).toBe(true);
+  });
+
+  it('keeps rotation controls visible after a token click until background or another token hover', async () => {
+    const { container, findByRole, queryByRole } = renderBoard({
+      tokens: [
+        { ...baseToken },
+        {
+          ...baseToken,
+          characterId: 'enemy-1',
+          x: 0.55,
+          y: 0.55,
+          label: 'Enemy Token',
+          variant: 'enemy',
+        },
+      ],
+    });
+
+    const layer = container.querySelector('.campaign-map-board__tokens-layer');
+    expect(layer).not.toBeNull();
+    if (layer) {
+      layer.getBoundingClientRect = () => ({
+        left: 0,
+        top: 0,
+        width: 400,
+        height: 400,
+      });
+    }
+
+    let tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    fireEvent.pointerDown(tokenElement, {
+      button: 0,
+      pointerId: 1,
+      clientX: 100,
+      clientY: 100,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent.pointerUp(tokenElement, {
+      button: 0,
+      pointerId: 1,
+      clientX: 100,
+      clientY: 100,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    const rotationHandle = await findByRole('button', { name: /rotate figurine/i });
+    expect(rotationHandle).not.toBeNull();
+
+    fireEvent.pointerLeave(tokenElement, {
+      pointerId: 1,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    expect(queryByRole('button', { name: /rotate figurine/i })).not.toBeNull();
+
+    const enemyElement = container.querySelector('[data-token-id="enemy-1"]');
+    expect(enemyElement).not.toBeNull();
+    fireEvent.pointerOver(enemyElement, {
+      pointerId: 2,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-token-id="char-1"]')).not.toHaveClass('lastDragged');
+      expect(container.querySelector('[data-token-id="enemy-1"]')).toHaveClass(
+        'campaign-map-board__token--rotation-visible'
+      );
+    });
+
+    if (layer) {
+      fireEvent.pointerDown(layer, {
+        button: 0,
+        pointerId: 3,
+        clientX: 250,
+        clientY: 250,
+        bubbles: true,
+        cancelable: true,
+      });
+    }
+
+    await waitFor(() => {
+      expect(queryByRole('button', { name: /rotate figurine/i })).toBeNull();
+    });
   });
 
   it('marks the last dragged token and enables rotation controls', async () => {
