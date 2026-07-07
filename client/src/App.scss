@@ -9790,3 +9790,63 @@ h1 {
     width: 100%;
   }
 }
+
+/* Premium RealmTracker campaign launcher modals. */
+.realm-campaign-modal .modal-content { border: 0; border-radius: 28px; background: transparent; box-shadow: none; }
+.realm-campaign-modal__dialog { width: min(1040px, calc(100vw - 32px)); max-width: 1040px; }
+.realm-campaign-panel { position: relative; overflow: hidden; padding: clamp(18px, 3vw, 28px); color: var(--hud-text); border: 1px solid rgba(143, 200, 255, 0.2); border-radius: 28px; background: radial-gradient(circle at 18% 0%, rgba(56, 232, 255, 0.14), transparent 34rem), radial-gradient(circle at 88% 12%, rgba(215, 180, 106, 0.09), transparent 24rem), linear-gradient(145deg, rgba(9, 21, 42, 0.96), rgba(3, 8, 18, 0.98)); box-shadow: 0 30px 80px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.08); animation: realmCampaignModalEnter 260ms ease-out both; }
+.realm-campaign-panel::before { content: ''; position: absolute; inset: 0; background: var(--realm-rune-lines), repeating-linear-gradient(115deg, transparent 0 88px, rgba(215, 180, 106, 0.025) 89px 90px, transparent 91px 176px); opacity: 0.55; pointer-events: none; }
+.realm-campaign-panel__glow { position: absolute; inset: auto 8% -32% 8%; height: 42%; background: radial-gradient(circle, rgba(56, 232, 255, 0.18), transparent 68%); filter: blur(8px); pointer-events: none; }
+.realm-campaign-panel__header, .realm-campaign-panel__body, .realm-campaign-panel__footer { position: relative; z-index: 1; }
+.realm-campaign-panel__header { display: grid; gap: 8px; margin-bottom: 20px; text-align: left; }
+.realm-campaign-panel__header span, .realm-campaign-toolbar span, .realm-campaign-card__eyebrow { margin: 0; color: var(--hud-muted); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+.realm-campaign-panel__header h2 { margin: 0; font-size: clamp(2rem, 5vw, 3.65rem); font-weight: 900; letter-spacing: 0.03em; text-shadow: 0 0 28px rgba(56, 232, 255, 0.3); }
+.realm-campaign-panel__header p { max-width: 680px; margin: 0; color: rgba(247, 239, 224, 0.76); font-size: 1rem; }
+.realm-campaign-panel__body { padding: 0; }
+.realm-campaign-panel__footer { padding: 18px 0 0; border: 0; }
+.realm-campaign-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.realm-campaign-search { flex: 1 1 360px; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border: 1px solid rgba(143, 200, 255, 0.2); border-radius: 16px; background: rgba(255,255,255,0.055); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); }
+.realm-campaign-search__icon { color: var(--realm-cyan); text-shadow: 0 0 12px rgba(56, 232, 255, 0.48); }
+.realm-campaign-search input { width: 100%; color: var(--hud-text); border: 0; outline: 0; background: transparent; font: inherit; }
+.realm-campaign-search input::placeholder { color: rgba(247, 239, 224, 0.45); }
+.realm-campaign-grid { display: grid; gap: 16px; max-height: min(62vh, 620px); overflow: auto; padding: 2px 4px 8px 2px; }
+.realm-campaign-grid--join { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.realm-campaign-grid--host { grid-template-columns: 1fr; }
+.realm-campaign-card { position: relative; overflow: hidden; color: var(--hud-text); text-decoration: none; border: 1px solid rgba(143, 200, 255, 0.16); border-radius: 22px; background: radial-gradient(circle at 18% 18%, rgba(56, 232, 255, 0.14), transparent 42%), linear-gradient(150deg, rgba(13, 31, 60, 0.74), rgba(5, 11, 23, 0.92)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 34px rgba(0,0,0,0.32); transition: transform 180ms cubic-bezier(.2,1.35,.35,1), box-shadow 180ms ease, border-color 180ms ease, filter 180ms ease; animation: realmCampaignCardIn 320ms ease both; }
+.realm-campaign-card::after { content: ''; position: absolute; inset: auto -20% -45% -20%; height: 82%; background: radial-gradient(circle, rgba(56, 232, 255, 0.19), transparent 62%); opacity: 0; transition: opacity 180ms ease; }
+.realm-campaign-card:hover, .realm-campaign-card:focus-visible { color: var(--hud-text); transform: translateY(-5px) scale(1.012); border-color: rgba(143, 200, 255, 0.48); box-shadow: 0 0 0 1px rgba(143, 200, 255, 0.14), 0 0 30px rgba(56, 232, 255, 0.2), 0 24px 44px rgba(0,0,0,0.44); outline: 0; }
+.realm-campaign-card:hover::after, .realm-campaign-card:focus-visible::after { opacity: 1; }
+.realm-campaign-card:active { transform: translateY(-1px) scale(0.985); }
+.realm-campaign-card--join { min-height: 220px; display: grid; grid-template-rows: 112px 1fr auto; gap: 14px; padding: 14px; }
+.realm-campaign-card--host { min-height: 138px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 20px; }
+.realm-campaign-card__art { display: grid; place-items: center; border-radius: 18px; background: radial-gradient(circle at 50% 35%, rgba(215, 180, 106, 0.2), rgba(56, 232, 255, 0.1) 42%, rgba(6, 12, 24, 0.86)); box-shadow: inset 0 0 0 1px rgba(143, 200, 255, 0.16); }
+.realm-campaign-card__art span { color: var(--realm-gold); font-size: 2rem; font-weight: 900; letter-spacing: 0.08em; text-shadow: 0 0 18px rgba(215, 180, 106, 0.32); }
+.realm-campaign-card__content { position: relative; z-index: 1; min-width: 0; display: grid; gap: 8px; }
+.realm-campaign-card h3 { margin: 0; font-size: clamp(1.18rem, 2.5vw, 1.7rem); font-weight: 900; line-height: 1.05; }
+.realm-campaign-card p { margin: 0; color: rgba(247, 239, 224, 0.72); line-height: 1.4; }
+.realm-campaign-card__meta { display: flex; flex-wrap: wrap; gap: 8px; color: rgba(247, 239, 224, 0.7); font-size: 0.82rem; }
+.realm-campaign-card__meta span { padding: 5px 9px; border-radius: 999px; background: rgba(255,255,255,0.06); }
+.realm-campaign-card__meta--launcher span:first-child { color: var(--realm-gold); background: rgba(215, 180, 106, 0.1); }
+.realm-campaign-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 18px; border-radius: 15px; font-weight: 800; text-decoration: none; transition: transform 180ms cubic-bezier(.2,1.35,.35,1), box-shadow 180ms ease, filter 180ms ease; }
+.realm-campaign-button--primary { color: #04111f; border: 1px solid rgba(143, 200, 255, 0.52); background: linear-gradient(135deg, var(--realm-cyan), var(--realm-icy)); box-shadow: 0 0 24px rgba(56, 232, 255, 0.22), inset 0 1px 0 rgba(255,255,255,0.45); }
+.realm-campaign-button--secondary { color: rgba(247, 239, 224, 0.82); border: 1px solid rgba(143, 200, 255, 0.18); background: rgba(255,255,255,0.055); }
+.realm-campaign-button:hover, .realm-campaign-button:focus-visible { transform: translateY(-2px); filter: brightness(1.12); box-shadow: 0 0 24px rgba(56, 232, 255, 0.24), 0 12px 24px rgba(0,0,0,0.28); }
+.realm-campaign-empty { min-height: 260px; display: grid; place-items: center; align-content: center; gap: 12px; padding: 28px; color: var(--hud-muted); text-align: center; border-radius: 22px; background: linear-gradient(135deg, rgba(255,255,255,0.055), rgba(255,255,255,0.022)); }
+.realm-campaign-empty__sigil { width: 78px; height: 78px; display: grid; place-items: center; color: var(--realm-cyan); border-radius: 24px; background: rgba(56, 232, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(56, 232, 255, 0.24), 0 0 32px rgba(56, 232, 255, 0.15); font-size: 2.2rem; }
+.realm-campaign-empty h3 { margin: 0; color: var(--hud-text); font-weight: 900; }
+.realm-campaign-empty p { max-width: 420px; margin: 0; }
+.realm-create-campaign-form { display: grid; grid-template-columns: minmax(190px, 0.42fr) minmax(0, 1fr); gap: 24px; align-items: stretch; }
+.realm-create-campaign-form__art { min-height: 250px; display: grid; place-items: center; align-content: center; gap: 12px; color: var(--hud-muted); border-radius: 24px; background: radial-gradient(circle at 50% 35%, rgba(215, 180, 106, 0.18), rgba(56, 232, 255, 0.09) 44%, rgba(6, 12, 24, 0.82)); box-shadow: inset 0 0 0 1px rgba(143, 200, 255, 0.16); }
+.realm-create-campaign-form__art span { width: 62px; height: 62px; display: grid; place-items: center; color: var(--realm-cyan); border-radius: 20px; background: rgba(56, 232, 255, 0.08); font-size: 2rem; }
+.realm-create-campaign-form__fields { display: grid; align-content: center; gap: 16px; }
+.realm-floating-field { position: relative; display: block; }
+.realm-floating-field input { width: 100%; min-height: 64px; padding: 24px 18px 10px; color: var(--hud-text); border: 1px solid rgba(143, 200, 255, 0.22); border-radius: 18px; background: rgba(255,255,255,0.06); outline: 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); transition: border-color 180ms ease, box-shadow 180ms ease; }
+.realm-floating-field span { position: absolute; left: 18px; top: 20px; color: rgba(247, 239, 224, 0.52); pointer-events: none; transition: transform 160ms ease, color 160ms ease, font-size 160ms ease; }
+.realm-floating-field input:focus { border-color: rgba(143, 200, 255, 0.55); box-shadow: 0 0 24px rgba(56, 232, 255, 0.12), inset 0 1px 0 rgba(255,255,255,0.08); }
+.realm-floating-field input:focus + span, .realm-floating-field input:not(:placeholder-shown) + span { color: var(--realm-cyan); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; transform: translateY(-13px); }
+.realm-create-campaign-form__fields p { margin: 0; color: rgba(247, 239, 224, 0.72); }
+.realm-create-campaign-form__actions { display: flex; flex-wrap: wrap; gap: 12px; }
+@keyframes realmCampaignModalEnter { from { opacity: 0; transform: translateY(18px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes realmCampaignCardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 760px) { .realm-campaign-modal__dialog { width: 100vw; max-width: 100vw; min-height: 100dvh; margin: 0; } .realm-campaign-modal .modal-content, .realm-campaign-panel { min-height: 100dvh; border-radius: 0; } .realm-campaign-panel { padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom)); } .realm-campaign-toolbar { align-items: stretch; flex-direction: column; gap: 10px; } .realm-campaign-grid { max-height: none; overflow: visible; } .realm-campaign-card--host { grid-template-columns: 1fr; align-items: stretch; } .realm-create-campaign-form { grid-template-columns: 1fr; gap: 16px; } .realm-create-campaign-form__art { min-height: 150px; } .realm-create-campaign-form__actions .realm-campaign-button { width: 100%; } }
+@media (max-width: 420px) { .realm-campaign-card--join { grid-template-rows: 88px 1fr auto; } .realm-campaign-card__meta span { font-size: 0.76rem; } .realm-campaign-panel__header h2 { font-size: 2rem; } }
