@@ -9707,8 +9707,15 @@ h1 {
 }
 
 .realm-home-shell {
+  height: 100vh;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
+}
+
+@supports (height: 100dvh) {
+  .realm-home-shell {
+    height: 100dvh;
+  }
 }
 
 .realm-home-hero h1,
@@ -9721,6 +9728,12 @@ h1 {
 }
 
 @media (max-width: 720px) {
+  .realm-home-shell {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
   .realm-home-layout {
     min-height: auto;
     padding-bottom: calc(max(22px, env(safe-area-inset-bottom)) + 22px);
