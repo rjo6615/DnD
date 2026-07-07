@@ -9850,3 +9850,58 @@ h1 {
 @keyframes realmCampaignCardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 760px) { .realm-campaign-modal__dialog { width: 100vw; max-width: 100vw; min-height: 100dvh; margin: 0; } .realm-campaign-modal .modal-content, .realm-campaign-panel { min-height: 100dvh; border-radius: 0; } .realm-campaign-panel { padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom)); } .realm-campaign-toolbar { align-items: stretch; flex-direction: column; gap: 10px; } .realm-campaign-grid { max-height: none; overflow: visible; } .realm-campaign-card--host { grid-template-columns: 1fr; align-items: stretch; } .realm-create-campaign-form { grid-template-columns: 1fr; gap: 16px; } .realm-create-campaign-form__art { min-height: 150px; } .realm-create-campaign-form__actions .realm-campaign-button { width: 100%; } }
 @media (max-width: 420px) { .realm-campaign-card--join { grid-template-rows: 88px 1fr auto; } .realm-campaign-card__meta span { font-size: 0.76rem; } .realm-campaign-panel__header h2 { font-size: 2rem; } }
+
+/* Mobile launcher tuning: compact toolbar and reliable full-sheet scrolling. */
+@media (max-width: 760px) {
+  .realm-campaign-modal {
+    overflow-y: auto;
+  }
+
+  .realm-campaign-modal__dialog {
+    height: 100dvh;
+  }
+
+  .realm-campaign-modal .modal-content {
+    min-height: 100dvh;
+  }
+
+  .realm-campaign-panel {
+    height: 100dvh;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding-block: max(14px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-bottom));
+  }
+
+  .realm-campaign-panel__header {
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .realm-campaign-panel__header h2 {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+
+  .realm-campaign-toolbar {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .realm-campaign-search {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 42px;
+    padding: 0 12px;
+    border-radius: 14px;
+  }
+
+  .realm-campaign-search input {
+    min-height: 40px;
+    font-size: 0.92rem;
+  }
+
+  .realm-campaign-grid {
+    padding-bottom: 28px;
+  }
+}
