@@ -9294,9 +9294,10 @@ h1 {
   text-transform: uppercase;
 }
 
-.shop-modal-currency span:not(.shop-modal-currency__label):not(.visually-hidden) {
+.shop-modal-currency > span:not(.shop-modal-currency__label):not(.visually-hidden) {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 34px;
   padding: 6px 10px;
   border: 1px solid rgba(216, 183, 106, 0.24);
@@ -9307,13 +9308,29 @@ h1 {
   white-space: nowrap;
 }
 
+.shop-modal-currency__coin svg {
+  font-size: 0.95rem;
+  filter: drop-shadow(0 0 6px rgba(216, 183, 106, 0.28));
+}
+
+.shop-modal-currency__coin strong {
+  color: var(--realm-text) !important;
+  font-weight: 900;
+}
+
+.shop-modal-currency__coin--platinum svg { color: #dbe7ff; }
+.shop-modal-currency__coin--gold svg { color: #f5c95f; }
+.shop-modal-currency__coin--silver svg { color: #c8d2df; }
+.shop-modal-currency__coin--copper svg { color: #d48a55; }
+
 .shop-cart-btn--toolbar {
   position: relative;
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  min-width: 156px;
+  justify-self: end;
+  gap: 12px;
+  min-width: 176px;
   min-height: 58px;
   padding: 8px 14px !important;
   border-color: rgba(151, 190, 255, 0.3) !important;
@@ -9348,8 +9365,9 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.08);
 }
@@ -9414,7 +9432,7 @@ h1 {
     padding: 10px;
   }
 
-  .shop-modal-currency span:not(.shop-modal-currency__label):not(.visually-hidden) {
+  .shop-modal-currency > span:not(.shop-modal-currency__label):not(.visually-hidden) {
     min-height: 30px;
     padding: 5px 8px;
     font-size: 0.86rem;
@@ -9422,7 +9440,8 @@ h1 {
 
   .shop-cart-btn--toolbar {
     width: 100%;
-    justify-content: flex-start;
+    justify-self: stretch;
+    justify-content: center;
     min-height: 52px;
   }
 

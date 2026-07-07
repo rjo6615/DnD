@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Modal, Card, Tab, Button, Nav, Badge } from 'react-bootstrap';
-import { FaShoppingCart } from 'react-icons/fa';
+import { FaCoins, FaShoppingCart } from 'react-icons/fa';
 import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
 import ItemList from '../../Items/ItemList';
@@ -11,6 +11,14 @@ import apiFetch from '../../../utils/apiFetch';
 const DEFAULT_TAB = 'weapons';
 
 const SHOP_VISIBILITY_KEYS = ['weapons', 'armor', 'items', 'accessories'];
+
+const formatCurrencyAmount = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return value ?? 0;
+  }
+  return new Intl.NumberFormat('en-US').format(numeric);
+};
 
 const buildHiddenSet = (value) => {
   const set = new Set();
@@ -481,6 +489,15 @@ export default function ShopModal({
       : activeTabState) || DEFAULT_TAB;
 
   const { cp = 0, sp = 0, gp = 0, pp = 0 } = currency || {};
+  const formattedCurrency = useMemo(
+    () => ({
+      pp: formatCurrencyAmount(pp),
+      gp: formatCurrencyAmount(gp),
+      sp: formatCurrencyAmount(sp),
+      cp: formatCurrencyAmount(cp),
+    }),
+    [pp, gp, sp, cp]
+  );
 
   const availableCp = useMemo(
     () => pp * COIN_VALUES.pp + gp * COIN_VALUES.gp + sp * COIN_VALUES.sp + cp,
@@ -814,11 +831,19 @@ export default function ShopModal({
             <div className="shop-modal-toolbar">
               <div className="shop-modal-currency" aria-label="Available currency">
                 <span className="shop-modal-currency__label">Purse</span>
-                <span className="visually-hidden">{`PP ${pp} • GP ${gp} • SP ${sp} • CP ${cp}`}</span>
-                <span>PP {pp}</span>
-                <span>GP {gp}</span>
-                <span>SP {sp}</span>
-                <span>CP {cp}</span>
+                <span className="visually-hidden">{`PP ${formattedCurrency.pp} • GP ${formattedCurrency.gp} • SP ${formattedCurrency.sp} • CP ${formattedCurrency.cp}`}</span>
+                {[
+                  ['PP', formattedCurrency.pp, 'platinum'],
+                  ['GP', formattedCurrency.gp, 'gold'],
+                  ['SP', formattedCurrency.sp, 'silver'],
+                  ['CP', formattedCurrency.cp, 'copper'],
+                ].map(([label, value, coin]) => (
+                  <span className={`shop-modal-currency__coin shop-modal-currency__coin--${coin}`} key={label}>
+                    <FaCoins aria-hidden="true" />
+                    <span>{label}</span>
+                    <strong>{value}</strong>
+                  </span>
+                ))}
               </div>
               <Button
                 variant={cart.length > 0 ? 'primary' : 'outline-secondary'}
