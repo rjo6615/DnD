@@ -855,14 +855,6 @@ export default function ShopModal({
               >
                 <span className="shop-cart-btn__icon-wrap">
                   <FaShoppingCart size={20} />
-                  <Badge
-                    bg={cart.length > 0 ? 'warning' : 'secondary'}
-                    text={cart.length > 0 ? 'dark' : undefined}
-                    pill
-                    className="shop-cart-btn__badge"
-                  >
-                    {cart.length}
-                  </Badge>
                 </span>
                 <span className="shop-cart-btn__content">
                   <span className="shop-cart-btn__label">Cart</span>
@@ -872,6 +864,14 @@ export default function ShopModal({
                       : 'Empty'}
                   </span>
                 </span>
+                <Badge
+                  bg={cart.length > 0 ? 'warning' : 'secondary'}
+                  text={cart.length > 0 ? 'dark' : undefined}
+                  pill
+                  className="shop-cart-btn__badge"
+                >
+                  {cart.length}
+                </Badge>
               </Button>
             </div>
 

@@ -9484,3 +9484,15 @@ h1 {
   line-height: 1;
   box-shadow: 0 0 0 2px rgba(8, 14, 28, 0.98), 0 6px 14px rgba(0, 0, 0, 0.35);
 }
+
+/* Cart badge lives on the button corner, not inside the cart icon well. */
+.shop-cart-btn--toolbar > .shop-cart-btn__badge.badge {
+  position: absolute !important;
+  top: -8px !important;
+  right: -8px !important;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px !important;
+  z-index: 4;
+  pointer-events: none;
+}
