@@ -9580,3 +9580,200 @@ h1 {
 .item-icon--very-rare { --item-icon-accent: #8b5bd6; --item-icon-glow: rgba(139, 91, 214, 0.34); }
 .item-icon--legendary { --item-icon-accent: #d8892f; --item-icon-glow: rgba(216, 137, 47, 0.42); }
 .item-icon--artifact { --item-icon-accent: #d43f5f; --item-icon-glow: rgba(212, 63, 95, 0.46); }
+
+/* RealmTracker premium home screen: aligns the landing page with the arcane combat HUD language. */
+.realm-home-shell { position: relative; min-height: 100vh; overflow: hidden; color: var(--hud-text); font-family: Raleway, sans-serif; background: radial-gradient(circle at 50% 8%, rgba(56, 232, 255, 0.14), transparent 32rem), radial-gradient(circle at 12% 85%, rgba(184, 92, 255, 0.12), transparent 28rem), linear-gradient(145deg, var(--realm-charcoal), var(--realm-navy) 48%, #03070e); }
+.realm-home-shell::before { content: ''; position: absolute; inset: 0; background: var(--realm-rune-lines), repeating-linear-gradient(115deg, transparent 0 84px, rgba(215, 180, 106, 0.025) 85px 86px, transparent 87px 168px); opacity: 0.9; pointer-events: none; }
+.realm-home-backdrop, .realm-home-layout { position: relative; z-index: 1; }
+.realm-home-backdrop { position: absolute; inset: 0; pointer-events: none; }
+.realm-home-backdrop__orb { position: absolute; width: 34rem; height: 34rem; border-radius: 999px; filter: blur(18px); opacity: 0.34; animation: realm-home-drift 14s ease-in-out infinite alternate; }
+.realm-home-backdrop__orb--one { top: -14rem; left: -10rem; background: radial-gradient(circle, rgba(56, 232, 255, 0.32), transparent 68%); }
+.realm-home-backdrop__orb--two { right: -12rem; bottom: -12rem; background: radial-gradient(circle, rgba(215, 180, 106, 0.22), transparent 68%); animation-delay: -5s; }
+.realm-home-backdrop__rune { position: absolute; top: 12%; left: 50%; width: min(72vw, 720px); aspect-ratio: 1; transform: translateX(-50%); border: 1px solid rgba(143, 200, 255, 0.08); border-radius: 50%; box-shadow: inset 0 0 0 72px rgba(143, 200, 255, 0.018), inset 0 0 0 74px rgba(215, 180, 106, 0.035); opacity: 0.55; animation: realm-home-spin 80s linear infinite; }
+.realm-home-backdrop__mist { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(143, 200, 255, 0.06), transparent); transform: translateX(-35%); animation: realm-home-mist 18s ease-in-out infinite; }
+.realm-home-alert { position: fixed; top: 1rem; left: 50%; z-index: 3; width: min(92vw, 720px); transform: translateX(-50%); }
+.realm-home-layout { width: min(1180px, calc(100vw - 32px)); min-height: 100vh; margin: 0 auto; padding: clamp(28px, 5vw, 72px) 0; display: grid; grid-template-rows: auto auto 1fr; gap: clamp(18px, 3vw, 30px); animation: realm-home-enter 520ms ease-out both; }
+.realm-home-hero { text-align: center; display: grid; justify-items: center; gap: 0.5rem; }
+.realm-home-hero__sigil { width: 58px; height: 58px; display: grid; place-items: center; color: var(--realm-cyan); border: 1px solid rgba(143, 200, 255, 0.3); border-radius: 18px; background: rgba(8, 18, 36, 0.68); box-shadow: 0 0 34px rgba(56, 232, 255, 0.24), inset 0 0 24px rgba(56, 232, 255, 0.08); }
+.realm-home-hero__welcome, .realm-home-section-heading span, .realm-home-command__intro span, .realm-recent-campaign-card__eyebrow, .realm-profile-summary__label { margin: 0; color: var(--hud-muted); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+.realm-home-hero h1 { margin: 0; font-size: clamp(3rem, 9vw, 6.8rem); font-weight: 900; letter-spacing: 0.04em; text-shadow: 0 0 28px rgba(56, 232, 255, 0.34), 0 10px 36px rgba(0, 0, 0, 0.72); }
+.realm-home-hero__subtitle { max-width: 720px; margin: 0; color: rgba(247, 239, 224, 0.78); font-size: clamp(1rem, 2vw, 1.25rem); }
+.realm-home-hero__version { padding: 0.36rem 0.8rem; color: var(--realm-gold); border: 1px solid rgba(215, 180, 106, 0.28); border-radius: 999px; background: rgba(215, 180, 106, 0.07); }
+.realm-home-command { padding: clamp(16px, 3vw, 26px); background: var(--combat-panel-bg, var(--hud-surface)); border-color: var(--combat-panel-border, var(--hud-border)); }
+.realm-home-command__intro { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.realm-home-command__intro strong, .realm-home-section-heading h2 { margin: 0; font-size: clamp(1.25rem, 3vw, 1.8rem); }
+.realm-home-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.realm-home-action-card { position: relative; min-height: 178px; overflow: hidden; padding: 1rem; display: grid; align-content: space-between; text-align: left; color: var(--hud-text); border: 1px solid rgba(143, 200, 255, 0.2); border-radius: 22px; background: radial-gradient(circle at 24% 18%, rgba(56, 232, 255, 0.16), transparent 42%), linear-gradient(150deg, rgba(13, 31, 60, 0.76), rgba(5, 11, 23, 0.9)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 34px rgba(0,0,0,0.32); transition: transform 180ms cubic-bezier(.2,1.35,.35,1), box-shadow 180ms ease, border-color 180ms ease, filter 180ms ease; }
+.realm-home-action-card:hover { transform: translateY(-5px) scale(1.015); border-color: rgba(143, 200, 255, 0.48); box-shadow: 0 0 0 1px rgba(143, 200, 255, 0.16), 0 0 30px rgba(56, 232, 255, 0.2), 0 24px 44px rgba(0,0,0,0.44); }
+.realm-home-action-card:active { transform: translateY(-1px) scale(0.98); box-shadow: inset 0 6px 18px rgba(0,0,0,0.38), 0 0 18px rgba(56, 232, 255, 0.14); }
+.realm-home-action-card--featured { border-color: rgba(215, 180, 106, 0.55); }
+.realm-home-action-card__glow { position: absolute; inset: auto -20% -40% -20%; height: 80%; background: radial-gradient(circle, rgba(56, 232, 255, 0.2), transparent 62%); opacity: 0; transition: opacity 180ms ease; }
+.realm-home-action-card:hover .realm-home-action-card__glow { opacity: 1; }
+.realm-home-action-card__icon { width: 58px; height: 58px; display: grid; place-items: center; color: var(--realm-icy); border: 1px solid rgba(143, 200, 255, 0.28); border-radius: 18px; background: rgba(255, 255, 255, 0.055); box-shadow: 0 0 22px rgba(56, 232, 255, 0.14); font-size: 1.7rem; }
+.realm-home-action-card--featured .realm-home-action-card__icon { color: var(--realm-gold); }
+.realm-home-action-card__content { display: grid; gap: 0.35rem; }
+.realm-home-action-card__title { font-size: 1.18rem; font-weight: 900; }
+.realm-home-action-card__description { color: rgba(247, 239, 224, 0.72); line-height: 1.35; }
+.realm-home-action-card__meta { color: var(--realm-cyan); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.realm-home-lower { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 1rem; align-items: stretch; }
+.realm-home-recent, .realm-home-quick-actions, .realm-profile-summary { padding: 1rem; }
+.realm-home-section-heading { margin-bottom: 0.75rem; }
+.realm-home-recent__list { display: grid; gap: 0.75rem; }
+.realm-recent-campaign-card { display: grid; grid-template-columns: 74px 1fr auto; gap: 1rem; align-items: center; padding: 0.75rem; border: 1px solid rgba(143, 200, 255, 0.14); border-radius: 18px; background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025)); }
+.realm-recent-campaign-card__art { height: 64px; display: grid; place-items: center; color: var(--realm-gold); border-radius: 16px; background: radial-gradient(circle at 50% 35%, rgba(215, 180, 106, 0.22), rgba(6, 12, 24, 0.76)); font-size: 1.35rem; }
+.realm-recent-campaign-card h3 { margin: 0.15rem 0; font-size: 1rem; }
+.realm-recent-campaign-card p { margin: 0; color: var(--hud-muted); font-size: 0.88rem; }
+.realm-recent-campaign-card__resume, .realm-quick-action { min-height: 42px; border: 1px solid rgba(215, 180, 106, 0.34); border-radius: 14px; color: var(--hud-text); background: rgba(215, 180, 106, 0.08); transition: transform 180ms cubic-bezier(.2,1.35,.35,1), box-shadow 180ms ease, filter 180ms ease; }
+.realm-recent-campaign-card__resume:hover, .realm-quick-action:hover { transform: translateY(-2px); filter: brightness(1.15); box-shadow: 0 0 18px rgba(215, 180, 106, 0.16); }
+.realm-home-empty-state { min-height: 130px; display: grid; place-items: center; align-content: center; gap: 0.6rem; color: var(--hud-muted); text-align: center; border: 1px dashed rgba(143, 200, 255, 0.2); border-radius: 18px; }
+.realm-home-sidecar { display: grid; gap: 1rem; }
+.realm-profile-summary { display: grid; grid-template-columns: auto 1fr; gap: 0.85rem; align-items: center; border: 1px solid rgba(143, 200, 255, 0.2); border-radius: 20px; background: rgba(8, 18, 36, 0.72); backdrop-filter: blur(14px); }
+.realm-profile-summary__avatar { width: 54px; height: 54px; display: grid; place-items: center; color: var(--realm-cyan); border-radius: 50%; background: rgba(56, 232, 255, 0.1); box-shadow: inset 0 0 0 1px rgba(56, 232, 255, 0.26), 0 0 22px rgba(56, 232, 255, 0.14); }
+.realm-profile-summary strong { display: block; font-size: 1.05rem; }
+.realm-profile-summary__stats { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.5rem; color: var(--hud-muted); }
+.realm-profile-summary__stats span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.realm-home-quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+.realm-quick-action { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; color: rgba(247, 239, 224, 0.82); border-color: rgba(143, 200, 255, 0.18); background: rgba(255,255,255,0.045); }
+@keyframes realm-home-enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes realm-home-drift { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(30px, -18px, 0) scale(1.08); } }
+@keyframes realm-home-spin { to { transform: translateX(-50%) rotate(360deg); } }
+@keyframes realm-home-mist { 0%, 100% { opacity: 0.18; transform: translateX(-45%); } 50% { opacity: 0.42; transform: translateX(35%); } }
+@media (max-width: 980px) { .realm-home-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } .realm-home-lower { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .realm-home-layout { width: min(100vw - 20px, 1180px); padding-block: 22px; } .realm-home-actions { grid-template-columns: 1fr; } .realm-home-action-card { min-height: 142px; } .realm-home-command__intro { display: grid; } .realm-recent-campaign-card { grid-template-columns: 58px 1fr; } .realm-recent-campaign-card__resume { grid-column: 1 / -1; width: 100%; } .realm-home-quick-actions { grid-template-columns: 1fr; } }
+
+/* Follow-up home refinements: remove non-functional quick actions, relocate logout, and tighten mobile ergonomics. */
+.realm-home-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.realm-profile-summary { align-self: start; }
+.realm-profile-summary__logout { grid-column: 1 / -1; min-height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border: 1px solid rgba(215, 180, 106, 0.4); border-radius: 15px; color: var(--hud-text); background: linear-gradient(135deg, rgba(215, 180, 106, 0.12), rgba(56, 232, 255, 0.055)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); transition: transform 180ms cubic-bezier(.2,1.35,.35,1), box-shadow 180ms ease, filter 180ms ease; }
+.realm-profile-summary__logout:hover { transform: translateY(-2px); filter: brightness(1.12); box-shadow: 0 0 22px rgba(215, 180, 106, 0.18), 0 12px 24px rgba(0,0,0,0.28); }
+.realm-profile-summary__logout:active { transform: translateY(0) scale(0.97); box-shadow: inset 0 5px 14px rgba(0,0,0,0.35); }
+
+@media (max-width: 980px) {
+  .realm-home-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .realm-home-sidecar { grid-row: 1; }
+  .realm-profile-summary { grid-template-columns: auto 1fr auto; }
+  .realm-profile-summary__stats { grid-column: 2 / 3; }
+  .realm-profile-summary__logout { grid-column: 3; grid-row: 1 / 3; min-width: 120px; align-self: stretch; }
+}
+
+@media (max-width: 720px) {
+  .realm-home-shell { min-height: 100dvh; overflow-y: auto; }
+  .realm-home-layout { width: min(100vw - 20px, 1180px); min-height: 100dvh; padding: max(16px, env(safe-area-inset-top)) 0 max(18px, env(safe-area-inset-bottom)); gap: 14px; }
+  .realm-home-hero { gap: 0.35rem; }
+  .realm-home-hero__sigil { width: 46px; height: 46px; border-radius: 15px; }
+  .realm-home-hero h1 { font-size: clamp(2.35rem, 15vw, 4.25rem); line-height: 0.95; }
+  .realm-home-hero__subtitle { max-width: 20rem; font-size: 0.96rem; line-height: 1.35; }
+  .realm-home-hero__version { font-size: 0.76rem; }
+  .realm-home-command { padding: 12px; border-radius: 22px; }
+  .realm-home-command__intro { margin-bottom: 0.75rem; }
+  .realm-home-actions { grid-template-columns: 1fr; gap: 0.7rem; }
+  .realm-home-action-card { min-height: 104px; grid-template-columns: auto 1fr; align-items: center; align-content: center; gap: 0.85rem; padding: 0.85rem; border-radius: 18px; }
+  .realm-home-action-card__icon { width: 50px; height: 50px; border-radius: 16px; font-size: 1.45rem; }
+  .realm-home-action-card__title { font-size: 1.05rem; }
+  .realm-home-action-card__description { font-size: 0.9rem; }
+  .realm-home-action-card__meta { font-size: 0.68rem; }
+  .realm-home-lower { gap: 0.75rem; }
+  .realm-home-recent, .realm-profile-summary { padding: 0.8rem; border-radius: 18px; }
+  .realm-profile-summary { grid-template-columns: auto minmax(0, 1fr); gap: 0.7rem; }
+  .realm-profile-summary__avatar { width: 46px; height: 46px; }
+  .realm-profile-summary__stats { grid-column: 1 / -1; font-size: 0.84rem; }
+  .realm-profile-summary__logout { grid-column: 1 / -1; grid-row: auto; width: 100%; min-height: 48px; }
+  .realm-recent-campaign-card { grid-template-columns: 52px minmax(0, 1fr); gap: 0.7rem; padding: 0.65rem; border-radius: 16px; }
+  .realm-recent-campaign-card__art { height: 52px; border-radius: 14px; }
+  .realm-recent-campaign-card h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .realm-recent-campaign-card p { font-size: 0.78rem; }
+  .realm-recent-campaign-card__resume { grid-column: 1 / -1; width: 100%; min-height: 44px; }
+}
+
+@media (max-width: 420px) {
+  .realm-home-layout { width: min(100vw - 14px, 1180px); }
+  .realm-home-hero__welcome, .realm-home-section-heading span, .realm-home-command__intro span, .realm-recent-campaign-card__eyebrow, .realm-profile-summary__label { font-size: 0.66rem; letter-spacing: 0.12em; }
+  .realm-home-command__intro strong, .realm-home-section-heading h2 { font-size: 1.15rem; }
+  .realm-home-action-card { min-height: 96px; }
+}
+
+/* Mobile containment pass: prevent horizontal clipping, restore full-page scrolling, and keep logout at the bottom. */
+.realm-home-shell,
+.realm-home-layout,
+.realm-home-command,
+.realm-home-lower,
+.realm-home-sidecar,
+.realm-home-recent,
+.realm-profile-summary,
+.realm-home-action-card,
+.realm-recent-campaign-card {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.realm-home-shell {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.realm-home-hero h1,
+.realm-home-action-card__title,
+.realm-home-action-card__description,
+.realm-recent-campaign-card__body,
+.realm-profile-summary strong {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 720px) {
+  .realm-home-layout {
+    min-height: auto;
+    padding-bottom: calc(max(22px, env(safe-area-inset-bottom)) + 22px);
+    grid-template-rows: auto;
+  }
+
+  .realm-home-hero {
+    overflow: hidden;
+  }
+
+  .realm-home-hero h1 {
+    width: 100%;
+    font-size: clamp(2.35rem, 10.5vw, 3.55rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+  }
+
+  .realm-home-hero__welcome,
+  .realm-home-hero__subtitle,
+  .realm-home-hero__version {
+    max-width: calc(100vw - 40px);
+  }
+
+  .realm-home-lower {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .realm-home-sidecar {
+    order: 2;
+    grid-row: auto;
+  }
+
+  .realm-home-recent {
+    order: 1;
+  }
+
+  .realm-profile-summary {
+    align-self: stretch;
+  }
+
+  .realm-profile-summary__logout {
+    margin-top: 0.25rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .realm-home-hero h1 {
+    font-size: clamp(2rem, 10vw, 2.65rem);
+  }
+
+  .realm-home-action-card {
+    width: 100%;
+  }
+}
