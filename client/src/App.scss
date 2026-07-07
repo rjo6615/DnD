@@ -9777,3 +9777,44 @@ h1 {
     width: 100%;
   }
 }
+
+/* Final home scroll model: let the document own vertical scroll, not the decorative shell. */
+.realm-home-shell {
+  height: auto;
+  min-height: 100svh;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.realm-home-layout {
+  min-height: auto;
+  padding-bottom: clamp(28px, 5vw, 72px);
+}
+
+@media (min-width: 721px) {
+  .realm-home-shell {
+    display: flex;
+    align-items: center;
+  }
+
+  .realm-home-layout {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .realm-home-shell {
+    display: block;
+    min-height: 100svh;
+    overflow-y: visible;
+  }
+
+  .realm-home-layout {
+    min-height: auto;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 32px);
+  }
+
+  .realm-home-lower {
+    padding-bottom: 0;
+  }
+}
