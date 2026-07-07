@@ -1582,7 +1582,7 @@ const CampaignMapBoard = ({
     if (rotationMoveHandlerRef.current) {
       targets.forEach((target) => {
         if (target && typeof target.removeEventListener === 'function') {
-          if (pointerEventsSupported) {
+          if (typeof rotationMoveHandlerRef.current === 'function') {
             target.removeEventListener('pointermove', rotationMoveHandlerRef.current);
           } else {
             const handlers = rotationMoveHandlerRef.current;
@@ -1601,7 +1601,7 @@ const CampaignMapBoard = ({
     if (rotationUpHandlerRef.current) {
       targets.forEach((target) => {
         if (target && typeof target.removeEventListener === 'function') {
-          if (pointerEventsSupported) {
+          if (typeof rotationUpHandlerRef.current === 'function') {
             target.removeEventListener('pointerup', rotationUpHandlerRef.current);
           } else {
             const handlers = rotationUpHandlerRef.current;
@@ -1620,7 +1620,7 @@ const CampaignMapBoard = ({
     if (rotationCancelHandlerRef.current) {
       targets.forEach((target) => {
         if (target && typeof target.removeEventListener === 'function') {
-          if (pointerEventsSupported) {
+          if (typeof rotationCancelHandlerRef.current === 'function') {
             target.removeEventListener('pointercancel', rotationCancelHandlerRef.current);
           } else {
             const handlers = rotationCancelHandlerRef.current;
@@ -1963,7 +1963,11 @@ const CampaignMapBoard = ({
         stopRotationDrag();
       };
 
-      if (pointerEventsSupported) {
+      const usePointerEventListeners =
+        pointerEventsSupported ||
+        (typeof event?.type === 'string' && event.type.startsWith('pointer'));
+
+      if (usePointerEventListeners) {
         rotationMoveHandlerRef.current = handleMove;
         rotationUpHandlerRef.current = handleRelease;
         rotationCancelHandlerRef.current = handleCancel;
@@ -1992,7 +1996,7 @@ const CampaignMapBoard = ({
 
       targets.forEach((target) => {
         if (target && typeof target.addEventListener === 'function') {
-          if (pointerEventsSupported) {
+          if (usePointerEventListeners) {
             target.addEventListener('pointermove', handleMove, { passive: false });
             target.addEventListener('pointerup', handleRelease, { passive: false });
             target.addEventListener('pointercancel', handleCancel, { passive: false });
@@ -2062,7 +2066,7 @@ const CampaignMapBoard = ({
       return;
     }
 
-    setLastDraggedTokenId((prev) => (prev === tokenId ? null : prev));
+    setLastDraggedTokenId(tokenId);
   }, []);
 
   useEffect(() => {
@@ -2284,7 +2288,8 @@ const CampaignMapBoard = ({
                 const isRotationActive = lastDraggedTokenId === characterId;
                 const isRotationHovered = hoveredTokenId === characterId;
                 const isRotationDragging = draggingRotationTokenId === characterId;
-                const isRotationVisible = isRotationHovered || isRotationDragging;
+                const isRotationVisible =
+                  isRotationActive || isRotationHovered || isRotationDragging;
 
                 const labelClassName = classNames(
                   'campaign-map-board__figurine-label',
@@ -2306,6 +2311,7 @@ const CampaignMapBoard = ({
                       isActiveTurn && 'campaign-map-board__token--active-turn',
                       `campaign-map-board__token--size-${sizeKey}`,
                       isRotationActive && 'lastDragged',
+                      isRotationVisible && 'campaign-map-board__token--rotation-visible',
                       isRotationDragging && 'campaign-map-board__token--rotation-active'
                     )}
                     style={{
@@ -2339,17 +2345,23 @@ const CampaignMapBoard = ({
                     onPointerOver={() => {
                       if (!interactionDisabled && characterId) {
                         setHoveredTokenId(characterId);
+                        setLastDraggedTokenId((prev) =>
+                          prev && prev !== characterId ? null : prev
+                        );
                       }
                     }}
                     onPointerEnter={() => {
                       if (!interactionDisabled && characterId) {
                         setHoveredTokenId(characterId);
+                        setLastDraggedTokenId((prev) =>
+                          prev && prev !== characterId ? null : prev
+                        );
                       }
                     }}
                     onPointerLeave={(event) => {
                       if (
                         draggingRotationTokenId === characterId ||
-                        (event?.relatedTarget &&
+                        (event?.relatedTarget?.nodeType &&
                           event.currentTarget &&
                           event.currentTarget.contains(event.relatedTarget))
                       ) {
@@ -2389,7 +2401,7 @@ const CampaignMapBoard = ({
                       }
                       if (
                         draggingRotationTokenId === characterId ||
-                        (event?.relatedTarget &&
+                        (event?.relatedTarget?.nodeType &&
                           event.currentTarget &&
                           event.currentTarget.contains(event.relatedTarget))
                       ) {
@@ -2404,6 +2416,9 @@ const CampaignMapBoard = ({
                       }
                       if (!interactionDisabled && characterId) {
                         setHoveredTokenId(characterId);
+                        setLastDraggedTokenId((prev) =>
+                          prev && prev !== characterId ? null : prev
+                        );
                       }
                     }}
                     onMouseEnter={() => {
@@ -2412,6 +2427,9 @@ const CampaignMapBoard = ({
                       }
                       if (!interactionDisabled && characterId) {
                         setHoveredTokenId(characterId);
+                        setLastDraggedTokenId((prev) =>
+                          prev && prev !== characterId ? null : prev
+                        );
                       }
                     }}
                     onTouchStart={(event) => {

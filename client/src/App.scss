@@ -5608,6 +5608,7 @@ h1 {
   }
 
   &__token.lastDragged &__rotation-controls,
+  &__token--rotation-visible &__rotation-controls,
   &__rotation-controls:focus-within {
     opacity: 1;
   }
