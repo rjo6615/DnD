@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import apiFetch from "../../../utils/apiFetch";
@@ -95,32 +95,6 @@ export default function Zombies() {
     updateCreateCampaignForm,
     submitCreateCampaign,
   } = useCampaignActions();
-
-
-  useEffect(() => {
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousBodyOverflowX = document.body.style.overflowX;
-    const previousBodyOverflowY = document.body.style.overflowY;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-    const previousHtmlOverflowX = document.documentElement.style.overflowX;
-    const previousHtmlOverflowY = document.documentElement.style.overflowY;
-
-    document.body.style.overflow = "auto";
-    document.body.style.overflowX = "hidden";
-    document.body.style.overflowY = "auto";
-    document.documentElement.style.overflow = "auto";
-    document.documentElement.style.overflowX = "hidden";
-    document.documentElement.style.overflowY = "auto";
-
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.body.style.overflowX = previousBodyOverflowX;
-      document.body.style.overflowY = previousBodyOverflowY;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-      document.documentElement.style.overflowX = previousHtmlOverflowX;
-      document.documentElement.style.overflowY = previousHtmlOverflowY;
-    };
-  }, []);
 
   const username = createCampaignForm.dm;
   const recentCampaigns = useMemo(() => {
