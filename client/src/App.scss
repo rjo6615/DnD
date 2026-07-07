@@ -9467,3 +9467,20 @@ h1 {
   z-index: 2;
   min-width: 24px;
 }
+
+/* Production polish: make the cart count a small corner badge, not an overlay on the glyph. */
+.shop-cart-btn__badge.badge {
+  top: -10px;
+  right: -11px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 0 0 2px rgba(8, 14, 28, 0.98), 0 6px 14px rgba(0, 0, 0, 0.35);
+}
