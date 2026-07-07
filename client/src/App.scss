@@ -9450,3 +9450,12 @@ h1 {
     padding: 10px 14px;
   }
 }
+
+/* Fine tune the shop cart glyph so it is optically centered inside its icon well. */
+.shop-cart-btn__icon-wrap > svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: block;
+}
