@@ -3487,6 +3487,7 @@ export default function ZombiesCharacterSheet() {
   const [isDamagePopupDismissed, setIsDamagePopupDismissed] = useState(false);
   const [footerDamageSummary, setFooterDamageSummary] = useState({
     value: null,
+    label: 'Damage',
     isCritical: false,
     isFumble: false,
     timestamp: null,
@@ -3495,10 +3496,15 @@ export default function ZombiesCharacterSheet() {
   const handleDamageSummaryChange = useCallback((summary) => {
     setFooterDamageSummary((prev) => {
       if (!summary || typeof summary !== 'object') {
-        if (prev.value === null && !prev.isCritical && !prev.isFumble) {
+        if (
+          prev.value === null &&
+          (prev.label === 'Damage' || !prev.label) &&
+          !prev.isCritical &&
+          !prev.isFumble
+        ) {
           return prev;
         }
-        return { value: null, isCritical: false, isFumble: false, timestamp: null };
+        return { value: null, label: 'Damage', isCritical: false, isFumble: false, timestamp: null };
       }
 
       const next = {
@@ -3507,6 +3513,10 @@ export default function ZombiesCharacterSheet() {
           summary.value !== undefined
             ? summary.value
             : null,
+        label:
+          typeof summary.label === 'string' && summary.label.trim()
+            ? summary.label.trim()
+            : 'Damage',
         isCritical: Boolean(summary.isCritical),
         isFumble: Boolean(summary.isFumble),
         timestamp:
@@ -3517,6 +3527,7 @@ export default function ZombiesCharacterSheet() {
 
       if (
         prev.value === next.value &&
+        prev.label === next.label &&
         prev.isCritical === next.isCritical &&
         prev.isFumble === next.isFumble &&
         prev.timestamp === next.timestamp
@@ -5660,7 +5671,7 @@ export default function ZombiesCharacterSheet() {
               >
                 ×
               </button>
-              <span className="combat-hud-damage-popup__label">Damage</span>
+              <span className="combat-hud-damage-popup__label">{footerDamageSummary.label || 'Damage'}</span>
               <strong className="combat-hud-damage-popup__value">{footerDamageSummary.value}</strong>
               <button
                 type="button"

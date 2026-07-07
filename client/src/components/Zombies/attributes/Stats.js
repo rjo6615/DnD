@@ -189,6 +189,7 @@ export default function Stats({
             value: result,
             breakdown: breakdownParts.join(' '),
             source: statLabel,
+            rollLabel: 'Stat Roll',
             critical: d20 === 20,
             fumble: d20 === 1,
             diceRolls,
