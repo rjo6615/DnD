@@ -441,6 +441,7 @@ const PlayerTurnActions = React.forwardRef(
         : undefined,
       modifierValues: undefined,
       usedFallback,
+      rollLabel: 'Roll',
     });
 
     setShowDiceRoller(false);
@@ -1764,6 +1765,7 @@ const manualCriticalRef = useRef(false);
           source: `${weaponLabel} Attack Roll`,
           critical: d20 === 20,
           fumble: d20 === 1,
+          rollLabel: 'Attack Roll',
           diceRolls: [
             {
               sides: 20,
@@ -1806,6 +1808,7 @@ const manualCriticalRef = useRef(false);
             source: `${spell?.name || 'Spell'} Spell Attack Roll`,
             critical: d20 === 20,
             fumble: d20 === 1,
+            rollLabel: 'Attack Roll',
             diceRolls: [
               {
                 sides: 20,
@@ -1963,6 +1966,7 @@ const sortedSpells = useMemo(() => {
 // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
 const [damageValue, setDamageValue] = useState(0);
   const [hasDamageRoll, setHasDamageRoll] = useState(false);
+  const [damageRollLabel, setDamageRollLabel] = useState('Damage');
   const [damageLog, setDamageLog] = useState([]);
   const [showLog, setShowLog] = useState(false);
   const [activeDice, setActiveDice] = useState([]);
@@ -2034,6 +2038,11 @@ const updateDamageValueWithAnimation = (
   setPulseClass('');
   setDamageValue(newValue);
   setHasDamageRoll(newValue !== undefined);
+  setDamageRollLabel(
+    typeof extra?.rollLabel === 'string' && extra.rollLabel.trim()
+      ? extra.rollLabel.trim()
+      : 'Damage'
+  );
   const details = Array.isArray(extra?.diceRolls) ? extra.diceRolls : [];
   triggerDiceAnimation(details);
   setLastRollTimestamp(Date.now());
@@ -2099,6 +2108,7 @@ useEffect(() => {
     if (!hasDamageRoll) {
       onDamageSummaryChange({
         value: null,
+        label: 'Damage',
         isCritical: false,
         isFumble: false,
         timestamp: null,
@@ -2108,12 +2118,21 @@ useEffect(() => {
 
     onDamageSummaryChange({
       value: damageValue,
+      label: damageRollLabel,
       isCritical,
       isFumble,
       timestamp: lastRollTimestamp || null,
     });
   }
-}, [onDamageSummaryChange, hasDamageRoll, damageValue, isCritical, isFumble, lastRollTimestamp]);
+}, [
+  onDamageSummaryChange,
+  hasDamageRoll,
+  damageValue,
+  damageRollLabel,
+  isCritical,
+  isFumble,
+  lastRollTimestamp,
+]);
 
 useEffect(() => {
   if (!lastRollTimestamp) {

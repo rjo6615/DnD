@@ -426,6 +426,7 @@ export default function Skills({
           value: result,
           breakdown: breakdownParts.join(' '),
           source: skillLabel,
+          rollLabel: 'Skill Roll',
           critical: d20 === 20,
           fumble: d20 === 1,
           diceRolls,

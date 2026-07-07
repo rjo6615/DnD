@@ -91,13 +91,14 @@ const FooterCharacterSlot = ({
 
   const normalizedDamageSummary = useMemo(() => {
     if (!damageSummary || typeof damageSummary !== 'object') {
-      return { value: null, isCritical: false, isFumble: false, timestamp: null };
+      return { value: null, label: 'Damage', isCritical: false, isFumble: false, timestamp: null };
     }
 
-    const { value, isCritical, isFumble, timestamp } = damageSummary;
+    const { value, label, isCritical, isFumble, timestamp } = damageSummary;
 
     return {
       value: value !== undefined ? value : null,
+      label: typeof label === 'string' && label.trim() ? label.trim() : 'Damage',
       isCritical: Boolean(isCritical),
       isFumble: Boolean(isFumble),
       timestamp:
@@ -107,6 +108,7 @@ const FooterCharacterSlot = ({
 
   const {
     value: damageSummaryValue,
+    label: damageLabel,
     isCritical: damageIsCritical,
     isFumble: damageIsFumble,
     timestamp: damageTimestamp,
@@ -470,7 +472,7 @@ const FooterCharacterSlot = ({
                 {hasDamageDisplay ? (
                   <div className={damageClassName} role="status" aria-live="polite">
                     <div className="footer-character-slot__damage-header">
-                      <span className="footer-character-slot__damage-label">Damage</span>
+                      <span className="footer-character-slot__damage-label">{damageLabel}</span>
                       {typeof onToggleCritical === 'function' ? (
                         <Button
                           type="button"
