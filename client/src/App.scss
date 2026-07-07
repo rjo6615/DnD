@@ -9115,3 +9115,148 @@ h1 {
   .modal-body { padding: 16px !important; }
   .skills-card-grid, .attack-card-grid { grid-template-columns: 1fr; gap: 12px; }
 }
+
+/* Modal usability refinements: readable text, reliable mobile scrolling, denser mobile grids. */
+.modal-content,
+.modal-content .card,
+.modern-card,
+.modern-card .card,
+.modal .card-body,
+.modal .card-title,
+.modal .card-text,
+.modal p,
+.modal label,
+.modal small,
+.modal li,
+.modal td,
+.modal th,
+.modal .dropdown-menu,
+.modal .text-dark,
+.modal .text-body,
+.modal .text-secondary,
+.modal .text-muted {
+  color: var(--realm-text) !important;
+}
+
+.modal .text-muted,
+.modal small,
+.modal .card-subtitle,
+.modal .stat-card-label,
+.modal .skill-card-ability,
+.modal .skill-card-metric-label,
+.modal .stat-card-metric-label,
+.modal .character-info-label {
+  color: var(--realm-muted) !important;
+}
+
+.modal .dropdown-menu,
+.modal .list-group-item,
+.modal table,
+.modal .table,
+.modal .alert:not(.alert-danger):not(.alert-warning):not(.alert-success) {
+  background: rgba(8, 18, 33, 0.96) !important;
+  border-color: var(--realm-border) !important;
+}
+
+.modal .alert-warning {
+  color: #fff4cc !important;
+  background: linear-gradient(135deg, rgba(112, 77, 12, 0.86), rgba(57, 38, 6, 0.92)) !important;
+  border-color: rgba(216, 183, 106, 0.5) !important;
+}
+
+.modal-dialog {
+  max-height: calc(100dvh - 2rem);
+}
+
+.modal-content,
+.modal-content > .card,
+.modern-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem);
+  min-height: 0;
+}
+
+.modal-body,
+.modern-card .modal-body,
+.card-body.modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.attack-card-grid,
+.skills-card-grid,
+.stat-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.stat-card,
+.skill-card {
+  padding: 12px !important;
+  gap: 10px;
+}
+
+.stat-card-body,
+.skill-card-metrics {
+  gap: 8px;
+}
+
+.stat-card-metric,
+.skill-card-metric {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .modal-dialog {
+    max-height: 100dvh;
+  }
+
+  .modal-content,
+  .modal-content > .card,
+  .modern-card {
+    max-height: 92dvh;
+  }
+
+  .skills-card-grid,
+  .stat-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .attack-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
+    gap: 10px;
+  }
+
+  .skill-card-name,
+  .stat-card-key {
+    font-size: 0.95rem;
+  }
+
+  .skill-card-metric-value,
+  .stat-card-metric-value {
+    font-size: 1.1rem;
+  }
+
+  .skill-card-toggles {
+    gap: 8px;
+    font-size: 0.82rem;
+  }
+
+  .modal-footer,
+  .modern-card .modal-footer,
+  .card-footer.modal-footer {
+    padding: 12px 16px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .skills-card-grid,
+  .stat-card-grid {
+    grid-template-columns: repeat(2, minmax(132px, 1fr));
+    overflow-x: auto;
+  }
+}
