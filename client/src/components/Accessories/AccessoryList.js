@@ -1,16 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Row, Col, Alert, Button, Badge, Modal } from 'react-bootstrap';
-import {
-  GiNecklace,
-  GiBelt,
-  GiBracers,
-  GiCape,
-  GiSteampunkGoggles,
-  GiCarnivalMask,
-  GiRing,
-  GiWrappedHeart,
-  GiTreasureMap,
-} from 'react-icons/gi';
+import ItemIcon from '../common/ItemIcon';
 import apiFetch from '../../utils/apiFetch';
 import { STATS } from '../Zombies/statSchema';
 import { SKILLS } from '../Zombies/skillSchema';
@@ -33,19 +23,6 @@ const SLOT_LABELS = EQUIPMENT_SLOT_LAYOUT.flat().reduce((acc, slot) => {
   return acc;
 }, {});
 
-const categoryIcons = {
-  amulet: GiNecklace,
-  belt: GiBelt,
-  bracelet: GiBracers,
-  brooch: GiTreasureMap,
-  cape: GiCape,
-  cloak: GiCape,
-  goggles: GiSteampunkGoggles,
-  mask: GiCarnivalMask,
-  ring: GiRing,
-  sash: GiBelt,
-  wrap: GiWrappedHeart,
-};
 
 const renderBonuses = (bonuses, labels) =>
   Object.entries(bonuses || {})
@@ -530,17 +507,12 @@ function AccessoryList({
             copyIndex,
             copyCount,
           }) => {
-            const categoryKey =
-              typeof accessory.category === 'string'
-                ? accessory.category.toLowerCase()
-                : '';
-            const Icon = categoryIcons[categoryKey] || GiTreasureMap;
             return (
               <Col key={reactKey}>
                 <Card className="item-card h-100">
                   <Card.Body className="d-flex flex-column">
                     <div className="d-flex justify-content-center mb-2">
-                      <Icon size={40} title={accessory.category} />
+                      <ItemIcon item={accessory} itemType="accessory" category={accessory.category} size={44} />
                     </div>
                     <Card.Title>
                       {accessory.displayName || accessory.name}
