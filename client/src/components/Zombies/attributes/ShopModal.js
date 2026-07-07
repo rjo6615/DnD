@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Modal, Card, Tab, Button, Nav, Badge } from 'react-bootstrap';
-import { FaShoppingCart } from 'react-icons/fa';
+import { Alert, Modal, Card, Tab, Button, Nav } from 'react-bootstrap';
+import { FaCoins, FaShoppingCart } from 'react-icons/fa';
 import WeaponList from '../../Weapons/WeaponList';
 import ArmorList from '../../Armor/ArmorList';
 import ItemList from '../../Items/ItemList';
@@ -11,6 +11,14 @@ import apiFetch from '../../../utils/apiFetch';
 const DEFAULT_TAB = 'weapons';
 
 const SHOP_VISIBILITY_KEYS = ['weapons', 'armor', 'items', 'accessories'];
+
+const formatCurrencyAmount = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return value ?? 0;
+  }
+  return new Intl.NumberFormat('en-US').format(numeric);
+};
 
 const buildHiddenSet = (value) => {
   const set = new Set();
@@ -481,6 +489,15 @@ export default function ShopModal({
       : activeTabState) || DEFAULT_TAB;
 
   const { cp = 0, sp = 0, gp = 0, pp = 0 } = currency || {};
+  const formattedCurrency = useMemo(
+    () => ({
+      pp: formatCurrencyAmount(pp),
+      gp: formatCurrencyAmount(gp),
+      sp: formatCurrencyAmount(sp),
+      cp: formatCurrencyAmount(cp),
+    }),
+    [pp, gp, sp, cp]
+  );
 
   const availableCp = useMemo(
     () => pp * COIN_VALUES.pp + gp * COIN_VALUES.gp + sp * COIN_VALUES.sp + cp,
@@ -811,7 +828,47 @@ export default function ShopModal({
           style={{ maxHeight: '80vh', overflowY: 'auto' }}
         >
           <Tab.Container activeKey={currentTab} onSelect={handleSelectTab}>
-            <div className="modal-tab-header d-flex justify-content-between align-items-center mb-3">
+            <div className="shop-modal-toolbar">
+              <div className="shop-modal-currency" aria-label="Available currency">
+                <span className="shop-modal-currency__label">Purse</span>
+                <span className="visually-hidden">{`PP ${formattedCurrency.pp} • GP ${formattedCurrency.gp} • SP ${formattedCurrency.sp} • CP ${formattedCurrency.cp}`}</span>
+                {[
+                  ['PP', formattedCurrency.pp, 'platinum'],
+                  ['GP', formattedCurrency.gp, 'gold'],
+                  ['SP', formattedCurrency.sp, 'silver'],
+                  ['CP', formattedCurrency.cp, 'copper'],
+                ].map(([label, value, coin]) => (
+                  <span className={`shop-modal-currency__coin shop-modal-currency__coin--${coin}`} key={label}>
+                    <FaCoins aria-hidden="true" />
+                    <span>{label}</span>
+                    <strong>{value}</strong>
+                  </span>
+                ))}
+              </div>
+              <Button
+                variant={cart.length > 0 ? 'primary' : 'outline-secondary'}
+                className={`shop-cart-btn shop-cart-btn--toolbar ${
+                  cart.length > 0 ? 'shop-cart-btn--active' : ''
+                }`}
+                aria-label={`View cart, ${cart.length} item${cart.length === 1 ? '' : 's'}`}
+                onClick={() => setShowCart(true)}
+              >
+                <span className="shop-cart-btn__icon-wrap">
+                  <FaShoppingCart size={20} />
+                </span>
+                <span className="shop-cart-btn__content">
+                  <span className="shop-cart-btn__label">Cart</span>
+                  <span className="shop-cart-btn__meta">
+                    {cart.length > 0
+                      ? `${cart.length} item${cart.length === 1 ? '' : 's'} • ${formattedTotalCost}`
+                      : 'Empty'}
+                  </span>
+                </span>
+                <span className="visually-hidden">{cart.length}</span>
+              </Button>
+            </div>
+
+            <div className="modal-tab-header shop-modal-tabs">
               <Nav variant="tabs" className="mb-0">
                 {tabConfigs.map(({ key, title }) => (
                   <Nav.Item key={key}>
@@ -819,24 +876,6 @@ export default function ShopModal({
                   </Nav.Item>
                 ))}
               </Nav>
-              <div className="ms-auto d-flex align-items-center gap-3 text-nowrap">
-                <span>PP {pp} • GP {gp} • SP {sp} • CP {cp}</span>
-                <Button
-                  variant="outline-secondary"
-                  className="shop-cart-btn position-relative"
-                  aria-label="View cart"
-                  onClick={() => setShowCart(true)}
-                >
-                  <FaShoppingCart size={20} />
-                  <Badge
-                    bg="secondary"
-                    pill
-                    className="position-absolute top-0 start-100 translate-middle"
-                  >
-                    {cart.length}
-                  </Badge>
-                </Button>
-              </div>
             </div>
             <Tab.Content>
               {tabConfigs.map(({ key, render }) => {
