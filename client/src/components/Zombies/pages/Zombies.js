@@ -69,8 +69,7 @@ function HeroSection({ username }) {
       <div className="realm-home-hero__sigil" aria-hidden="true"><i className="fa-solid fa-wand-sparkles" /></div>
       <p className="realm-home-hero__welcome">Welcome back{username ? `, ${username}` : ""}</p>
       <h1>RealmTracker</h1>
-      <p className="realm-home-hero__subtitle">Professional Virtual Tabletop for Dungeons & Dragons</p>
-      <span className="realm-home-hero__version">Arcane HUD · v1.0</span>
+      <p className="realm-home-hero__subtitle">Virtual Tabletop for Dungeons & Dragons</p>
     </header>
   );
 }
