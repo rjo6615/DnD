@@ -1,12 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Form, Alert, Row, Col, Button, Badge, Modal } from 'react-bootstrap';
-import {
-  GiLeatherArmor,
-  GiBreastplate,
-  GiChainMail,
-  GiShield,
-  GiArmorVest,
-} from 'react-icons/gi';
+import ItemIcon from '../common/ItemIcon';
 import apiFetch from '../../utils/apiFetch';
 
 /** @typedef {import('../../../../types/armor').Armor} Armor */
@@ -349,12 +343,6 @@ function ArmorList({
     return <div>Loading...</div>;
   }
 
-  const categoryIcons = {
-    light: GiLeatherArmor,
-    medium: GiBreastplate,
-    heavy: GiChainMail,
-    shield: GiShield,
-  };
 
   const handleAddToCart = (piece) => () => {
     const payload = {
@@ -509,13 +497,12 @@ function ArmorList({
       ) : (
         <Row className="g-2">
           {expandedEntries.map(({ reactKey, dataKey, piece, copyIndex, copyCount }) => {
-            const Icon = categoryIcons[piece.category] || GiArmorVest;
             return (
               <Col xs={6} md={4} key={reactKey}>
                 <Card className="armor-card h-100">
                   <Card.Body className="d-flex flex-column">
                   <div className="d-flex justify-content-center mb-2">
-                    <Icon size={40} title={piece.category} />
+                    <ItemIcon item={piece} itemType="armor" category={piece.category || piece.type} size={44} />
                   </div>
                   <Card.Title as="h6">{piece.displayName || piece.name}</Card.Title>
                   <Card.Text>
