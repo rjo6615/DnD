@@ -8923,3 +8923,49 @@ h1 {
   border-color: rgba(254, 240, 138, 0.96);
   box-shadow: 0 0 8px rgba(250, 204, 21, 0.92), 0 0 18px rgba(234, 179, 8, 0.5), inset 0 0 7px rgba(255, 255, 255, 0.34);
 }
+
+/* Mobile HUD refinements: action trackers first, roomier resources, and no map title overlay. */
+@media (max-width: 900px) {
+  .campaign-map-board__title {
+    display: none;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open {
+    max-height: 50vh;
+    padding-bottom: 16px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__turn-slots {
+    grid-row: 1;
+    width: 100%;
+    min-height: 48px;
+    height: 48px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__turn-slots .spell-slot-container {
+    min-height: 48px;
+    height: 48px;
+    overflow: visible;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__turn-slots .spell-slot {
+    width: 96px;
+    min-width: 96px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail {
+    grid-row: 2;
+    min-height: 128px;
+    padding-bottom: 16px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-resource-tile {
+    min-height: 58px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open > .spell-slot-container {
+    grid-row: 3;
+  }
+}
