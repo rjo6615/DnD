@@ -43,6 +43,72 @@ export function SectionHeader({ eyebrow, title, children, className }) {
   return <header className={join('hud-section-header', className)}>{eyebrow && <span>{eyebrow}</span>}<h3>{title}</h3>{children}</header>;
 }
 
+export function ModalShell({ className, children, ...props }) {
+  return <Panel className={join('realm-modal-shell', className)} {...props}>{children}</Panel>;
+}
+
+export function ModalHeader({ title, subtitle, actions, onClose, className, children }) {
+  return (
+    <header className={join('realm-modal-header', className)}>
+      <div className="realm-modal-header__titles">
+        {subtitle && <span className="realm-modal-header__subtitle">{subtitle}</span>}
+        {title && <h2 className="realm-modal-header__title">{title}</h2>}
+      </div>
+      {children && <div className="realm-modal-header__content">{children}</div>}
+      {actions && <div className="realm-modal-header__actions">{actions}</div>}
+      {onClose && <IconButton className="realm-modal-header__close" label="Close" onClick={onClose}>×</IconButton>}
+    </header>
+  );
+}
+
+export function ModalBody({ className, children, ...props }) {
+  return <div className={join('realm-modal-body', className)} {...props}>{children}</div>;
+}
+
+export function ModalFooter({ className, children, ...props }) {
+  return <footer className={join('realm-modal-footer', className)} {...props}>{children}</footer>;
+}
+
+export function Section({ as: Component = 'section', className, children, ...props }) {
+  return <Component className={join('realm-section', className)} {...props}>{children}</Component>;
+}
+
+export function StatCard({ label, value, detail, className, children }) {
+  return <Card className={join('realm-stat-card', className)}><span>{label}</span><strong>{value}</strong>{detail && <small>{detail}</small>}{children}</Card>;
+}
+
+export function ActionBar({ className, children, ...props }) {
+  return <div className={join('realm-action-bar', className)} {...props}>{children}</div>;
+}
+
+export function Tabs({ className, children, ...props }) {
+  return <div className={join('realm-tabs', className)} {...props}>{children}</div>;
+}
+
+export function Sidebar({ className, children, ...props }) {
+  return <aside className={join('realm-sidebar', className)} {...props}>{children}</aside>;
+}
+
+export function SearchBar({ className, ...props }) {
+  return <input className={join('realm-search-bar', className)} type="search" {...props} />;
+}
+
+export function ResourceChip({ className, children, ...props }) {
+  return <span className={join('realm-resource-chip', className)} {...props}>{children}</span>;
+}
+
+export function InfoCard({ className, children, ...props }) {
+  return <Card className={join('realm-info-card', className)} {...props}>{children}</Card>;
+}
+
+export function EmptyState({ title = 'Nothing here yet', children, className }) {
+  return <div className={join('realm-empty-state', className)}><strong>{title}</strong>{children && <p>{children}</p>}</div>;
+}
+
+export function ScrollablePanel({ className, children, ...props }) {
+  return <div className={join('realm-scrollable-panel', className)} {...props}>{children}</div>;
+}
+
 export function BottomSheet({ className, children, ...props }) {
   return <Panel className={join('hud-bottom-sheet', className)} {...props}>{children}</Panel>;
 }
