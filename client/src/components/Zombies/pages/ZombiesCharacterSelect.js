@@ -5,6 +5,7 @@ import { Form, Modal, Card } from 'react-bootstrap';
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
+import { resolveFigurineImageData } from '../utils/figurineAssets';
 import useUser from '../../../hooks/useUser';
 import { SKILLS } from "../skillSchema";
 import { STATS } from "../statSchema";
@@ -51,10 +52,13 @@ const formatCharacterDate = (value) => {
 const getInitials = (name = "Hero") => name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "RT";
 
 const CharacterPortrait = ({ character }) => {
-  const portrait = character?.portrait || character?.image || character?.avatar || character?.figurine?.imageUrl;
+  const { figurineImageUrl } = resolveFigurineImageData(character, character?.figurine, character?.figurineImage, character?.tokenImage);
+  const portrait = figurineImageUrl || character?.portrait || character?.image || character?.avatar;
   const name = character?.characterName || "Unnamed Hero";
+  const portraitClassName = `character-select-portrait${figurineImageUrl ? " character-select-portrait--figurine" : ""}`;
+
   return (
-    <div className="character-select-portrait" aria-label={`${name} portrait`}>
+    <div className={portraitClassName} aria-label={`${name} portrait`}>
       {portrait ? <img src={portrait} alt="" /> : <span>{getInitials(name)}</span>}
     </div>
   );
@@ -173,6 +177,16 @@ export default function RecordList() {
   const [records, setRecords] = useState([]);
   const navigate = useNavigate();
   const user = useUser();
+
+  useEffect(() => {
+    document.body.classList.add("character-select-scroll-enabled");
+    document.documentElement.classList.add("character-select-scroll-enabled");
+
+    return () => {
+      document.body.classList.remove("character-select-scroll-enabled");
+      document.documentElement.classList.remove("character-select-scroll-enabled");
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) {

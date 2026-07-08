@@ -10031,3 +10031,45 @@ h1 {
   .character-select-card__actions, .character-select-hero__actions, .character-select-create__actions { grid-template-columns: 1fr; }
   .character-select-card__actions .btn { width: 100%; min-height: 48px; }
 }
+
+html.character-select-scroll-enabled,
+body.character-select-scroll-enabled {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.character-select-scroll-enabled #root {
+  min-height: 100dvh;
+  height: auto;
+  overflow: visible;
+}
+
+body.character-select-scroll-enabled {
+  text-align: initial;
+}
+
+.character-select-page {
+  height: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: visible;
+  padding-bottom: calc(clamp(2rem, 5vw, 5rem) + env(safe-area-inset-bottom, 0px));
+}
+
+.character-select-shell {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.character-select-portrait--figurine {
+  background: radial-gradient(circle at 50% 24%, rgba(145, 183, 255, 0.62), rgba(69, 54, 143, 0.42) 46%, rgba(4, 9, 22, 0.95));
+}
+
+.character-select-portrait--figurine img {
+  object-fit: cover;
+  object-position: center top;
+}
