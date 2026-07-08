@@ -9718,6 +9718,150 @@ h1 {
   }
 }
 
+@media (min-width: 721px) and (max-height: 900px) {
+  .realm-home-layout {
+    min-height: 100dvh;
+    padding-block: clamp(14px, 3vh, 28px);
+    gap: clamp(12px, 2vh, 18px);
+  }
+
+  .realm-home-hero {
+    gap: 0.35rem;
+  }
+
+  .realm-home-hero__sigil {
+    width: clamp(44px, 6vh, 52px);
+    height: clamp(44px, 6vh, 52px);
+    border-radius: 16px;
+  }
+
+  .realm-home-hero h1 {
+    font-size: clamp(2.65rem, 8vh, 5rem);
+    line-height: 0.92;
+  }
+
+  .realm-home-hero__subtitle {
+    font-size: clamp(0.92rem, 1.8vh, 1.08rem);
+  }
+
+  .realm-home-hero__version {
+    padding-block: 0.28rem;
+  }
+
+  .realm-home-command {
+    padding: clamp(12px, 2vh, 18px);
+  }
+
+  .realm-home-command__intro {
+    margin-bottom: 0.75rem;
+  }
+
+  .realm-home-actions,
+  .realm-home-lower,
+  .realm-home-sidecar,
+  .realm-home-recent__list {
+    gap: 0.7rem;
+  }
+
+  .realm-home-action-card {
+    min-height: clamp(122px, 17vh, 152px);
+    padding: 0.8rem;
+  }
+
+  .realm-home-action-card__icon {
+    width: clamp(46px, 6vh, 52px);
+    height: clamp(46px, 6vh, 52px);
+    border-radius: 16px;
+    font-size: 1.45rem;
+  }
+
+  .realm-home-action-card__content {
+    gap: 0.25rem;
+  }
+
+  .realm-home-action-card__title {
+    font-size: 1.05rem;
+  }
+
+  .realm-home-action-card__description {
+    font-size: 0.9rem;
+    line-height: 1.25;
+  }
+
+  .realm-home-recent,
+  .realm-profile-summary {
+    padding: 0.8rem;
+  }
+
+  .realm-home-section-heading {
+    margin-bottom: 0.55rem;
+  }
+
+  .realm-home-empty-state {
+    min-height: clamp(94px, 14vh, 118px);
+    gap: 0.35rem;
+  }
+
+  .realm-recent-campaign-card {
+    grid-template-columns: 58px 1fr auto;
+    gap: 0.75rem;
+    padding: 0.6rem;
+  }
+
+  .realm-recent-campaign-card__art {
+    height: 52px;
+  }
+
+  .realm-profile-summary {
+    gap: 0.65rem;
+  }
+
+  .realm-profile-summary__avatar {
+    width: 46px;
+    height: 46px;
+  }
+
+  .realm-profile-summary__logout {
+    min-height: 42px;
+  }
+}
+
+@media (min-width: 721px) and (max-height: 760px) {
+  .realm-home-layout {
+    padding-block: 12px;
+    gap: 10px;
+  }
+
+  .realm-home-hero__subtitle,
+  .realm-home-hero__version,
+  .realm-home-action-card__description,
+  .realm-profile-summary__stats {
+    display: none;
+  }
+
+  .realm-home-hero h1 {
+    font-size: clamp(2.25rem, 7.5vh, 3.6rem);
+  }
+
+  .realm-home-command__intro,
+  .realm-home-section-heading {
+    margin-bottom: 0.45rem;
+  }
+
+  .realm-home-action-card {
+    min-height: clamp(92px, 15vh, 116px);
+  }
+
+  .realm-profile-summary {
+    grid-template-columns: auto 1fr;
+  }
+
+  .realm-profile-summary__logout {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+}
+
 .realm-home-hero h1,
 .realm-home-action-card__title,
 .realm-home-action-card__description,
