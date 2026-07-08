@@ -17,12 +17,13 @@
 .auth-layout {
   position: relative;
   isolation: isolate;
+  box-sizing: border-box;
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
   grid-template-columns: minmax(0, 1.12fr) minmax(420px, 0.88fr);
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   color: var(--hud-text, #f7efe0);
   font-family: Raleway, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -745,6 +746,7 @@
     min-height: 100dvh;
     grid-template-columns: 1fr;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .auth-background::after {
     background: linear-gradient(
