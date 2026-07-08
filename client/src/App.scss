@@ -10445,3 +10445,158 @@ body.character-select-scroll-enabled {
 
 @keyframes dmPanelSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes dmActivePulse { 0%, 100% { box-shadow: 0 0 0 rgba(215, 180, 106, 0), 0 18px 36px rgba(0,0,0,0.42); } 50% { box-shadow: 0 0 28px rgba(215, 180, 106, 0.34), 0 18px 36px rgba(0,0,0,0.5); } }
+
+/* DM Command Center mobile corrections */
+.zombies-dm-page__map-board.campaign-map-board {
+  height: 100dvh;
+  min-height: 100dvh;
+  padding: 0;
+  background: #030711;
+}
+
+.zombies-dm-page__map-board .campaign-map-board__stage,
+.zombies-dm-page__map-board .campaign-map-board__image-wrapper {
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  border-radius: 0;
+}
+
+.zombies-dm-page__map-board .campaign-map-board__image {
+  object-fit: cover;
+}
+
+.zombies-dm-active-enemies {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.zombies-dm-active-enemies__header {
+  flex: 0 0 auto;
+}
+
+.zombies-dm-active-enemies__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.35rem;
+}
+
+.zombies-dm-active-enemies .btn:hover,
+.zombies-dm-active-enemies .btn:focus,
+.zombies-dm-active-enemies .btn:active,
+.zombies-dm-active-enemies .btn-outline-light:hover,
+.zombies-dm-active-enemies .btn-outline-light:focus,
+.zombies-dm-active-enemies .btn-outline-light:active,
+.enemy-quick-card .btn:hover,
+.enemy-quick-card .btn:focus,
+.enemy-quick-card .btn:active,
+.zombies-dm-bottom-bar__button:hover,
+.zombies-dm-bottom-bar__button:focus,
+.zombies-dm-bottom-bar__button:active {
+  background: linear-gradient(135deg, rgba(12, 25, 48, 0.96), rgba(8, 16, 32, 0.98)) !important;
+  border-color: rgba(101, 216, 255, 0.78) !important;
+  color: #fff8df !important;
+}
+
+.zombies-dm-bottom-bar__button span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .zombies-dm-page__map-surface,
+  .zombies-dm-page__map-board {
+    width: 100vw;
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+
+  .zombies-dm-page__map-surface::after {
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.34), transparent 28%, transparent 62%, rgba(0, 0, 0, 0.68)),
+      radial-gradient(circle at 50% 50%, transparent 0 42%, rgba(1, 5, 12, 0.38) 100%);
+  }
+
+  .zombies-dm-page__map-heading {
+    left: 0.75rem;
+    right: 0.75rem;
+    padding: 0.75rem 0.95rem;
+    border-radius: 18px;
+  }
+
+  .zombies-dm-page__combat-header {
+    top: calc(env(safe-area-inset-top, 0px) + 5.4rem);
+  }
+
+  .combat-turn-header__card {
+    width: clamp(82px, 26vw, 108px);
+    min-width: clamp(82px, 26vw, 108px);
+    padding: 0.55rem 0.5rem !important;
+  }
+
+  .zombies-dm-active-enemies {
+    max-height: min(52dvh, 520px);
+    overflow: hidden;
+  }
+
+  .zombies-dm-active-enemies[aria-expanded='true'] .zombies-dm-active-enemies__list {
+    max-height: none;
+  }
+
+  .zombies-dm-active-enemies__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .zombies-dm-active-enemies__actions .d-inline-flex {
+    display: contents !important;
+  }
+
+  .zombies-dm-active-enemies__actions .btn {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 0.55rem;
+    white-space: nowrap;
+  }
+
+  .zombies-dm-bottom-bar {
+    gap: 0.3rem;
+    padding: 0.45rem 0.5rem calc(env(safe-area-inset-bottom, 0px) + 0.45rem);
+    scrollbar-width: none;
+  }
+
+  .zombies-dm-bottom-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .zombies-dm-bottom-bar__button {
+    flex: 0 0 64px;
+    min-width: 64px;
+    max-width: 64px;
+    min-height: 56px;
+    gap: 0.12rem;
+    padding: 0.4rem 0.25rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.01em;
+  }
+
+  .zombies-dm-bottom-bar__icon {
+    font-size: 1.08rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .zombies-dm-bottom-bar__button {
+    flex-basis: 58px;
+    min-width: 58px;
+    max-width: 58px;
+    font-size: 0.52rem;
+  }
+}
