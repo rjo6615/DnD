@@ -9709,7 +9709,7 @@ h1 {
 .realm-home-shell {
   height: 100vh;
   overflow-x: hidden;
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 @supports (height: 100dvh) {
