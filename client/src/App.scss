@@ -10360,7 +10360,8 @@ body.character-select-scroll-enabled {
 
 .enemy-quick-card {
   position: relative;
-  overflow: hidden;
+  min-height: max-content;
+  overflow: visible;
   border: 1px solid rgba(121, 184, 255, 0.2) !important;
   border-radius: 20px !important;
   background:
