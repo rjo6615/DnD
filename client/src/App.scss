@@ -10351,6 +10351,7 @@ body.character-select-scroll-enabled {
 
 .zombies-dm-active-enemies__list {
   grid-template-columns: 1fr;
+  align-items: start;
   gap: 0.85rem;
   max-height: calc(min(68vh, 720px) - 8.5rem);
   scrollbar-color: rgba(101, 216, 255, 0.45) transparent;
@@ -10358,7 +10359,8 @@ body.character-select-scroll-enabled {
 
 .enemy-quick-card {
   position: relative;
-  overflow: hidden;
+  min-height: max-content;
+  overflow: visible;
   border: 1px solid rgba(121, 184, 255, 0.2) !important;
   border-radius: 20px !important;
   background:
@@ -10367,6 +10369,10 @@ body.character-select-scroll-enabled {
   color: #f3f8ff;
   box-shadow: 0 18px 36px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.07);
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.enemy-quick-card .card-body {
+  min-height: max-content;
 }
 
 .enemy-quick-card:hover { transform: translateY(-2px); border-color: rgba(101, 216, 255, 0.52) !important; }
