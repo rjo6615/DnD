@@ -10679,3 +10679,35 @@ body.character-select-scroll-enabled {
     font-size: 0.72rem;
   }
 }
+
+/* DM Command Center map parity: keep the board aspect-ratio identical to character-sheet maps */
+.zombies-dm-page__map-board.campaign-map-board {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.zombies-dm-page__map-board .campaign-map-board__stage {
+  width: min(100vw, calc(100dvh * var(--campaign-map-stage-aspect-ratio, 1)));
+  max-width: 100vw;
+  height: auto !important;
+  min-height: 0 !important;
+  margin-inline: auto;
+}
+
+.zombies-dm-page__map-board .campaign-map-board__image-wrapper {
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: var(--campaign-map-stage-aspect-ratio, 1 / 1);
+  border-radius: 0;
+}
+
+.zombies-dm-page__map-board .campaign-map-board__grid-overlay,
+.zombies-dm-page__map-board .campaign-map-board__tokens-layer {
+  inset: 0;
+}
