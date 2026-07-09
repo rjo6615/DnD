@@ -10786,3 +10786,32 @@ body.character-select-scroll-enabled {
   object-fit: cover;
   object-position: center;
 }
+
+.zombies-dm-roll-dice-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1079;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.zombies-dm-roll-dice-overlay__wrapper,
+.zombies-dm-roll-dice-overlay__area {
+  position: relative;
+  width: min(64vw, 520px);
+  height: min(64vw, 520px);
+  overflow: visible;
+}
+
+@media (max-width: 768px) {
+  .zombies-dm-page__map-heading {
+    display: none !important;
+  }
+
+  .zombies-dm-page__combat-header {
+    top: calc(env(safe-area-inset-top, 0px) + 0.65rem) !important;
+  }
+}

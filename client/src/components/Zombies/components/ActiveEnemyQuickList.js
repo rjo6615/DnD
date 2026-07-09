@@ -22,6 +22,7 @@ export function ActiveEnemyQuickCard({
   onApplyEnemyHealthAdjustment,
   onResetEnemyHealth,
   onEnemyDamageRoll,
+  onEnemyAttackRoll,
   formatAttackBonus,
   getEnemyActionDamageString,
   latestEnemyRoll,
@@ -247,6 +248,7 @@ export function ActiveEnemyQuickCard({
                 quickAttacks={quickAttacks}
                 enemy={enemy}
                 onEnemyDamageRoll={onEnemyDamageRoll}
+                onEnemyAttackRoll={onEnemyAttackRoll}
                 latestEnemyRoll={latestEnemyRoll}
                 normalizedEnemyId={normalizedEnemyId}
                 modalAriaLabel={`${label} Attacks`}
@@ -303,6 +305,7 @@ function EnemyQuickAttacksModal({
   quickAttacks,
   enemy,
   onEnemyDamageRoll,
+  onEnemyAttackRoll,
   latestEnemyRoll,
   normalizedEnemyId,
   modalAriaLabel,
@@ -312,54 +315,85 @@ function EnemyQuickAttacksModal({
   }
 
   return (
-    <Modal show={show} onHide={onHide} centered animation={false} aria-label={modalAriaLabel}>
-      <Modal.Header closeButton>
-        <Modal.Title>{`${enemyLabel} Attacks`}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <div className="enemy-card__section-title text-uppercase text-muted small fw-semibold mb-2">
-          Attacks
-        </div>
-        <div className="d-flex flex-column gap-2">
-          {quickAttacks.map(
-            ({ action, actionLabel, attackBonusDisplay, damageDisplay, actionKey, isLatestRoll }) => (
-              <div key={actionKey} className="enemy-card__attack enemy-card__attack--compact">
-                <div className="enemy-card__attack-header">
-                  <div className="fw-semibold small text-body">{actionLabel}</div>
-                  <div className="small text-muted">Attack Bonus: {attackBonusDisplay ?? '—'}</div>
-                  <div className="small text-muted">Damage: {damageDisplay || '—'}</div>
-                </div>
-                <div className="enemy-card__attack-actions">
-                  <Button
-                    variant="outline-primary"
-                    size="sm"
-                    onClick={() =>
-                      normalizedEnemyId && onEnemyDamageRoll && onEnemyDamageRoll(enemy, action)
-                    }
-                    disabled={!onEnemyDamageRoll || !normalizedEnemyId}
-                  >
-                    Roll
-                  </Button>
-                </div>
-                {isLatestRoll && latestEnemyRoll?.breakdown && (
-                  <div className="mt-2 small fw-semibold text-primary">
-                    {`Result: ${latestEnemyRoll.total} damage (${latestEnemyRoll.breakdown})`}
+    <Modal
+      show={show}
+      onHide={onHide}
+      centered
+      size="lg"
+      className="dnd-modal modern-modal"
+      animation={false}
+      aria-label={modalAriaLabel}
+    >
+      <Card className="modern-card">
+        <Card.Header className="modal-header">
+          <Card.Title className="modal-title">{`${enemyLabel} Attacks`}</Card.Title>
+        </Card.Header>
+        <Card.Body>
+          <Card.Title className="modal-title">Attacks</Card.Title>
+          <div className="attack-card-grid enemy-card__attack-grid">
+            {quickAttacks.map(
+              ({ action, actionLabel, attackBonusDisplay, damageDisplay, actionKey, isLatestRoll }) => (
+                <div key={actionKey} className="attack-card enemy-card__attack-card">
+                  <div className="attack-card__title">{actionLabel}</div>
+                  <div className="attack-card__details">
+                    <div className="attack-card__row">
+                      <span className="attack-card__label">Attack Bonus</span>
+                      <span className="attack-card__value">{attackBonusDisplay ?? '—'}</span>
+                    </div>
+                    <div className="attack-card__row">
+                      <span className="attack-card__label">Damage</span>
+                      <span className="attack-card__value">{damageDisplay || '—'}</span>
+                    </div>
                   </div>
-                )}
-              </div>
-            )
-          )}
-        </div>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>
-          Close
-        </Button>
-      </Modal.Footer>
+                  <div className="attack-card__actions">
+                    <Button
+                      variant="link"
+                      className="attack-card__roll"
+                      onClick={() => {
+                        onHide();
+                        if (normalizedEnemyId && onEnemyAttackRoll) {
+                          onEnemyAttackRoll(enemy, action);
+                        }
+                      }}
+                      disabled={!onEnemyAttackRoll || !normalizedEnemyId}
+                      aria-label={`Roll attack for ${actionLabel}`}
+                    >
+                      <i className="fa-solid fa-bullseye" aria-hidden="true"></i>
+                    </Button>
+                    <Button
+                      variant="link"
+                      className="attack-card__roll"
+                      onClick={() => {
+                        onHide();
+                        if (normalizedEnemyId && onEnemyDamageRoll) {
+                          onEnemyDamageRoll(enemy, action);
+                        }
+                      }}
+                      disabled={!onEnemyDamageRoll || !normalizedEnemyId}
+                      aria-label={`Roll damage for ${actionLabel}`}
+                    >
+                      <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>
+                    </Button>
+                  </div>
+                  {isLatestRoll && latestEnemyRoll?.breakdown && (
+                    <div className="mt-2 small fw-semibold text-primary">
+                      {`${latestEnemyRoll.rollType === 'attack' ? 'Attack' : 'Damage'}: ${latestEnemyRoll.total} (${latestEnemyRoll.breakdown})`}
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+          </div>
+        </Card.Body>
+        <Card.Footer className="d-flex justify-content-end">
+          <Button className="close-btn" variant="secondary" onClick={onHide}>
+            Close
+          </Button>
+        </Card.Footer>
+      </Card>
     </Modal>
   );
 }
-
 export function ActiveEnemyQuickList({
   summaries,
   activeMapTitle,
@@ -377,6 +411,7 @@ export function ActiveEnemyQuickList({
   onApplyEnemyHealthAdjustment,
   onResetEnemyHealth,
   onEnemyDamageRoll,
+  onEnemyAttackRoll,
   formatAttackBonus,
   getEnemyActionDamageString,
   latestEnemyRoll,
@@ -521,6 +556,7 @@ export function ActiveEnemyQuickList({
             onResetEnemyHealth={onResetEnemyHealth}
             isActiveTurn={summary.isActiveTurn}
             onEnemyDamageRoll={onEnemyDamageRoll}
+            onEnemyAttackRoll={onEnemyAttackRoll}
             formatAttackBonus={formatAttackBonus}
             getEnemyActionDamageString={getEnemyActionDamageString}
             latestEnemyRoll={latestEnemyRoll}
