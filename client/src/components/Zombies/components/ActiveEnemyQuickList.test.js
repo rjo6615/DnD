@@ -137,6 +137,30 @@ describe('ActiveEnemyQuickList', () => {
     expect(screen.getByText('Active Turn')).toBeInTheDocument();
   });
 
+  it('moves the active turn enemy to the first card', () => {
+    renderList({
+      summaries: [
+        baseSummary,
+        {
+          ...baseSummary,
+          enemy: { ...baseSummary.enemy, enemyId: 'enemy-2', name: 'Orc' },
+          isActiveTurn: true,
+        },
+        {
+          ...baseSummary,
+          enemy: { ...baseSummary.enemy, enemyId: 'enemy-3', name: 'Kobold' },
+        },
+      ],
+    });
+
+    const cards = screen.getAllByTestId('active-map-enemy-card');
+    expect(cards).toHaveLength(3);
+    expect(within(cards[0]).getByText('Orc')).toBeInTheDocument();
+    expect(cards[0]).toHaveClass('enemy-quick-card--active-turn');
+    expect(within(cards[1]).getByText('Goblin')).toBeInTheDocument();
+    expect(within(cards[2]).getByText('Kobold')).toBeInTheDocument();
+  });
+
   it('displays attack actions within a modal when available', async () => {
     const formatAttackBonus = jest.fn((bonus) => (bonus >= 0 ? `+${bonus}` : `${bonus}`));
     const getEnemyActionDamageString = jest.fn((action) =>
