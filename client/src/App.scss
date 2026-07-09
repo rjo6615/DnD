@@ -10726,3 +10726,10 @@ body.character-select-scroll-enabled {
     aspect-ratio: var(--campaign-map-stage-aspect-ratio, 1 / 1);
   }
 }
+
+/* DM Command Center mobile map cover fix: use numeric stage ratio for reliable viewport math */
+@media (max-width: 768px) {
+  .zombies-dm-page__map-board .campaign-map-board__stage {
+    width: max(100vw, calc(100dvh * var(--campaign-map-stage-ratio-number, 1)));
+  }
+}
