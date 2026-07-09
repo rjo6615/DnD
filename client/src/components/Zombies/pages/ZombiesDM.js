@@ -4422,15 +4422,15 @@ export default function ZombiesDM() {
 
     const RESOURCE_TABS = useMemo(
       () => [
-        { key: 'characters', title: 'Characters' },
-        { key: 'players', title: 'Players' },
-        { key: 'map', title: 'Map' },
-        { key: 'enemies', title: 'Enemies' },
-        { key: 'weapons', title: 'Weapons' },
-        { key: 'armor', title: 'Armor' },
-        { key: 'items', title: 'Items' },
-        { key: 'accessories', title: 'Accessories' },
-        { key: 'shop', title: 'Shop' },
+        { key: 'characters', title: 'Characters', icon: GiCharacter },
+        { key: 'players', title: 'Players', icon: GiHolyGrail },
+        { key: 'map', title: 'Map', icon: GiTreasureMap },
+        { key: 'enemies', title: 'Enemies', icon: GiPentagramRose },
+        { key: 'weapons', title: 'Weapons', icon: GiBroadsword },
+        { key: 'armor', title: 'Armor', icon: GiArmorVest },
+        { key: 'items', title: 'Items', icon: GiBackpack },
+        { key: 'accessories', title: 'Accessories', icon: GiSpellBook },
+        { key: 'shop', title: 'Shop', icon: GiHolyGrail },
       ],
       [calculateCharacterInitiative]
     );
@@ -6505,9 +6505,12 @@ const resolveIcon = (category, iconMap, fallback) => {
 
         {campaignTitle && (
           <div className="zombies-dm-page__map-heading">
-            <span className="zombies-dm-page__map-heading-label">Campaign</span>
+            <span className="zombies-dm-page__map-heading-label">DM Command Center</span>
             <span className="zombies-dm-page__map-heading-title">
               {campaignTitle}
+            </span>
+            <span className="zombies-dm-page__map-heading-meta">
+              {activeMapTitle || 'No battleground selected'} • {combatParticipantCount ? `${combatParticipantCount} in initiative` : 'Encounter idle'}
             </span>
           </div>
         )}
@@ -6547,7 +6550,7 @@ const resolveIcon = (category, iconMap, fallback) => {
         role="toolbar"
         aria-label="Dungeon Master resources"
       >
-        {RESOURCE_TABS.map(({ key, title }) => {
+        {RESOURCE_TABS.map(({ key, title, icon: DockIcon }) => {
           const isActiveTab = activeResourceTab === key;
           const tabClassName = `zombies-dm-bottom-bar__button btn ${
             isActiveTab ? 'btn-primary' : 'btn-outline-light'
@@ -6563,7 +6566,8 @@ const resolveIcon = (category, iconMap, fallback) => {
               aria-selected={isActiveTab}
               aria-pressed={isActiveTab}
             >
-              {title}
+              {DockIcon && <DockIcon className="zombies-dm-bottom-bar__icon" aria-hidden="true" />}
+              <span>{title}</span>
             </button>
           );
         })}
