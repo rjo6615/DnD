@@ -1,12 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Form, Alert, Row, Col, Button, Badge } from 'react-bootstrap';
-import {
-  GiLeatherArmor,
-  GiBreastplate,
-  GiChainMail,
-  GiShield,
-  GiArmorVest,
-} from 'react-icons/gi';
+import { Card, Form, Alert, Row, Col, Button, Badge, Modal } from 'react-bootstrap';
+import ItemIcon from '../common/ItemIcon';
 import apiFetch from '../../utils/apiFetch';
 
 /** @typedef {import('../../../../types/armor').Armor} Armor */
@@ -24,8 +18,70 @@ import apiFetch from '../../utils/apiFetch';
  *   onAddToCart?: (armor: Armor & { type?: string }) => void,
  *   ownedOnly?: boolean,
  *   cartCounts?: Record<string, number> | null,
+ *   hiddenKeys?: Set<string> | string[] | Record<string, boolean> | null,
  * }} props
  */
+const EMPTY_ARRAY = Object.freeze([]);
+
+const normalizeArmorName = (value) => {
+  if (typeof value === 'string') {
+    return value.trim().toLowerCase();
+  }
+  return '';
+};
+
+const extractArmorEntryName = (entry) => {
+  if (!entry) return '';
+  if (typeof entry === 'string') {
+    return normalizeArmorName(entry);
+  }
+  if (Array.isArray(entry)) {
+    return extractArmorEntryName(entry[0]);
+  }
+  if (typeof entry === 'object') {
+    return (
+      normalizeArmorName(entry.displayName) ||
+      normalizeArmorName(entry.armorName) ||
+      normalizeArmorName(entry.name)
+    );
+  }
+  return '';
+};
+
+const buildMatchKeySet = (piece, dataKey) => {
+  const keys = new Set();
+  const addKey = (value) => {
+    const normalized = normalizeArmorName(value);
+    if (normalized) {
+      keys.add(normalized);
+    }
+  };
+  addKey(dataKey);
+  if (piece) {
+    addKey(piece.displayName);
+    addKey(piece.armorName);
+    addKey(piece.name);
+  }
+  return keys;
+};
+
+const removeFirstMatchingEntry = (entries, piece, dataKey) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return entries;
+  }
+  const matchKeys = buildMatchKeySet(piece, dataKey);
+  if (matchKeys.size === 0) {
+    return entries;
+  }
+  const index = entries.findIndex((entry) => matchKeys.has(extractArmorEntryName(entry)));
+  if (index === -1) {
+    return entries;
+  }
+  const next = entries.slice();
+  next.splice(index, 1);
+  return next;
+};
+
 const buildArmorOwnershipMap = (initialArmor) => {
   const map = new Map();
   if (!Array.isArray(initialArmor)) return map;
@@ -65,7 +121,7 @@ const buildArmorOwnershipMap = (initialArmor) => {
 function ArmorList({
   campaign,
   onChange,
-  initialArmor = [],
+  initialArmor = EMPTY_ARRAY,
   characterId,
   show = true,
   strength = Number.POSITIVE_INFINITY,
@@ -73,17 +129,52 @@ function ArmorList({
   onAddToCart = () => {},
   ownedOnly = false,
   cartCounts = null,
+  hiddenKeys = null,
 }) {
   const [armor, setArmor] =
     useState/** @type {Record<string, Armor & { owned?: boolean, ownedCount?: number, proficient?: boolean, granted?: boolean, pending?: boolean, displayName?: string }> | null} */(null);
   const [error, setError] = useState(null);
   const [unknownArmor, setUnknownArmor] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const initialArmorArray = Array.isArray(initialArmor) ? initialArmor : [];
-  const ownershipMap = useMemo(
-    () => buildArmorOwnershipMap(initialArmorArray),
-    [initialArmorArray]
+  const normalizedInitialArmor = useMemo(
+    () => (Array.isArray(initialArmor) ? initialArmor : EMPTY_ARRAY),
+    [initialArmor]
   );
+  const [ownedEntries, setOwnedEntries] = useState(normalizedInitialArmor);
+
+  useEffect(() => {
+    if (Array.isArray(initialArmor)) {
+      setOwnedEntries((prev) => (prev === initialArmor ? prev : initialArmor));
+    } else {
+      setOwnedEntries((prev) => (prev === EMPTY_ARRAY ? prev : EMPTY_ARRAY));
+    }
+  }, [initialArmor]);
+
+  const ownershipMap = useMemo(
+    () => buildArmorOwnershipMap(ownedEntries),
+    [ownedEntries]
+  );
+
+  const hiddenSet = useMemo(() => {
+    if (!hiddenKeys) {
+      return null;
+    }
+    if (hiddenKeys instanceof Set) {
+      return new Set(Array.from(hiddenKeys, (value) => String(value).toLowerCase()));
+    }
+    if (Array.isArray(hiddenKeys)) {
+      return new Set(hiddenKeys.map((value) => String(value).toLowerCase()));
+    }
+    if (hiddenKeys && typeof hiddenKeys === 'object') {
+      return new Set(
+        Object.entries(hiddenKeys)
+          .filter(([, hidden]) => Boolean(hidden))
+          .map(([key]) => String(key).toLowerCase())
+      );
+    }
+    return null;
+  }, [hiddenKeys]);
 
   useEffect(() => {
     if (!show) return;
@@ -158,7 +249,7 @@ function ArmorList({
             }, {})
           : {};
 
-        const invalidInitialArmor = initialArmorArray.filter(
+        const invalidInitialArmor = normalizedInitialArmor.filter(
           (a) => typeof a !== 'string' && typeof a?.name !== 'string'
         );
         if (invalidInitialArmor.length) {
@@ -252,12 +343,6 @@ function ArmorList({
     return <div>Loading...</div>;
   }
 
-  const categoryIcons = {
-    light: GiLeatherArmor,
-    medium: GiBreastplate,
-    heavy: GiChainMail,
-    shield: GiShield,
-  };
 
   const handleAddToCart = (piece) => () => {
     const payload = {
@@ -322,10 +407,47 @@ function ArmorList({
     }
   };
 
+  const handleRequestDelete = (dataKey, piece) => () => {
+    if (!ownedOnly) {
+      return;
+    }
+    setDeleteTarget({ dataKey, piece });
+  };
+
+  const handleCancelDelete = () => setDeleteTarget(null);
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    const { dataKey, piece } = deleteTarget;
+    const nextEntries = removeFirstMatchingEntry(ownedEntries, piece, dataKey);
+
+    setDeleteTarget(null);
+
+    if (nextEntries === ownedEntries) {
+      return;
+    }
+
+    setOwnedEntries(nextEntries);
+
+    if (typeof onChange === 'function') {
+      onChange(nextEntries);
+    }
+  };
+
   const bodyStyle = embedded ? undefined : { overflowY: 'auto', maxHeight: '70vh' };
-  const filteredEntries = Object.entries(armor).filter(([, piece]) =>
-    ownedOnly ? (piece.ownedCount ?? 0) > 0 : true
-  );
+  const filteredEntries = Object.entries(armor).filter(([key, piece]) => {
+    if (hiddenSet) {
+      const normalizedKey = String(key || '').toLowerCase();
+      const displayKey = String(piece.displayName || piece.name || '').toLowerCase();
+      if (hiddenSet.has(normalizedKey) || (displayKey && hiddenSet.has(displayKey))) {
+        return false;
+      }
+    }
+    return ownedOnly ? (piece.ownedCount ?? 0) > 0 : true;
+  });
   const expandedEntries = ownedOnly
     ? filteredEntries.flatMap(([key, piece]) => {
         const count = piece.ownedCount ?? 0;
@@ -375,13 +497,12 @@ function ArmorList({
       ) : (
         <Row className="g-2">
           {expandedEntries.map(({ reactKey, dataKey, piece, copyIndex, copyCount }) => {
-            const Icon = categoryIcons[piece.category] || GiArmorVest;
             return (
               <Col xs={6} md={4} key={reactKey}>
                 <Card className="armor-card h-100">
                   <Card.Body className="d-flex flex-column">
                   <div className="d-flex justify-content-center mb-2">
-                    <Icon size={40} title={piece.category} />
+                    <ItemIcon item={piece} itemType="armor" category={piece.category || piece.type} size={44} />
                   </div>
                   <Card.Title as="h6">{piece.displayName || piece.name}</Card.Title>
                   <Card.Text>
@@ -430,7 +551,15 @@ function ArmorList({
                         : undefined
                     }
                   />
-                  {!ownedOnly && (
+                  {ownedOnly ? (
+                    <Button
+                      size="sm"
+                      className="btn-danger action-btn fa-solid fa-trash"
+                      onClick={handleRequestDelete(dataKey, piece)}
+                      title={`Delete ${piece.displayName || piece.name || 'armor'}`}
+                      aria-label={`Delete ${piece.displayName || piece.name || 'armor'}`}
+                    />
+                  ) : (
                     <>
                       <Button size="sm" onClick={handleAddToCart(piece)}>
                         Add to Cart
@@ -452,17 +581,47 @@ function ArmorList({
     </>
   );
 
+  const deleteArmorName = deleteTarget?.piece?.displayName || deleteTarget?.piece?.name;
+  const deleteModal = (
+    <Modal show={!!deleteTarget} onHide={handleCancelDelete} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Delete Armor</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {`Are you sure you want to remove ${
+          deleteArmorName ? `${deleteArmorName}` : 'this armor'
+        } from your inventory?`}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" className="action-btn close-btn" onClick={handleCancelDelete}>
+          Cancel
+        </Button>
+        <Button variant="danger" className="action-btn" onClick={handleConfirmDelete}>
+          Delete
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+
   if (embedded) {
-    return bodyContent;
+    return (
+      <>
+        {bodyContent}
+        {deleteModal}
+      </>
+    );
   }
 
   return (
-    <Card className="modern-card">
-      <Card.Header className="modal-header">
-        <Card.Title className="modal-title">Armor</Card.Title>
-      </Card.Header>
-      <Card.Body style={bodyStyle}>{bodyContent}</Card.Body>
-    </Card>
+    <>
+      <Card className="modern-card">
+        <Card.Header className="modal-header">
+          <Card.Title className="modal-title">Armor</Card.Title>
+        </Card.Header>
+        <Card.Body style={bodyStyle}>{bodyContent}</Card.Body>
+      </Card>
+      {deleteModal}
+    </>
   );
 }
 

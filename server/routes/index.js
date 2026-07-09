@@ -26,6 +26,7 @@ const monsters = require('./monsters');
 const weaponProficiency = require('./weaponProficiency');
 const armorProficiency = require('./armorProficiency');
 const ai = require('./ai');
+const usage = require('./usage');
 
 routes.use(async (req, res, next) => {
   try {
@@ -49,6 +50,7 @@ items(routes);
 accessories(routes);
 monsters(routes);
 ai(routes);
+usage(routes);
 // Register occupations routes before generic ID-based routes to ensure
 // "/characters/occupations" is matched correctly.
 characterOccupations(routes);

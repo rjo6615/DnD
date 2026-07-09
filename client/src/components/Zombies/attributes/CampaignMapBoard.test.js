@@ -22,11 +22,12 @@ describe('CampaignMapBoard pointer interactions', () => {
     render(
       <CampaignMapBoard
         map={baseMap}
-        tokens={[{ ...baseToken, ...overrides.token }]}
+        tokens={overrides.tokens || [{ ...baseToken, ...overrides.token }]}
         onTokenDragStart={overrides.onTokenDragStart}
         onTokenDrag={overrides.onTokenDrag}
         onTokenDragEnd={overrides.onTokenDragEnd}
         onTokenPositionChange={overrides.onTokenPositionChange}
+        onBackgroundClick={overrides.onBackgroundClick}
         onTokenRemove={overrides.onTokenRemove}
       />
     );
@@ -92,6 +93,62 @@ describe('CampaignMapBoard pointer interactions', () => {
     fireEvent(tokenElement, pointerUpEvent);
 
     expect(pointerUpEvent.defaultPrevented).toBe(false);
+  });
+
+  it('fires onBackgroundClick when the background is clicked without dragging', () => {
+    const onBackgroundClick = jest.fn();
+    const { container } = renderBoard({ onBackgroundClick });
+
+    const layer = container.querySelector('.campaign-map-board__tokens-layer');
+    expect(layer).not.toBeNull();
+    if (!layer) {
+      return;
+    }
+
+    layer.getBoundingClientRect = () => ({
+      left: 0,
+      top: 0,
+      width: 400,
+      height: 400,
+    });
+
+    const pointerDownEvent = createEvent.pointerDown(layer, {
+      button: 0,
+      pointerId: 10,
+      clientX: 200,
+      clientY: 200,
+      pageX: 200,
+      pageY: 200,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(layer, pointerDownEvent);
+
+    const pointerUpEvent = createEvent.pointerUp(layer, {
+      button: 0,
+      pointerId: 10,
+      clientX: 200,
+      clientY: 200,
+      pageX: 200,
+      pageY: 200,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(layer, pointerUpEvent);
+
+    expect(onBackgroundClick).toHaveBeenCalledTimes(1);
+    const [coords] = onBackgroundClick.mock.calls[0];
+    expect(coords).toEqual(
+      expect.objectContaining({
+        x: expect.any(Number),
+        y: expect.any(Number),
+      })
+    );
+    expect(coords.x).toBeGreaterThanOrEqual(0);
+    expect(coords.x).toBeLessThanOrEqual(1);
+    expect(coords.y).toBeGreaterThanOrEqual(0);
+    expect(coords.y).toBeLessThanOrEqual(1);
+    expect(pointerUpEvent.defaultPrevented).toBe(true);
   });
 
   it('supports dragging with the primary pointer button', () => {
@@ -175,9 +232,97 @@ describe('CampaignMapBoard pointer interactions', () => {
     expect(pointerUpEvent.defaultPrevented).toBe(true);
   });
 
+  it('keeps rotation controls visible after a token click until background or another token hover', async () => {
+    const { container, findByRole, queryByRole } = renderBoard({
+      tokens: [
+        { ...baseToken },
+        {
+          ...baseToken,
+          characterId: 'enemy-1',
+          x: 0.55,
+          y: 0.55,
+          label: 'Enemy Token',
+          variant: 'enemy',
+        },
+      ],
+    });
+
+    const layer = container.querySelector('.campaign-map-board__tokens-layer');
+    expect(layer).not.toBeNull();
+    if (layer) {
+      layer.getBoundingClientRect = () => ({
+        left: 0,
+        top: 0,
+        width: 400,
+        height: 400,
+      });
+    }
+
+    let tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    fireEvent.pointerDown(tokenElement, {
+      button: 0,
+      pointerId: 1,
+      clientX: 100,
+      clientY: 100,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent.pointerUp(tokenElement, {
+      button: 0,
+      pointerId: 1,
+      clientX: 100,
+      clientY: 100,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    const rotationHandle = await findByRole('button', { name: /rotate figurine/i });
+    expect(rotationHandle).not.toBeNull();
+
+    fireEvent.pointerLeave(tokenElement, {
+      pointerId: 1,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    expect(queryByRole('button', { name: /rotate figurine/i })).not.toBeNull();
+
+    const enemyElement = container.querySelector('[data-token-id="enemy-1"]');
+    expect(enemyElement).not.toBeNull();
+    fireEvent.pointerOver(enemyElement, {
+      pointerId: 2,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-token-id="char-1"]')).not.toHaveClass('lastDragged');
+      expect(container.querySelector('[data-token-id="enemy-1"]')).toHaveClass(
+        'campaign-map-board__token--rotation-visible'
+      );
+    });
+
+    if (layer) {
+      fireEvent.pointerDown(layer, {
+        button: 0,
+        pointerId: 3,
+        clientX: 250,
+        clientY: 250,
+        bubbles: true,
+        cancelable: true,
+      });
+    }
+
+    await waitFor(() => {
+      expect(queryByRole('button', { name: /rotate figurine/i })).toBeNull();
+    });
+  });
+
   it('marks the last dragged token and enables rotation controls', async () => {
     const onTokenPositionChange = jest.fn();
-    const { container, findByRole, queryByRole } = renderBoard({ onTokenPositionChange });
+    const { container, findByRole } = renderBoard({ onTokenPositionChange });
 
     const applyLayerRect = () => {
       const layer = container.querySelector('.campaign-map-board__tokens-layer');
@@ -239,42 +384,135 @@ describe('CampaignMapBoard pointer interactions', () => {
       expect(latestToken).toHaveClass('lastDragged');
     });
 
-    const rotateClockwiseButton = await findByRole('button', { name: /rotate clockwise/i });
-    fireEvent.click(rotateClockwiseButton);
-
-    expect(onTokenPositionChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        characterId: 'char-1',
-        rotation: 15,
-        x: expect.any(Number),
-        y: expect.any(Number),
-      })
-    );
-
     tokenElement = container.querySelector('[data-token-id="char-1"]');
-    expect(tokenElement?.getAttribute('data-rotation')).toBe('15');
+    expect(tokenElement).not.toBeNull();
 
-    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    if (tokenElement) {
+      const pointerOverEvent = createEvent.pointerOver(tokenElement, {
+        pointerId: 3,
+        bubbles: true,
+        cancelable: true,
+      });
+      fireEvent(tokenElement, pointerOverEvent);
+    }
 
-    expect(onTokenPositionChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        characterId: 'char-1',
-        rotation: 0,
-        x: expect.any(Number),
-        y: expect.any(Number),
-      })
-    );
-
-    tokenElement = container.querySelector('[data-token-id="char-1"]');
-    expect(tokenElement?.getAttribute('data-rotation')).toBe('0');
-
-    const lockButton = await findByRole('button', { name: /lock rotation/i });
-    fireEvent.click(lockButton);
+    const rotationHandle = await findByRole('button', { name: /rotate figurine/i });
+    expect(rotationHandle).not.toBeNull();
 
     tokenElement = container.querySelector('[data-token-id="char-1"]');
     expect(tokenElement).not.toBeNull();
-    expect(tokenElement).not.toHaveClass('lastDragged');
-    expect(queryByRole('button', { name: /lock rotation/i })).toBeNull();
+    if (tokenElement) {
+      tokenElement.getBoundingClientRect = () => ({
+        left: 100,
+        top: 100,
+        right: 180,
+        bottom: 180,
+        width: 80,
+        height: 80,
+      });
+    }
+
+    const pointerDownHandle = createEvent.pointerDown(rotationHandle, {
+      button: 0,
+      pointerId: 2,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(pointerDownHandle, 'clientX', { value: 180 });
+    Object.defineProperty(pointerDownHandle, 'clientY', { value: 140 });
+    Object.defineProperty(pointerDownHandle, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(pointerDownHandle, 'buttons', { value: 1, configurable: true });
+    fireEvent(rotationHandle, pointerDownHandle);
+
+    const pointerUpWithoutDrag = createEvent.pointerUp(document.body, {
+      pointerId: 2,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(pointerUpWithoutDrag, 'clientX', { value: 120 });
+    Object.defineProperty(pointerUpWithoutDrag, 'clientY', { value: 180 });
+    Object.defineProperty(pointerUpWithoutDrag, 'pointerType', { value: 'mouse' });
+    fireEvent(document.body, pointerUpWithoutDrag);
+
+    const pointerMoveAfterRelease = createEvent.pointerMove(document.body, {
+      pointerId: 2,
+      bubbles: true,
+      cancelable: true,
+      buttons: 0,
+    });
+    Object.defineProperty(pointerMoveAfterRelease, 'clientX', { value: 120 });
+    Object.defineProperty(pointerMoveAfterRelease, 'clientY', { value: 180 });
+    Object.defineProperty(pointerMoveAfterRelease, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(pointerMoveAfterRelease, 'buttons', { value: 0, configurable: true });
+    fireEvent(document.body, pointerMoveAfterRelease);
+
+    await waitFor(() => {
+      const latestToken = container.querySelector('[data-token-id="char-1"]');
+      expect(latestToken).not.toBeNull();
+      expect(Number(latestToken?.getAttribute('data-rotation'))).toBeCloseTo(0, 3);
+    });
+
+    const pointerDownHandleActive = createEvent.pointerDown(rotationHandle, {
+      button: 0,
+      pointerId: 4,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(pointerDownHandleActive, 'clientX', { value: 180 });
+    Object.defineProperty(pointerDownHandleActive, 'clientY', { value: 140 });
+    Object.defineProperty(pointerDownHandleActive, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(pointerDownHandleActive, 'buttons', { value: 1, configurable: true });
+    fireEvent(rotationHandle, pointerDownHandleActive);
+
+    const pointerMoveHandle = createEvent.pointerMove(document.body, {
+      pointerId: 4,
+      bubbles: true,
+      cancelable: true,
+      buttons: 1,
+    });
+    Object.defineProperty(pointerMoveHandle, 'clientX', { value: 140 });
+    Object.defineProperty(pointerMoveHandle, 'clientY', { value: 180 });
+    Object.defineProperty(pointerMoveHandle, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(pointerMoveHandle, 'buttons', { value: 1, configurable: true });
+    fireEvent(document.body, pointerMoveHandle);
+
+    const pointerUpHandle = createEvent.pointerUp(document.body, {
+      pointerId: 4,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(pointerUpHandle, 'clientX', { value: 140 });
+    Object.defineProperty(pointerUpHandle, 'clientY', { value: 180 });
+    Object.defineProperty(pointerUpHandle, 'pointerType', { value: 'mouse' });
+    fireEvent(document.body, pointerUpHandle);
+
+    expect(onTokenPositionChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        characterId: 'char-1',
+        rotation: expect.any(Number),
+        x: expect.any(Number),
+        y: expect.any(Number),
+      })
+    );
+
+    let lastCall =
+      onTokenPositionChange.mock.calls[onTokenPositionChange.mock.calls.length - 1]?.[0];
+    expect(lastCall).toBeDefined();
+    expect(lastCall.rotation).toBeCloseTo(90, 3);
+
+    tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+    expect(Number(tokenElement?.getAttribute('data-rotation'))).toBeCloseTo(90, 3);
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+
+    lastCall = onTokenPositionChange.mock.calls[onTokenPositionChange.mock.calls.length - 1]?.[0];
+    expect(lastCall).toBeDefined();
+    expect(lastCall.rotation).toBeCloseTo(75, 3);
+
+    tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+    expect(Number(tokenElement?.getAttribute('data-rotation'))).toBeCloseTo(75, 3);
   });
 
   it('renders a figurine image overlay when provided and preserves accessibility labels', () => {
@@ -296,7 +534,7 @@ describe('CampaignMapBoard pointer interactions', () => {
     expect(figurineImage?.getAttribute('alt')).toBe('');
   });
 
-  it('applies a reduced figurine scale for enemy variants', () => {
+  it('keeps enemy figurine scale aligned with their size category', () => {
     const { container } = renderBoard({
       token: {
         variant: 'enemy',
@@ -309,7 +547,7 @@ describe('CampaignMapBoard pointer interactions', () => {
     const scaleValue = Number.parseFloat(
       tokenElement?.style.getPropertyValue('--figurine-size-scale') ?? ''
     );
-    expect(scaleValue).toBeCloseTo(1.5, 5);
+    expect(scaleValue).toBeCloseTo(2, 5);
   });
 
   it('provides a finite figurine scale when no size is specified', () => {
@@ -326,5 +564,160 @@ describe('CampaignMapBoard pointer interactions', () => {
     );
     expect(Number.isFinite(scaleValue)).toBe(true);
     expect(scaleValue).toBeCloseTo(1, 5);
+  });
+
+  it('derives figurine footprint from image size when map metadata defines pixels per square', async () => {
+    const { container } = render(
+      <CampaignMapBoard
+        map={{ ...baseMap, pixelsPerSquare: 256 }}
+        tokens={[
+          {
+            ...baseToken,
+            size: undefined,
+            figurineImageUrl: 'https://example.com/figurines/large.png',
+          },
+        ]}
+      />
+    );
+
+    const tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    const figurineImage = tokenElement?.querySelector('.campaign-map-board__figurine-image');
+    expect(figurineImage).not.toBeNull();
+
+    if (figurineImage) {
+      Object.defineProperty(figurineImage, 'naturalWidth', {
+        configurable: true,
+        value: 512,
+      });
+      Object.defineProperty(figurineImage, 'naturalHeight', {
+        configurable: true,
+        value: 512,
+      });
+
+      fireEvent.load(figurineImage);
+
+      await waitFor(() => {
+        expect(tokenElement?.style.getPropertyValue('--figurine-size-scale')).toBe('2');
+      });
+    }
+  });
+
+  it('defaults to medium figurine scale when metadata is unavailable', async () => {
+    const { container } = render(
+      <CampaignMapBoard
+        map={baseMap}
+        tokens={[
+          {
+            ...baseToken,
+            size: undefined,
+            figurineImageUrl: 'https://example.com/figurines/colossal.png',
+          },
+        ]}
+      />
+    );
+
+    const tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    const figurineImage = tokenElement?.querySelector('.campaign-map-board__figurine-image');
+    expect(figurineImage).not.toBeNull();
+
+    if (figurineImage) {
+      Object.defineProperty(figurineImage, 'naturalWidth', {
+        configurable: true,
+        value: 1024,
+      });
+      Object.defineProperty(figurineImage, 'naturalHeight', {
+        configurable: true,
+        value: 1024,
+      });
+
+      fireEvent.load(figurineImage);
+
+      await waitFor(() => {
+        expect(tokenElement?.style.getPropertyValue('--figurine-size-scale')).toBe('1');
+      });
+    }
+  });
+
+  it('keeps explicit figurine sizes even when image footprint is larger', async () => {
+    const { container } = render(
+      <CampaignMapBoard
+        map={{ ...baseMap, pixelsPerSquare: 256 }}
+        tokens={[
+          {
+            ...baseToken,
+            size: 'medium',
+            figurineImageUrl: 'https://example.com/figurines/oversized.png',
+          },
+        ]}
+      />
+    );
+
+    const tokenElement = container.querySelector('[data-token-id="char-1"]');
+    expect(tokenElement).not.toBeNull();
+
+    const figurineImage = tokenElement?.querySelector('.campaign-map-board__figurine-image');
+    expect(figurineImage).not.toBeNull();
+
+    if (figurineImage) {
+      Object.defineProperty(figurineImage, 'naturalWidth', {
+        configurable: true,
+        value: 512,
+      });
+      Object.defineProperty(figurineImage, 'naturalHeight', {
+        configurable: true,
+        value: 512,
+      });
+
+      fireEvent.load(figurineImage);
+
+      await waitFor(() => {
+        expect(tokenElement?.style.getPropertyValue('--figurine-size-scale')).toBe('1');
+      });
+    }
+  });
+
+  it('ignores wheel input when zooming is disabled', async () => {
+    const { container } = render(
+      <CampaignMapBoard map={baseMap} tokens={[baseToken]} allowWheelZoom={false} />
+    );
+
+    const boardElement = container.querySelector('.campaign-map-board');
+    expect(boardElement).not.toBeNull();
+    if (!boardElement) {
+      return;
+    }
+
+    expect(boardElement.style.getPropertyValue('--campaign-map-zoom')).toBe('');
+
+    fireEvent.wheel(boardElement, { deltaY: -240 });
+
+    await waitFor(() => {
+      expect(boardElement.style.getPropertyValue('--campaign-map-zoom')).toBe('');
+    });
+  });
+
+  it('applies zoom styling when wheel input is allowed', async () => {
+    const { container } = render(
+      <CampaignMapBoard map={baseMap} tokens={[baseToken]} allowWheelZoom />
+    );
+
+    const boardElement = container.querySelector('.campaign-map-board');
+    expect(boardElement).not.toBeNull();
+    if (!boardElement) {
+      return;
+    }
+
+    expect(boardElement.style.getPropertyValue('--campaign-map-zoom')).toBe('1');
+
+    fireEvent.wheel(boardElement, { deltaY: -240 });
+
+    await waitFor(() => {
+      const zoomValue = boardElement.style.getPropertyValue('--campaign-map-zoom');
+      expect(parseFloat(zoomValue)).toBeGreaterThan(1);
+    });
   });
 });

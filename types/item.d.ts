@@ -20,6 +20,14 @@ export interface Item {
    */
   properties?: string[];
   /**
+   * Optional rarity string such as "Common" or "Very Rare".
+   */
+  rarity?: string;
+  /**
+   * Optional healing string describing HP regained when used.
+   */
+  healing?: string;
+  /**
    * Optional notes about the item.
    */
   notes?: string;

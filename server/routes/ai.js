@@ -309,9 +309,21 @@ module.exports = (router) => {
 
       const generationPrompt = [
         // Avoid “battle map” / “grid” language entirely
-        'It must be a full size image and zoomed in',
-        'it must be a fully direct top-down view image. No tilt at all',
-        'dont generate people.',
+'- The image must fill the entire frame with no borders or empty margins.',
+'- Generate a full-size image with no zoomed-out composition.',
+'- Camera angle must be exactly 90 degrees overhead (orthographic top-down).',
+'- Absolutely no perspective, tilt, pitch, yaw, horizon, or isometric angle.',
+'- This is a flat map viewed directly from above, like a satellite image.',
+'- Every object must be seen from directly overhead.',
+'- Buildings must show only rooftops.',
+'- Trees must show only canopies.',
+'- Cliffs, walls, and terrain must be represented from a vertical map perspective.',
+"- Do NOT generate a Diablo, Baldur's Gate, RTS, MOBA, or isometric viewpoint.",
+'- Do NOT use cinematic composition or dramatic camera angles.',
+'- No visible sides of objects should ever be shown.',
+'- No characters, creatures, NPCs, or people.',
+'- Designed specifically as a printable D&D battle map.',
+'- High-detail, sharp texture work with consistent scale across the entire map.',
         // Your specific content goes here:
         (prompt || '').trim(),
       ].join('\n');
@@ -332,15 +344,11 @@ module.exports = (router) => {
         .split(',')
         .map((value) => value.trim())
         .filter(Boolean);
-
-      let includeStyle = Boolean(configuredStyle);
-      if (includeStyle) {
-        if (styleModelList.length > 0) {
-          includeStyle = styleModelList.includes(model);
-        } else {
-          includeStyle = model !== 'gpt-image-1';
-        }
-      }
+      const defaultStyleModels = ['dall-e-3'];
+      const styleSupportedModels =
+        styleModelList.length > 0 ? styleModelList : defaultStyleModels;
+      const includeStyle =
+        Boolean(configuredStyle) && styleSupportedModels.includes(model);
 
       if (includeStyle) {
         requestPayload.style = configuredStyle;
@@ -350,7 +358,25 @@ module.exports = (router) => {
         requestPayload.quality = quality;
       }
 
-      const response = await openai.images.generate(requestPayload);
+      let response;
+      try {
+        response = await openai.images.generate(requestPayload);
+      } catch (error) {
+        const unknownStyleParameter =
+          requestPayload.style &&
+          (error?.status === 400 || error?.code === 'unknown_parameter') &&
+          typeof error?.message === 'string' &&
+          error.message.toLowerCase().includes('style');
+
+        if (!unknownStyleParameter) {
+          throw error;
+        }
+
+        const retryPayload = { ...requestPayload };
+        delete retryPayload.style;
+        response = await openai.images.generate(retryPayload);
+      }
+
       const image = Array.isArray(response?.data) ? response.data[0] : null;
 
       if (!image) {

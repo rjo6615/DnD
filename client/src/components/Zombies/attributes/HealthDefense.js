@@ -2,22 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import apiFetch from '../../../utils/apiFetch';
 import { Button } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useParams } from "react-router-dom";
-import proficiencyBonus from '../../../utils/proficiencyBonus';
-import { normalizeEquipmentMap } from './equipmentNormalization';
 import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 
 export default function HealthDefense({
   form,
   conMod,
   dexMod,
+  wisMod = 0,
   totalLevel,
-  ac = 0,
   hpMaxBonus = 0,
   hpMaxBonusPerLevel = 0,
-  initiative = 0,
-  speed = 0,
-  speedMultiplier = 1,
-  spellAbilityMod,
   onTempHealthChange,
 }) {
   const params = useParams();
@@ -26,51 +20,6 @@ export default function HealthDefense({
   const wrapperGap = isLargeScreen ? '32px' : 'clamp(16px, 4vh, 24px)';
   const wrapperMarginBottom = isLargeScreen ? '64px' : '0.5rem';
 //-----------------------Health/Defense------------------------------
-  const hasEquipment = typeof form?.equipment === 'object' && form.equipment !== null;
-  const normalizedEquipment = useMemo(
-    () => normalizeEquipmentMap(form.equipment),
-    [form.equipment]
-  );
-  const armorItems = useMemo(() => {
-    if (hasEquipment) {
-      return Object.values(normalizedEquipment).filter((item) => {
-        if (!item) return false;
-        if (item.source === 'armor') return true;
-        if (item.acBonus != null || item.armorBonus != null || item.ac != null)
-          return true;
-        if (item.maxDex != null || item.maxDexterity != null) return true;
-        if (item.checkPenalty != null || item.stealth != null) return true;
-        return false;
-      });
-    }
-    return Array.isArray(form.armor) ? form.armor.filter(Boolean) : [];
-  }, [hasEquipment, normalizedEquipment, form.armor]);
-
-  const armorAcBonus = armorItems.map((item) => {
-    if (Array.isArray(item)) {
-      const value = Number(item[1] ?? 0);
-      return value > 10 ? value - 10 : value;
-    }
-    return Number(item.acBonus ?? item.armorBonus ?? item.ac ?? 0);
-  });
-  const armorMaxDexBonus = armorItems.map((item) =>
-    Array.isArray(item)
-      ? Number(item[2] ?? 0)
-      : Number(item.maxDex ?? item.maxDexterity ?? 0)
-  );
-  let totalArmorAcBonus =
-    armorAcBonus.reduce((partialSum, a) => Number(partialSum) + Number(a), 0) +
-    Number(ac);
-  let filteredMaxDexArray = armorMaxDexBonus.filter((e) => e !== 0);
-  let armorMaxDexMin = Math.min(...filteredMaxDexArray);
-    
-     let armorMaxDex;
-     if (Number(armorMaxDexMin) < Number(dexMod) && Number(armorMaxDexMin > 0)) {
-        armorMaxDex = armorMaxDexMin;
-     } else {
-      armorMaxDex = dexMod;
-     }
-    
   const derivedTotalLevel = useMemo(() => {
     if (Number.isFinite(totalLevel)) {
       return totalLevel;
@@ -80,10 +29,6 @@ export default function HealthDefense({
     }
     return form.occupation.reduce((total, o) => total + Number(o?.Level || 0), 0);
   }, [form?.occupation, totalLevel]);
-
-  const profBonus = form.proficiencyBonus ?? proficiencyBonus(derivedTotalLevel);
-  const spellSaveDC =
-    spellAbilityMod != null ? 8 + profBonus + spellAbilityMod : null;
 
   const { currentHp: computedCurrentHp, maxHp } = useMemo(() => {
     const overrides = {
@@ -110,6 +55,8 @@ export default function HealthDefense({
   const safeInitialHealth = Number.isFinite(computedCurrentHp) ? computedCurrentHp : 0;
   const [health, setHealth] = useState(safeInitialHealth);
   const [error, setError] = useState(null); // Error message state
+  const [deathSaveFailures, setDeathSaveFailures] = useState([false, false, false]);
+  const [deathSaveSuccesses, setDeathSaveSuccesses] = useState([false, false, false]);
 
   useEffect(() => {
     setHealth(Number.isFinite(computedCurrentHp) ? computedCurrentHp : 0);
@@ -121,13 +68,13 @@ export default function HealthDefense({
     try {
       await apiFetch(`/characters/update-temphealth/${params.id}`, {
         method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        tempHealth: updatedHealthValue,
-      }),
-    });
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tempHealth: updatedHealthValue,
+        }),
+      });
       setError(null);
       if (typeof onTempHealthChange === 'function') {
         onTempHealthChange(updatedHealthValue);
@@ -151,7 +98,7 @@ export default function HealthDefense({
   };
 
   const decreaseHealth = () => {
-    if (Number.isFinite(health) && health <= -10) {
+    if (Number.isFinite(health) && health <= 0) {
       return;
     }
     const current = Number.isFinite(health) ? health : 0;
@@ -189,21 +136,32 @@ export default function HealthDefense({
       : healthValue >= 0
         ? "#2ecc71"
         : "#c0392b";
-  const numericSpeedMultiplier = Number(speedMultiplier);
-  const safeSpeedMultiplier =
-    Number.isFinite(numericSpeedMultiplier) && numericSpeedMultiplier > 0
-      ? numericSpeedMultiplier
-      : 1;
+  const showDeathSaveTrackers = Number.isFinite(healthValue) && healthValue <= 0;
 
-  const baseSpeed =
-    Number(form?.speed ?? 0) +
-    Number(speed ?? 0) +
-    Number(form?.temporarySpeedBonus ?? 0);
+  useEffect(() => {
+    if (!showDeathSaveTrackers) {
+      setDeathSaveFailures([false, false, false]);
+      setDeathSaveSuccesses([false, false, false]);
+    }
+  }, [showDeathSaveTrackers]);
 
-  const totalSpeed = baseSpeed * safeSpeedMultiplier;
+  const toggleDeathSaveFailure = (index) => {
+    setDeathSaveFailures((prev) => {
+      const next = [...prev];
+      next[index] = !next[index];
+      return next;
+    });
+  };
 
-return (
-<div
+  const toggleDeathSaveSuccess = (index) => {
+    setDeathSaveSuccesses((prev) => {
+      const next = [...prev];
+      next[index] = !next[index];
+      return next;
+    });
+  };
+  return (
+    <div
   style={{
     display: "flex",
     flexDirection: "column", // <-- vertical stacking
@@ -226,26 +184,52 @@ return (
     }}
   >
     {/* Decrease Button */}
-    <Button
+    <div
       style={{
-        color: "#e74c3c",
-        backgroundColor: 'transparent',
-        border: "none",
-        fontSize: "20px",
-        width: "44px",
-        height: "44px",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        borderRadius: "50%",
-        transition: "transform 0.2s ease",
-        flexShrink: 0
+        gap: "8px",
+        flexShrink: 0,
       }}
-      className="fa-solid fa-minus"
-      onClick={decreaseHealth}
-      onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
-      onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
-    />
+    >
+      <Button
+        style={{
+          color: "#e74c3c",
+          backgroundColor: 'transparent',
+          border: "none",
+          fontSize: "20px",
+          width: "44px",
+          height: "44px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "50%",
+          transition: "transform 0.2s ease",
+          flexShrink: 0
+        }}
+        className="fa-solid fa-minus"
+        onClick={decreaseHealth}
+        onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
+        onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
+      />
+      {showDeathSaveTrackers && (
+        <div className="death-save-circles" aria-label="Death save failures">
+          {deathSaveFailures.map((active, index) => (
+            <button
+              key={`death-fail-${index}`}
+              type="button"
+              className={`death-save-circle ${
+                active ? 'death-save-circle--fail-active' : 'death-save-circle--inactive'
+              }`}
+              onClick={() => toggleDeathSaveFailure(index)}
+              aria-pressed={active}
+              aria-label={`Mark death save failure ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
 
     {/* Health Bar */}
     <div
@@ -262,7 +246,7 @@ return (
     >
       <input
         type="range"
-        min="-10"
+        min="0"
         max={sliderMax}
         value={healthValue}
         onChange={handleBarChange}
@@ -305,26 +289,52 @@ return (
     </div>
 
     {/* Increase Button */}
-    <Button
+    <div
       style={{
-        color: "#27ae60",
-        backgroundColor: "transparent",
-        border: "none",
-        fontSize: "20px",
-        width: "44px",
-        height: "44px",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        borderRadius: "50%",
-        transition: "transform 0.2s ease",
-        flexShrink: 0
+        gap: "8px",
+        flexShrink: 0,
       }}
-      className="fa-solid fa-plus"
-      onClick={increaseHealth}
-      onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
-      onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
-    />
+    >
+      <Button
+        style={{
+          color: "#27ae60",
+          backgroundColor: "transparent",
+          border: "none",
+          fontSize: "20px",
+          width: "44px",
+          height: "44px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "50%",
+          transition: "transform 0.2s ease",
+          flexShrink: 0
+        }}
+        className="fa-solid fa-plus"
+        onClick={increaseHealth}
+        onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
+        onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
+      />
+      {showDeathSaveTrackers && (
+        <div className="death-save-circles" aria-label="Death save successes">
+          {deathSaveSuccesses.map((active, index) => (
+            <button
+              key={`death-success-${index}`}
+              type="button"
+              className={`death-save-circle ${
+                active ? 'death-save-circle--success-active' : 'death-save-circle--inactive'
+              }`}
+              onClick={() => toggleDeathSaveSuccess(index)}
+              aria-pressed={active}
+              aria-label={`Mark death save success ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   </div>
   {error && (
     <div className="text-danger" style={{ marginTop: "8px" }}>
@@ -332,37 +342,6 @@ return (
     </div>
   )}
 
-      {/* Stats Section */}
-  <div
-    style={{
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      alignItems: "center",
-      gap: "12px",
-      fontFamily: "'Inter', sans-serif",
-      fontSize: "15px",
-      color: "#000",
-    }}
-  >
-    {/* Core Stats */}
-<div style={{ color: "#FFFFFF", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
-  {/* First row */}
-  <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-    <div><strong>AC:</strong> {Number(totalArmorAcBonus) + 10 + Number(armorMaxDex)}</div>
-    <div><strong>Initiative:</strong> {Number(dexMod) + Number(initiative)}</div>
-    <div><strong>Speed:</strong> {totalSpeed}</div>
-  </div>
-
-  {/* Second row */}
-  <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "nowrap" }}>
-    {spellSaveDC != null && (
-      <div><strong>Spell Save DC:</strong> {spellSaveDC}</div>
-    )}
-    <div><strong>Proficiency Bonus:</strong> {profBonus}</div>
-  </div>
-</div>
-      </div>
     </div>
   );
 }

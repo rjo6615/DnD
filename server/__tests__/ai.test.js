@@ -421,6 +421,50 @@ describe('AI map route', () => {
     expect(payload.style).toBeUndefined();
   });
 
+  test('omits style for dall-e-2 by default', async () => {
+    process.env.OPENAI_IMAGE_MODEL = 'dall-e-2';
+    delete process.env.OPENAI_IMAGE_STYLE_MODELS;
+
+    mockGenerate.mockResolvedValue({
+      data: [
+        {
+          url: 'https://example.com/map.png',
+        },
+      ],
+    });
+
+    await request(app).post('/ai/map').send({ prompt: 'classic map' });
+
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    const payload = mockGenerate.mock.calls[0][0];
+    expect(payload.style).toBeUndefined();
+  });
+
+  test('retries without style when OpenAI rejects the parameter', async () => {
+    process.env.OPENAI_IMAGE_MODEL = 'dall-e-3';
+    process.env.OPENAI_IMAGE_STYLE = 'vivid';
+
+    const styleError = new Error("400 Unknown parameter: 'style'.");
+    styleError.status = 400;
+    mockGenerate
+      .mockRejectedValueOnce(styleError)
+      .mockResolvedValueOnce({
+        data: [
+          {
+            url: 'https://example.com/map.png',
+          },
+        ],
+      });
+
+    const res = await request(app).post('/ai/map').send({ prompt: 'retry map' });
+
+    expect(res.status).toBe(200);
+    expect(mockGenerate).toHaveBeenCalledTimes(2);
+    expect(mockGenerate.mock.calls[0][0].style).toBe('vivid');
+    expect(mockGenerate.mock.calls[1][0].style).toBeUndefined();
+    expect(res.body.imageUrl).toBe('https://example.com/map.png');
+  });
+
   test('includes style when explicitly enabled for model', async () => {
     process.env.OPENAI_IMAGE_MODEL = 'dall-e-3';
     process.env.OPENAI_IMAGE_STYLE_MODELS = 'dall-e-3, gpt-image-1';

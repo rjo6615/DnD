@@ -278,6 +278,15 @@ const emitCharacterMetadataUpdate = (campaignId, payload) => {
     outgoingPayload.diceColor = outgoingPayload.diceColor.trim();
   }
 
+  if (
+    typeof outgoingPayload.diceTheme === 'string' &&
+    outgoingPayload.diceTheme.trim() !== ''
+  ) {
+    outgoingPayload.diceTheme = outgoingPayload.diceTheme.trim();
+  } else if (Object.prototype.hasOwnProperty.call(outgoingPayload, 'diceTheme')) {
+    outgoingPayload.diceTheme = null;
+  }
+
   outgoingPayload.campaignId = normalizedId;
 
   io.to(getCampaignRoom(normalizedId)).emit('campaign:characters:update', outgoingPayload);

@@ -1,16 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Row, Col, Alert, Button, Badge, Modal } from 'react-bootstrap';
-import {
-  GiNecklace,
-  GiBelt,
-  GiBracers,
-  GiCape,
-  GiSteampunkGoggles,
-  GiCarnivalMask,
-  GiRing,
-  GiWrappedHeart,
-  GiTreasureMap,
-} from 'react-icons/gi';
+import ItemIcon from '../common/ItemIcon';
 import apiFetch from '../../utils/apiFetch';
 import { STATS } from '../Zombies/statSchema';
 import { SKILLS } from '../Zombies/skillSchema';
@@ -33,19 +23,6 @@ const SLOT_LABELS = EQUIPMENT_SLOT_LAYOUT.flat().reduce((acc, slot) => {
   return acc;
 }, {});
 
-const categoryIcons = {
-  amulet: GiNecklace,
-  belt: GiBelt,
-  bracelet: GiBracers,
-  brooch: GiTreasureMap,
-  cape: GiCape,
-  cloak: GiCape,
-  goggles: GiSteampunkGoggles,
-  mask: GiCarnivalMask,
-  ring: GiRing,
-  sash: GiBelt,
-  wrap: GiWrappedHeart,
-};
 
 const renderBonuses = (bonuses, labels) =>
   Object.entries(bonuses || {})
@@ -58,6 +35,71 @@ const formatSlots = (slots) => {
     .map((slot) => SLOT_LABELS[slot] || slot)
     .filter(Boolean)
     .join(', ');
+};
+
+const EMPTY_ARRAY = Object.freeze([]);
+
+const normalizeAccessoryName = (value) => {
+  if (typeof value === 'string') {
+    return value.trim().toLowerCase();
+  }
+  return '';
+};
+
+const extractAccessoryEntryName = (entry) => {
+  if (!entry) return '';
+  if (typeof entry === 'string') {
+    return normalizeAccessoryName(entry);
+  }
+  if (Array.isArray(entry)) {
+    return extractAccessoryEntryName(entry[0]);
+  }
+  if (typeof entry === 'object') {
+    return (
+      normalizeAccessoryName(entry.displayName) ||
+      normalizeAccessoryName(entry.itemName) ||
+      normalizeAccessoryName(entry.accessoryName) ||
+      normalizeAccessoryName(entry.name)
+    );
+  }
+  return '';
+};
+
+const buildMatchKeySet = (accessory, dataKey) => {
+  const keys = new Set();
+  const addKey = (value) => {
+    const normalized = normalizeAccessoryName(value);
+    if (normalized) {
+      keys.add(normalized);
+    }
+  };
+  addKey(dataKey);
+  if (accessory) {
+    addKey(accessory.displayName);
+    addKey(accessory.itemName);
+    addKey(accessory.accessoryName);
+    addKey(accessory.name);
+  }
+  return keys;
+};
+
+const removeFirstMatchingEntry = (entries, accessory, dataKey) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return entries;
+  }
+  const matchKeys = buildMatchKeySet(accessory, dataKey);
+  if (matchKeys.size === 0) {
+    return entries;
+  }
+  const index = entries.findIndex((entry) =>
+    matchKeys.has(extractAccessoryEntryName(entry))
+  );
+  if (index === -1) {
+    return entries;
+  }
+  const next = entries.slice();
+  next.splice(index, 1);
+  return next;
 };
 
 const buildAccessoryOwnershipMap = (initialAccessories) => {
@@ -122,33 +164,66 @@ function normalizeAccessoryBonuses(bonuses) {
  *   onAddToCart?: (accessory: any) => void,
  *   ownedOnly?: boolean,
  *   cartCounts?: Record<string, number> | null,
+ *   hiddenKeys?: Set<string> | string[] | Record<string, boolean> | null,
  * }} props
  */
 function AccessoryList({
   campaign,
   onChange,
-  initialAccessories = [],
+  initialAccessories = EMPTY_ARRAY,
   show = true,
   embedded = false,
   onAddToCart = () => {},
   ownedOnly = false,
   cartCounts = null,
+  hiddenKeys = null,
 }) {
   const [accessories, setAccessories] =
     useState/** @type {Record<string, any & { owned?: boolean, ownedCount?: number, displayName?: string }> | null} */(null);
   const [error, setError] = useState(null);
   const [unknownAccessories, setUnknownAccessories] = useState([]);
   const [notesAccessory, setNotesAccessory] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const requestIdRef = useRef(0);
 
-  const initialAccessoriesArray = Array.isArray(initialAccessories)
-    ? initialAccessories
-    : [];
+  const initialAccessoriesArray = useMemo(
+    () => (Array.isArray(initialAccessories) ? initialAccessories : EMPTY_ARRAY),
+    [initialAccessories]
+  );
+  const [ownedEntries, setOwnedEntries] = useState(initialAccessoriesArray);
+
+  useEffect(() => {
+    if (Array.isArray(initialAccessories)) {
+      setOwnedEntries((prev) => (prev === initialAccessories ? prev : initialAccessories));
+    } else {
+      setOwnedEntries((prev) => (prev === EMPTY_ARRAY ? prev : EMPTY_ARRAY));
+    }
+  }, [initialAccessories]);
 
   const ownershipMap = useMemo(
-    () => buildAccessoryOwnershipMap(initialAccessoriesArray),
-    [initialAccessoriesArray]
+    () => buildAccessoryOwnershipMap(ownedEntries),
+    [ownedEntries]
   );
+
+  const hiddenSet = useMemo(() => {
+    if (!hiddenKeys) {
+      return null;
+    }
+    if (hiddenKeys instanceof Set) {
+      return new Set(Array.from(hiddenKeys, (value) => String(value).toLowerCase()));
+    }
+    if (Array.isArray(hiddenKeys)) {
+      return new Set(hiddenKeys.map((value) => String(value).toLowerCase()));
+    }
+    if (hiddenKeys && typeof hiddenKeys === 'object') {
+      return new Set(
+        Object.entries(hiddenKeys)
+          .filter(([, hidden]) => Boolean(hidden))
+          .map(([key]) => String(key).toLowerCase())
+      );
+    }
+    return null;
+  }, [hiddenKeys]);
 
   useEffect(() => {
     if (!show) return undefined;
@@ -329,11 +404,48 @@ function AccessoryList({
   const handleShowNotes = (accessory) => () => setNotesAccessory(accessory);
   const handleCloseNotes = () => setNotesAccessory(null);
 
+  const handleRequestDelete = (dataKey, accessory) => () => {
+    if (!ownedOnly) {
+      return;
+    }
+    setDeleteTarget({ dataKey, accessory });
+  };
+
+  const handleCancelDelete = () => setDeleteTarget(null);
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    const { dataKey, accessory } = deleteTarget;
+    const nextEntries = removeFirstMatchingEntry(ownedEntries, accessory, dataKey);
+
+    setDeleteTarget(null);
+
+    if (nextEntries === ownedEntries) {
+      return;
+    }
+
+    setOwnedEntries(nextEntries);
+
+    if (typeof onChange === 'function') {
+      onChange(nextEntries);
+    }
+  };
+
   const bodyStyle = embedded ? undefined : { overflowY: 'auto', maxHeight: '70vh' };
 
-  const filteredEntries = Object.entries(accessories).filter(([, accessory]) =>
-    ownedOnly ? (accessory.ownedCount ?? 0) > 0 : true
-  );
+  const filteredEntries = Object.entries(accessories).filter(([key, accessory]) => {
+    if (hiddenSet) {
+      const normalizedKey = String(key || '').toLowerCase();
+      const displayKey = String(accessory.displayName || accessory.name || '').toLowerCase();
+      if (hiddenSet.has(normalizedKey) || (displayKey && hiddenSet.has(displayKey))) {
+        return false;
+      }
+    }
+    return ownedOnly ? (accessory.ownedCount ?? 0) > 0 : true;
+  });
 
   const expandedEntries = ownedOnly
     ? filteredEntries.flatMap(([key, accessory]) => {
@@ -390,21 +502,17 @@ function AccessoryList({
         <Row className="row-cols-2 row-cols-lg-3 g-3">
           {expandedEntries.map(({
             reactKey,
+            dataKey,
             accessory,
             copyIndex,
             copyCount,
           }) => {
-            const categoryKey =
-              typeof accessory.category === 'string'
-                ? accessory.category.toLowerCase()
-                : '';
-            const Icon = categoryIcons[categoryKey] || GiTreasureMap;
             return (
               <Col key={reactKey}>
                 <Card className="item-card h-100">
                   <Card.Body className="d-flex flex-column">
                     <div className="d-flex justify-content-center mb-2">
-                      <Icon size={40} title={accessory.category} />
+                      <ItemIcon item={accessory} itemType="accessory" category={accessory.category} size={44} />
                     </div>
                     <Card.Title>
                       {accessory.displayName || accessory.name}
@@ -452,8 +560,16 @@ function AccessoryList({
                       </div>
                     )}
                   </Card.Body>
-                  {!ownedOnly && (
-                    <Card.Footer className="d-flex justify-content-center">
+                  <Card.Footer className="d-flex justify-content-center">
+                    {ownedOnly ? (
+                      <Button
+                        size="sm"
+                        className="btn-danger action-btn fa-solid fa-trash"
+                        onClick={handleRequestDelete(dataKey, accessory)}
+                        title={`Delete ${accessory.displayName || accessory.name || 'accessory'}`}
+                        aria-label={`Delete ${accessory.displayName || accessory.name || 'accessory'}`}
+                      />
+                    ) : (
                       <div className="d-flex align-items-center gap-2">
                         <Button size="sm" onClick={handleAddToCart(accessory)}>
                           Add to Cart
@@ -464,8 +580,8 @@ function AccessoryList({
                           </Badge>
                         ) : null}
                       </div>
-                    </Card.Footer>
-                  )}
+                    )}
+                  </Card.Footer>
                 </Card>
               </Col>
             );
@@ -481,7 +597,7 @@ function AccessoryList({
     <Card.Body style={bodyStyle}>{bodyContent}</Card.Body>
   );
 
-  const modal = (
+  const notesModal = (
     <Modal show={!!notesAccessory} onHide={handleCloseNotes} size="sm">
       <Modal.Header closeButton>
         <Modal.Title>
@@ -492,11 +608,35 @@ function AccessoryList({
     </Modal>
   );
 
+  const deleteAccessoryName =
+    deleteTarget?.accessory?.displayName || deleteTarget?.accessory?.name;
+  const deleteModal = (
+    <Modal show={!!deleteTarget} onHide={handleCancelDelete} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Delete Accessory</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {`Are you sure you want to remove ${
+          deleteAccessoryName ? `${deleteAccessoryName}` : 'this accessory'
+        } from your inventory?`}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" className="action-btn close-btn" onClick={handleCancelDelete}>
+          Cancel
+        </Button>
+        <Button variant="danger" className="action-btn" onClick={handleConfirmDelete}>
+          Delete
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+
   if (embedded) {
     return (
       <>
         {body}
-        {modal}
+        {notesModal}
+        {deleteModal}
       </>
     );
   }
@@ -504,7 +644,8 @@ function AccessoryList({
   return (
     <Card className="item-card">
       {body}
-      {modal}
+      {notesModal}
+      {deleteModal}
     </Card>
   );
 }

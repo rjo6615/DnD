@@ -1,11 +1,12 @@
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Modal, Button, ListGroup, Badge, Spinner, Alert, CloseButton } from 'react-bootstrap';
-import MapDisplay from './MapDisplay';
+import { Modal, Button, ListGroup, Badge, Spinner, Alert } from 'react-bootstrap';
 import CampaignMapBoard from './CampaignMapBoard';
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from '../utils/mapGrouping';
 import { resolveFigurineImageData } from '../utils/figurineAssets';
+import resolveMapImageSource from '../utils/mapImages';
 import DockControls from '../components/DockControls';
+import loginbg from '../../../images/loginbg.png';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -28,6 +29,28 @@ const toFiniteNumberOrNull = (value) => {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+};
+
+const EMPTY_IDENTIFIER_SET = new Set();
+
+const BACKGROUND_ZOOM_DEFAULT = 1;
+const BACKGROUND_ZOOM_MIN = 0.5;
+const BACKGROUND_ZOOM_MAX = 6;
+
+const clampBackgroundZoom = (value) => {
+  if (!Number.isFinite(value)) {
+    return BACKGROUND_ZOOM_DEFAULT;
+  }
+
+  if (value < BACKGROUND_ZOOM_MIN) {
+    return BACKGROUND_ZOOM_MIN;
+  }
+
+  if (value > BACKGROUND_ZOOM_MAX) {
+    return BACKGROUND_ZOOM_MAX;
+  }
+
+  return value;
 };
 
 const sanitizeToken = (tokenValue, fallbackId) => {
@@ -79,8 +102,359 @@ const sanitizeTokenDictionary = (tokens) => {
   }, {});
 };
 
-const normalizeMapId = (value) =>
-  typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+const MAP_IDENTIFIER_KEYS = [
+  'mapId',
+  'map_id',
+  'mapID',
+  'MapId',
+  'MapID',
+  'MAPID',
+  'MAP_ID',
+  '_id',
+  'id',
+  'Id',
+  'ID',
+  'uuid',
+  'UUID',
+  'guid',
+  'GUID',
+  'slug',
+  'Slug',
+  'identifier',
+  'Identifier',
+  'IDENTIFIER',
+];
+const MAP_IDENTIFIER_FALLBACK_KEYS = [
+  '$oid',
+  '$id',
+  '$uuid',
+  '$guid',
+  'hex',
+  'hexString',
+  'value',
+  'string',
+  'idStr',
+];
+const NORMALIZED_IDENTIFIER_KEY_VALUES = new Set([
+  'mapid',
+  'id',
+  'uuid',
+  'guid',
+  'slug',
+  'identifier',
+]);
+const NORMALIZED_FALLBACK_IDENTIFIER_KEY_VALUES = new Set([
+  'oid',
+  'id',
+  'uuid',
+  'guid',
+  'hex',
+  'hexstring',
+  'value',
+  'string',
+  'idstr',
+]);
+
+const normalizeIdentifierKey = (key) => {
+  if (typeof key !== 'string') {
+    return '';
+  }
+
+  return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
+};
+
+const normalizeMapId = (value, visited = new Set()) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '' || trimmed === '[object Object]') {
+      return null;
+    }
+
+    const wrappedMatch = trimmed.match(/^(?:new\s+)?(?:ObjectId|UUID|Guid)\((.*)\)$/i);
+    if (wrappedMatch) {
+      const inner = wrappedMatch[1].replace(/^['"]|['"]$/g, '').trim();
+      if (inner) {
+        return inner;
+      }
+    }
+
+    const prefixMatch = trimmed.match(
+      /^(?:characters?|character|pcs?|pc|npcs?|npc|tokens?|token|figurines?|figurine|miniatures?|miniature)[\s:._#\/\\]+(.+)$/i
+    );
+    if (prefixMatch) {
+      const remainder = prefixMatch[1].trim();
+      if (remainder) {
+        const normalizedRemainder = normalizeMapId(remainder, visited);
+        if (normalizedRemainder) {
+          return normalizedRemainder;
+        }
+      }
+    }
+
+    if (trimmed.includes('/') || trimmed.includes('\\')) {
+      const segments = trimmed.split(/[\/\\]+/).filter(Boolean);
+      if (segments.length > 1) {
+        const lastSegment = segments[segments.length - 1].trim();
+        if (lastSegment && lastSegment !== trimmed) {
+          const normalizedSegment = normalizeMapId(lastSegment, visited);
+          if (normalizedSegment) {
+            return normalizedSegment;
+          }
+        }
+      }
+    }
+
+    return trimmed;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return `${value}`;
+  }
+
+  if (typeof value === 'bigint') {
+    return `${value}`;
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const normalized = normalizeMapId(entry, visited);
+      if (normalized) {
+        return normalized;
+      }
+    }
+    return null;
+  }
+
+  if (typeof value === 'object') {
+    if (visited.has(value)) {
+      return null;
+    }
+
+    visited.add(value);
+
+    if (typeof value.toString === 'function') {
+      try {
+        const stringValue = value.toString();
+        if (typeof stringValue === 'string') {
+          const normalized = normalizeMapId(stringValue, visited);
+          if (normalized && normalized !== '[object Object]') {
+            return normalized;
+          }
+        }
+      } catch (error) {
+        // Ignore toString errors and continue inspecting properties.
+      }
+    }
+
+    const keysToInspect = Array.from(
+      new Set([...MAP_IDENTIFIER_KEYS, ...MAP_IDENTIFIER_FALLBACK_KEYS])
+    );
+    for (const key of keysToInspect) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        const normalized = normalizeMapId(value[key], visited);
+        if (normalized) {
+          return normalized;
+        }
+      }
+    }
+
+    for (const [candidateKey, candidateValue] of Object.entries(value)) {
+      const normalizedKey = normalizeIdentifierKey(candidateKey);
+      if (
+        NORMALIZED_IDENTIFIER_KEY_VALUES.has(normalizedKey) ||
+        NORMALIZED_FALLBACK_IDENTIFIER_KEY_VALUES.has(normalizedKey)
+      ) {
+        const normalized = normalizeMapId(candidateValue, visited);
+        if (normalized) {
+          return normalized;
+        }
+      }
+    }
+
+    for (const entry of Object.values(value)) {
+      const normalized = normalizeMapId(entry, visited);
+      if (normalized) {
+        return normalized;
+      }
+    }
+  }
+
+  return null;
+};
+
+const CHARACTER_IDENTIFIER_KEYS = [
+  'characterId',
+  'character_id',
+  'characterID',
+  'CharacterId',
+  'CharacterID',
+  'CHARACTERID',
+  'playerCharacterId',
+  'playerCharacterID',
+  'player_character_id',
+  'player_characterID',
+  'playerId',
+  'playerID',
+  'player_id',
+  'PlayerId',
+  'PlayerID',
+  'profileId',
+  'profileID',
+  'profile_id',
+  'ProfileId',
+  'ProfileID',
+  'id',
+  'Id',
+  'ID',
+  '_id',
+  'uuid',
+  'UUID',
+  'guid',
+  'GUID',
+  'slug',
+  'Slug',
+  'identifier',
+  'Identifier',
+  'IDENTIFIER',
+];
+const CHARACTER_IDENTIFIER_FALLBACK_KEYS = [
+  '$oid',
+  '$id',
+  '$uuid',
+  '$guid',
+  'hex',
+  'hexString',
+  'value',
+  'string',
+  'idStr',
+];
+const NORMALIZED_CHARACTER_IDENTIFIER_KEY_VALUES = new Set(
+  CHARACTER_IDENTIFIER_KEYS.map((key) => normalizeIdentifierKey(key))
+);
+const NORMALIZED_CHARACTER_FALLBACK_IDENTIFIER_KEY_VALUES = new Set(
+  CHARACTER_IDENTIFIER_FALLBACK_KEYS.map((key) => normalizeIdentifierKey(key))
+);
+
+const collectCharacterIdentifiers = (value, fallbackIds = [], visited = new Set()) => {
+  const identifiers = new Set();
+
+  const addIdentifier = (candidate) => {
+    const normalized = normalizeMapId(candidate, visited);
+    if (normalized) {
+      identifiers.add(normalized);
+    }
+  };
+
+  fallbackIds.forEach(addIdentifier);
+
+  const inspect = (input) => {
+    if (input === null || input === undefined) {
+      return;
+    }
+
+    if (typeof input === 'string' || typeof input === 'number' || typeof input === 'bigint') {
+      addIdentifier(input);
+      return;
+    }
+
+    if (typeof input !== 'object') {
+      return;
+    }
+
+    if (visited.has(input)) {
+      return;
+    }
+
+    visited.add(input);
+
+    if (typeof input.toString === 'function') {
+      try {
+        const stringValue = input.toString();
+        if (typeof stringValue === 'string' && stringValue.trim() !== '') {
+          addIdentifier(stringValue);
+        }
+      } catch (error) {
+        // Ignore toString errors and continue inspecting properties.
+      }
+    }
+
+    CHARACTER_IDENTIFIER_KEYS.forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(input, key)) {
+        inspect(input[key]);
+      }
+    });
+
+    Object.entries(input).forEach(([candidateKey, candidateValue]) => {
+      const normalizedKey = normalizeIdentifierKey(candidateKey);
+      if (
+        NORMALIZED_CHARACTER_IDENTIFIER_KEY_VALUES.has(normalizedKey) ||
+        NORMALIZED_CHARACTER_FALLBACK_IDENTIFIER_KEY_VALUES.has(normalizedKey)
+      ) {
+        inspect(candidateValue);
+      }
+    });
+
+    Object.values(input).forEach((entry) => {
+      inspect(entry);
+    });
+  };
+
+  inspect(value);
+
+  return Array.from(identifiers);
+};
+
+const toLowercaseIdentifierSet = (identifiers) => {
+  if (!Array.isArray(identifiers)) {
+    return EMPTY_IDENTIFIER_SET;
+  }
+
+  const lowered = identifiers
+    .map((identifier) =>
+      typeof identifier === 'string' && identifier.trim() !== ''
+        ? identifier.trim().toLowerCase()
+        : null
+    )
+    .filter(Boolean);
+
+  if (lowered.length === 0) {
+    return EMPTY_IDENTIFIER_SET;
+  }
+
+  return new Set(lowered);
+};
+
+const collectMapIdentifiers = (map, fallbackIds = []) => {
+  const identifiers = new Set();
+
+  const addIdentifier = (candidate) => {
+    const normalized = normalizeMapId(candidate);
+    if (normalized) {
+      identifiers.add(normalized);
+    }
+  };
+
+  if (map && typeof map === 'object') {
+    MAP_IDENTIFIER_KEYS.forEach((key) => addIdentifier(map[key]));
+
+    const relatedMetadata = [map.meta, map.metadata, map.details, map.settings];
+    relatedMetadata.forEach((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return;
+      }
+
+      MAP_IDENTIFIER_KEYS.forEach((key) => addIdentifier(entry[key]));
+    });
+  }
+
+  fallbackIds.forEach(addIdentifier);
+
+  return Array.from(identifiers);
+};
 
 const normalizeMaps = (maps) =>
   Array.isArray(maps)
@@ -152,8 +526,37 @@ const MapModal = ({
   dockedSide = null,
   onDockClose,
   onDockChange,
+  displayMode = 'modal',
 }) => {
-  const normalizedMaps = useMemo(() => normalizeMaps(maps), [maps]);
+  const isBackground = displayMode === 'background';
+  const backgroundBoardContainerRef = useRef(null);
+  const normalizedMaps = useMemo(
+    () => (isBackground ? [] : normalizeMaps(maps)),
+    [isBackground, maps]
+  );
+  const normalizedTokensByMapId = useMemo(() => {
+    if (!tokensByMapId || typeof tokensByMapId !== 'object') {
+      return {};
+    }
+
+    return Object.entries(tokensByMapId).reduce((acc, [key, value]) => {
+      if (!value || typeof value !== 'object') {
+        return acc;
+      }
+
+      const normalizedKey = normalizeMapId(key);
+      if (!normalizedKey) {
+        return acc;
+      }
+
+      acc[normalizedKey] = value;
+      return acc;
+    }, {});
+  }, [tokensByMapId]);
+  const tokenMapIdCandidates = useMemo(
+    () => Object.keys(normalizedTokensByMapId),
+    [normalizedTokensByMapId]
+  );
   const normalizedActiveId = useMemo(() => normalizeMapId(activeMapId), [activeMapId]);
   const normalizedActionId = useMemo(
     () => normalizeMapId(actionInProgressId),
@@ -179,6 +582,10 @@ const MapModal = ({
   }, [normalizedMaps, normalizedSelectedId, normalizedActiveId]);
 
   const previewMap = useMemo(() => {
+    if (isBackground) {
+      return map || null;
+    }
+
     if (normalizedMaps.length > 0) {
       const selectedFromList = findMapById(normalizedMaps, resolvedSelectedId);
       if (selectedFromList) {
@@ -196,17 +603,297 @@ const MapModal = ({
     }
 
     return map || null;
-  }, [normalizedMaps, resolvedSelectedId, normalizedActiveId, map]);
+  }, [
+    isBackground,
+    map,
+    normalizedMaps,
+    resolvedSelectedId,
+    normalizedActiveId,
+  ]);
 
-  const previewMapId = useMemo(
-    () => normalizeMapId(previewMap?.mapId),
+  const backgroundImageSrc = useMemo(
+    () => resolveMapImageSource(previewMap),
     [previewMap]
   );
+
+  const backgroundStyle = useMemo(
+    () => ({
+      backgroundColor: '#0f1117',
+      backgroundImage: `url(${loginbg})`,
+      backgroundSize: 'cover',
+      backgroundRepeat: 'no-repeat',
+      backgroundPosition: 'center',
+    }),
+    [loginbg]
+  );
+
+  const previewMapIdCandidates = useMemo(() => {
+    const fallbackIdentifiers = [];
+
+    if (normalizedActiveId) {
+      fallbackIdentifiers.push(normalizedActiveId);
+    }
+
+    fallbackIdentifiers.push(...tokenMapIdCandidates);
+
+    const candidates = collectMapIdentifiers(previewMap, fallbackIdentifiers);
+
+    if (normalizedSelectedId) {
+      candidates.unshift(normalizedSelectedId);
+    }
+
+    tokenMapIdCandidates.forEach((identifier) => {
+      if (!candidates.includes(identifier)) {
+        candidates.push(identifier);
+      }
+    });
+
+    return candidates.filter((value, index, array) => array.indexOf(value) === index);
+  }, [normalizedActiveId, normalizedSelectedId, previewMap, tokenMapIdCandidates]);
+
+  const previewMapId = useMemo(() => previewMapIdCandidates[0] || null, [previewMapIdCandidates]);
+
+  const placementMapId = useMemo(() => {
+    if (previewMapId) {
+      return previewMapId;
+    }
+
+    if (normalizedActiveId) {
+      return normalizedActiveId;
+    }
+
+    if (normalizedSelectedId) {
+      return normalizedSelectedId;
+    }
+
+    return tokenMapIdCandidates[0] || null;
+  }, [
+    normalizedActiveId,
+    normalizedSelectedId,
+    previewMapId,
+    tokenMapIdCandidates,
+  ]);
+
+  const resolvedPlacementMapId = useMemo(() => {
+    if (placementMapId) {
+      return placementMapId;
+    }
+
+    const directMapIdentifier = normalizeMapId(previewMap?.mapId);
+    if (directMapIdentifier) {
+      return directMapIdentifier;
+    }
+
+    const fallbackPreviewId = normalizeMapId(previewMap?.id ?? previewMap?._id);
+    if (fallbackPreviewId) {
+      return fallbackPreviewId;
+    }
+
+    if (normalizedSelectedId) {
+      return normalizedSelectedId;
+    }
+
+    if (normalizedActiveId) {
+      return normalizedActiveId;
+    }
+
+    return tokenMapIdCandidates[0] || null;
+  }, [
+    placementMapId,
+    previewMap,
+    normalizedSelectedId,
+    normalizedActiveId,
+    tokenMapIdCandidates,
+  ]);
 
   const groupedMaps = useMemo(
     () => groupMapsByFolder(normalizedMaps),
     [normalizedMaps]
   );
+
+  const [backgroundImageMetrics, setBackgroundImageMetrics] = useState({ width: null, height: null });
+  const [backgroundContainerSize, setBackgroundContainerSize] = useState({ width: 0, height: 0 });
+  const [backgroundZoom, setBackgroundZoom] = useState(BACKGROUND_ZOOM_DEFAULT);
+
+  useEffect(() => {
+    if (!backgroundImageSrc) {
+      setBackgroundImageMetrics({ width: null, height: null });
+      return;
+    }
+
+    let isCancelled = false;
+    const image = new Image();
+
+    const handleLoad = () => {
+      if (isCancelled) {
+        return;
+      }
+
+      const { naturalWidth, naturalHeight } = image;
+
+      if (!Number.isFinite(naturalWidth) || !Number.isFinite(naturalHeight)) {
+        setBackgroundImageMetrics({ width: null, height: null });
+        return;
+      }
+
+      const nextWidth = Math.round(naturalWidth);
+      const nextHeight = Math.round(naturalHeight);
+
+      setBackgroundImageMetrics((previous) => {
+        if (previous.width === nextWidth && previous.height === nextHeight) {
+          return previous;
+        }
+
+        return { width: nextWidth, height: nextHeight };
+      });
+    };
+
+    const handleError = () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setBackgroundImageMetrics({ width: null, height: null });
+    };
+
+    image.addEventListener('load', handleLoad);
+    image.addEventListener('error', handleError);
+    image.src = backgroundImageSrc;
+
+    if (image.complete && image.naturalWidth && image.naturalHeight) {
+      handleLoad();
+    }
+
+    return () => {
+      isCancelled = true;
+      image.removeEventListener('load', handleLoad);
+      image.removeEventListener('error', handleError);
+    };
+  }, [backgroundImageSrc]);
+
+  useEffect(() => {
+    if (!isBackground) {
+      return;
+    }
+
+    const container = backgroundBoardContainerRef.current;
+
+    if (!container || typeof container.getBoundingClientRect !== 'function') {
+      return;
+    }
+
+    let frameHandle = null;
+
+    const readSize = () => {
+      frameHandle = null;
+
+      const rect = container.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
+
+      const width = Math.round(rect.width);
+      const height = Math.round(rect.height);
+
+      if (!Number.isFinite(width) || !Number.isFinite(height)) {
+        return;
+      }
+
+      setBackgroundContainerSize((previous) => {
+        if (previous.width === width && previous.height === height) {
+          return previous;
+        }
+
+        return { width, height };
+      });
+    };
+
+    const scheduleRead = () => {
+      if (frameHandle !== null) {
+        return;
+      }
+
+      if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        frameHandle = window.requestAnimationFrame(readSize);
+      } else {
+        frameHandle = setTimeout(readSize, 16);
+      }
+    };
+
+    scheduleRead();
+
+    let resizeObserver = null;
+
+    if (typeof ResizeObserver === 'function') {
+      resizeObserver = new ResizeObserver(scheduleRead);
+      resizeObserver.observe(container);
+    } else if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('resize', scheduleRead);
+    }
+
+    return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      } else if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('resize', scheduleRead);
+      }
+
+      if (frameHandle !== null) {
+        if (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
+          window.cancelAnimationFrame(frameHandle);
+        } else {
+          clearTimeout(frameHandle);
+        }
+      }
+    };
+  }, [isBackground, show, previewMapId]);
+
+  useEffect(() => {
+    if (!isBackground) {
+      setBackgroundContainerSize({ width: 0, height: 0 });
+    }
+  }, [isBackground]);
+
+  useEffect(() => {
+    if (!isBackground) {
+      return;
+    }
+
+    setBackgroundZoom(BACKGROUND_ZOOM_DEFAULT);
+  }, [isBackground, previewMapId]);
+
+  const backgroundBoardDimensions = useMemo(() => {
+    const { width: imageWidth, height: imageHeight } = backgroundImageMetrics;
+    const { width: containerWidth, height: containerHeight } = backgroundContainerSize;
+
+    if (
+      !Number.isFinite(imageWidth) ||
+      !Number.isFinite(imageHeight) ||
+      imageWidth <= 0 ||
+      imageHeight <= 0 ||
+      !Number.isFinite(containerWidth) ||
+      !Number.isFinite(containerHeight) ||
+      containerWidth <= 0 ||
+      containerHeight <= 0
+    ) {
+      return null;
+    }
+
+    const scaleFactor = Math.max(containerWidth / imageWidth, containerHeight / imageHeight);
+
+    if (!Number.isFinite(scaleFactor) || scaleFactor <= 0) {
+      return null;
+    }
+
+    const width = imageWidth * scaleFactor;
+    const height = imageHeight * scaleFactor;
+
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      return null;
+    }
+
+    return { width, height };
+  }, [backgroundContainerSize.height, backgroundContainerSize.width, backgroundImageMetrics.height, backgroundImageMetrics.width]);
 
   const autoExpandedFolderKeys = useMemo(() => {
     const keys = new Set();
@@ -287,6 +974,124 @@ const MapModal = ({
     [activeCharacterId]
   );
 
+  const {
+    lower: controlledCharacterIdentifiersLower,
+    normalizedByLower: controlledCharacterIdentifiersNormalizedByLower,
+  } = useMemo(() => {
+    const lower = new Set();
+    const normalizedByLower = new Map();
+
+    if (characterLookup && typeof characterLookup === 'object') {
+      Object.entries(characterLookup).forEach(([key, value]) => {
+        const collected = collectCharacterIdentifiers(value, [key]);
+        collected.forEach((identifier) => {
+          const normalized = normalizeMapId(identifier);
+          if (normalized) {
+            const lowered = normalized.toLowerCase();
+            lower.add(lowered);
+            if (!normalizedByLower.has(lowered)) {
+              normalizedByLower.set(lowered, normalized);
+            }
+          }
+        });
+      });
+    }
+
+    return { lower, normalizedByLower };
+  }, [characterLookup]);
+
+  const currentCharacterIdCandidatesLower = useMemo(() => {
+    const candidates = new Set();
+
+    const addCandidate = (candidate) => {
+      const normalized = normalizeMapId(candidate);
+      if (normalized) {
+        candidates.add(normalized.toLowerCase());
+      }
+    };
+
+    const normalizedCurrentLower =
+      typeof normalizedCurrentCharacterId === 'string'
+        ? normalizedCurrentCharacterId.toLowerCase()
+        : null;
+    const normalizedActiveLower =
+      typeof normalizedActiveCharacterId === 'string'
+        ? normalizedActiveCharacterId.toLowerCase()
+        : null;
+
+    const currentIsControlled = Boolean(
+      normalizedCurrentLower && controlledCharacterIdentifiersLower.has(normalizedCurrentLower)
+    );
+
+    const shouldIncludeCurrent = Boolean(
+      normalizedCurrentCharacterId &&
+        (!readOnly ||
+          controlledCharacterIdentifiersLower.size === 0 ||
+          currentIsControlled)
+    );
+
+    if (shouldIncludeCurrent) {
+      addCandidate(normalizedCurrentCharacterId);
+    }
+
+    const activeIsControlled = Boolean(
+      normalizedActiveLower && controlledCharacterIdentifiersLower.has(normalizedActiveLower)
+    );
+
+    const shouldIncludeActive = Boolean(
+      normalizedActiveCharacterId &&
+        (!normalizedCurrentCharacterId || !shouldIncludeCurrent) &&
+        (!readOnly ||
+          controlledCharacterIdentifiersLower.size === 0 ||
+          activeIsControlled)
+    );
+
+    if (shouldIncludeActive) {
+      addCandidate(normalizedActiveCharacterId);
+    }
+
+    const initialCandidates = new Set(candidates);
+
+    if (characterLookup && typeof characterLookup === 'object') {
+      Object.entries(characterLookup).forEach(([key, value]) => {
+        const identifiers = collectCharacterIdentifiers(value, [key]);
+        const identifierLowers = identifiers
+          .map((identifier) =>
+            typeof identifier === 'string' && identifier.trim() !== ''
+              ? identifier.trim().toLowerCase()
+              : null
+          )
+          .filter(Boolean);
+
+        if (identifierLowers.length === 0) {
+          return;
+        }
+
+        const hasOverlap = identifierLowers.some((identifier) =>
+          initialCandidates.has(identifier)
+        );
+
+        if (hasOverlap) {
+          identifierLowers.forEach((identifier) => {
+            candidates.add(identifier);
+          });
+        }
+      });
+    }
+
+    if (candidates.size === 0 && readOnly && controlledCharacterIdentifiersLower.size > 0) {
+      return new Set(controlledCharacterIdentifiersLower);
+    }
+
+    return candidates;
+  }, [
+    characterLookup,
+    controlledCharacterIdentifiersLower,
+    normalizedActiveCharacterId,
+    normalizedCurrentCharacterId,
+    readOnly,
+  ]);
+
   const normalizedCharacterLookup = useMemo(() => {
     if (!characterLookup || typeof characterLookup !== 'object') {
       return {};
@@ -342,14 +1147,19 @@ const MapModal = ({
   }, [characterLookup]);
 
   const tokensDictionary = useMemo(() => {
-    if (!previewMapId) {
-      return {};
-    }
-
     if (tokensByMapId && typeof tokensByMapId === 'object') {
-      const entry = tokensByMapId[previewMapId];
-      if (entry && typeof entry === 'object') {
-        return sanitizeTokenDictionary(entry);
+      for (const candidate of previewMapIdCandidates) {
+        if (!candidate) {
+          continue;
+        }
+
+        const normalizedCandidate = normalizeMapId(candidate);
+        const entry =
+          tokensByMapId[candidate] ||
+          (normalizedCandidate ? normalizedTokensByMapId[normalizedCandidate] : null);
+        if (entry && typeof entry === 'object') {
+          return sanitizeTokenDictionary(entry);
+        }
       }
     }
 
@@ -357,12 +1167,174 @@ const MapModal = ({
       return sanitizeTokenDictionary(previewMap.tokens);
     }
 
+    if (tokenMapIdCandidates.length > 0) {
+      const fallbackEntry = normalizedTokensByMapId[tokenMapIdCandidates[0]];
+      if (fallbackEntry && typeof fallbackEntry === 'object') {
+        return sanitizeTokenDictionary(fallbackEntry);
+      }
+    }
+
     return {};
-  }, [previewMap, previewMapId, tokensByMapId]);
+  }, [
+    normalizedTokensByMapId,
+    previewMap,
+    previewMapIdCandidates,
+    tokenMapIdCandidates,
+    tokensByMapId,
+  ]);
+
+  const tokenIdentifierLookup = useMemo(() => {
+    const lookup = new Map();
+
+    Object.values(tokensDictionary).forEach((token) => {
+      if (!token || typeof token !== 'object') {
+        return;
+      }
+
+      const identifierSet = toLowercaseIdentifierSet(
+        collectCharacterIdentifiers(token, [token.characterId])
+      );
+
+      if (!identifierSet || identifierSet.size === 0) {
+        return;
+      }
+
+      const identifiers = Array.from(identifierSet);
+      identifiers.forEach((identifier) => {
+        if (!lookup.has(identifier)) {
+          lookup.set(identifier, new Set(identifierSet));
+        } else {
+          const existing = lookup.get(identifier);
+          identifierSet.forEach((value) => existing.add(value));
+        }
+      });
+    });
+
+    return lookup;
+  }, [tokensDictionary]);
+
+  const getTokenIdentifierSet = useCallback(
+    (token) => {
+      if (!token || typeof token !== 'object') {
+        return EMPTY_IDENTIFIER_SET;
+      }
+
+      const normalizedTokenId = normalizeMapId(token.characterId);
+      const normalizedTokenIdLower = normalizedTokenId
+        ? normalizedTokenId.toLowerCase()
+        : null;
+
+      if (normalizedTokenIdLower && tokenIdentifierLookup.has(normalizedTokenIdLower)) {
+        return tokenIdentifierLookup.get(normalizedTokenIdLower);
+      }
+
+      const collectedIdentifiers = toLowercaseIdentifierSet(
+        collectCharacterIdentifiers(token, [token.characterId])
+      );
+
+      if (!collectedIdentifiers || collectedIdentifiers.size === 0) {
+        return EMPTY_IDENTIFIER_SET;
+      }
+
+      return collectedIdentifiers;
+    },
+    [tokenIdentifierLookup]
+  );
+
+  const tokenMatchesCurrentCharacter = useCallback(
+    (token) => {
+      const identifiers = getTokenIdentifierSet(token);
+      if (!identifiers || identifiers.size === 0) {
+        return false;
+      }
+
+      if (currentCharacterIdCandidatesLower && currentCharacterIdCandidatesLower.size > 0) {
+        for (const identifier of identifiers) {
+          if (currentCharacterIdCandidatesLower.has(identifier)) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      if (readOnly && controlledCharacterIdentifiersLower.size > 0) {
+        for (const identifier of identifiers) {
+          if (controlledCharacterIdentifiersLower.has(identifier)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    },
+    [
+      controlledCharacterIdentifiersLower,
+      currentCharacterIdCandidatesLower,
+      getTokenIdentifierSet,
+      readOnly,
+    ]
+  );
+
+  const canControlCharacterId = useCallback(
+    (characterId) => {
+      const normalizedId = normalizeMapId(characterId);
+      if (!normalizedId) {
+        return false;
+      }
+
+      const normalizedLower = normalizedId.toLowerCase();
+
+      if (currentCharacterIdCandidatesLower && currentCharacterIdCandidatesLower.size > 0) {
+        if (currentCharacterIdCandidatesLower.has(normalizedLower)) {
+          return true;
+        }
+
+        if (tokenIdentifierLookup.has(normalizedLower)) {
+          const identifiers = tokenIdentifierLookup.get(normalizedLower);
+          for (const identifier of identifiers) {
+            if (currentCharacterIdCandidatesLower.has(identifier)) {
+              return true;
+            }
+          }
+        }
+
+        return false;
+      }
+
+      if (!readOnly) {
+        return true;
+      }
+
+      if (controlledCharacterIdentifiersLower.size === 0) {
+        return false;
+      }
+
+      if (controlledCharacterIdentifiersLower.has(normalizedLower)) {
+        return true;
+      }
+
+      if (tokenIdentifierLookup.has(normalizedLower)) {
+        const identifiers = tokenIdentifierLookup.get(normalizedLower);
+        for (const identifier of identifiers) {
+          if (controlledCharacterIdentifiersLower.has(identifier)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    },
+    [
+      controlledCharacterIdentifiersLower,
+      currentCharacterIdCandidatesLower,
+      readOnly,
+      tokenIdentifierLookup,
+    ]
+  );
 
   const [placementPending, setPlacementPending] = useState(false);
   const [placementError, setPlacementError] = useState(null);
-
   useEffect(() => {
     if (!show) {
       setPlacementPending(false);
@@ -373,12 +1345,31 @@ const MapModal = ({
   useEffect(() => {
     setPlacementError(null);
     setPlacementPending(false);
-  }, [previewMapId, currentCharacterId]);
+  }, [resolvedPlacementMapId, currentCharacterId]);
 
-  const isInteractive = useMemo(
-    () => typeof onTokenMove === 'function' && Boolean(previewMapId),
-    [onTokenMove, previewMapId]
+  const hasInteractiveBoard = useMemo(() => Boolean(previewMap), [previewMap]);
+  const canManipulateTokens = useMemo(
+    () => hasInteractiveBoard && typeof onTokenMove === 'function',
+    [hasInteractiveBoard, onTokenMove]
   );
+  const canHandleTokenRemoval = useMemo(
+    () => hasInteractiveBoard && typeof onTokenRemove === 'function',
+    [hasInteractiveBoard, onTokenRemove]
+  );
+
+  const backgroundClassName = useMemo(() => {
+    const classes = ['map-modal-background'];
+
+    if (backgroundImageSrc) {
+      classes.push('map-modal-background--has-image');
+    }
+
+    if (hasInteractiveBoard) {
+      classes.push('map-modal-background--interactive');
+    }
+
+    return classes.join(' ');
+  }, [backgroundImageSrc, hasInteractiveBoard]);
 
   const boardTokens = useMemo(() => {
     const tokensList = Object.values(tokensDictionary);
@@ -398,10 +1389,7 @@ const MapModal = ({
           lookup.maxHp ?? token.maxHp ?? token.hpMax ?? token.health
         );
 
-        const isMovable =
-          isInteractive &&
-          !placementPending &&
-          (!readOnly || token.characterId === normalizedCurrentCharacterId);
+        const matchesCurrentCharacter = tokenMatchesCurrentCharacter(token);
 
         const lookupVariant =
           typeof lookup.variant === 'string' && lookup.variant.trim() !== ''
@@ -436,17 +1424,37 @@ const MapModal = ({
         if (!variant && entityType) {
           if (entityType === 'enemy') {
             variant = 'enemy';
-          } else if (
-            entityType === 'character' &&
-            normalizedCurrentCharacterId &&
-            token.characterId === normalizedCurrentCharacterId
-          ) {
+          } else if (entityType === 'character' && matchesCurrentCharacter) {
             variant = 'self';
-          } else if (entityType === 'character') {
-            variant = 'ally';
-          } else if (entityType !== 'enemy') {
+          } else if (entityType === 'character' || entityType !== 'enemy') {
             variant = 'ally';
           }
+        }
+
+        const normalizedVariant =
+          typeof variant === 'string' && variant.trim() !== ''
+            ? variant.trim().toLowerCase()
+            : null;
+
+        const canCurrentlyManipulate = canManipulateTokens && !placementPending;
+        const isEnemyToken = normalizedVariant === 'enemy' || entityType === 'enemy';
+
+        let isMovable = canCurrentlyManipulate && (!readOnly || matchesCurrentCharacter);
+
+        if (readOnly && isEnemyToken) {
+          isMovable = false;
+        }
+
+        if (token.isMovable === true) {
+          if (!readOnly) {
+            isMovable = canCurrentlyManipulate;
+          } else if (!isEnemyToken && matchesCurrentCharacter) {
+            isMovable = canCurrentlyManipulate;
+          } else {
+            isMovable = false;
+          }
+        } else if (token.isMovable === false) {
+          isMovable = false;
         }
 
         const baseColor = lookup.color || token.color || null;
@@ -478,34 +1486,42 @@ const MapModal = ({
         return labelA.localeCompare(labelB);
       });
   }, [
-    isInteractive,
+    canManipulateTokens,
+    currentCharacterIdCandidatesLower,
     normalizedCharacterLookup,
-    normalizedCurrentCharacterId,
     normalizedActiveCharacterId,
     placementPending,
     readOnly,
+    tokenMatchesCurrentCharacter,
     tokensDictionary,
   ]);
 
   const currentToken = useMemo(() => {
-    if (!normalizedCurrentCharacterId) {
+    if (!currentCharacterIdCandidatesLower || currentCharacterIdCandidatesLower.size === 0) {
       return null;
     }
-    return tokensDictionary[normalizedCurrentCharacterId] || null;
-  }, [normalizedCurrentCharacterId, tokensDictionary]);
+
+    for (const token of Object.values(tokensDictionary)) {
+      if (tokenMatchesCurrentCharacter(token)) {
+        return token;
+      }
+    }
+
+    return null;
+  }, [currentCharacterIdCandidatesLower, tokenMatchesCurrentCharacter, tokensDictionary]);
 
   const handleCommitMove = useCallback(
     async ({ characterId, x, y, rotation }) => {
-      if (!isInteractive || placementPending) {
+      if (!canManipulateTokens || placementPending) {
         return;
       }
 
       const normalizedCharacterId = normalizeMapId(characterId);
-      if (!normalizedCharacterId || !previewMapId) {
+      if (!normalizedCharacterId) {
         return;
       }
 
-      if (readOnly && normalizedCharacterId !== normalizedCurrentCharacterId) {
+      if (readOnly && !canControlCharacterId(normalizedCharacterId)) {
         return;
       }
 
@@ -514,14 +1530,22 @@ const MapModal = ({
 
       try {
         const payload = {
-          mapId: previewMapId,
           characterId: normalizedCharacterId,
           x,
           y,
         };
 
+        const payloadMapId = resolvedPlacementMapId;
+        if (payloadMapId) {
+          payload.mapId = payloadMapId;
+        }
+
         if (Number.isFinite(rotation)) {
           payload.rotation = rotation;
+        }
+
+        if (typeof onTokenMove !== 'function') {
+          return;
         }
 
         const result = await onTokenMove(payload);
@@ -539,48 +1563,164 @@ const MapModal = ({
       }
     },
     [
-      normalizedCurrentCharacterId,
-      isInteractive,
+      canControlCharacterId,
+      canManipulateTokens,
       onTokenMove,
       placementPending,
-      previewMapId,
       readOnly,
+      resolvedPlacementMapId,
     ]
   );
 
   const handleTokenPositionChange = useCallback(
     ({ characterId, x, y, rotation }) => {
-      if (!isInteractive) {
+      if (!canManipulateTokens) {
         return;
       }
 
       handleCommitMove({ characterId, x, y, rotation });
     },
-    [handleCommitMove, isInteractive]
+    [handleCommitMove, canManipulateTokens]
   );
 
   const handleBackgroundPlacement = useCallback(
     ({ x, y }) => {
-      if (!isInteractive || placementPending) {
+      if (!canManipulateTokens || placementPending) {
         return;
       }
 
-      if (!normalizedCurrentCharacterId || currentToken) {
+      let targetCharacterId = normalizedCurrentCharacterId;
+
+      if (readOnly) {
+        const normalizedLower = targetCharacterId ? targetCharacterId.toLowerCase() : null;
+        const canControlCurrent =
+          normalizedLower && controlledCharacterIdentifiersLower.has(normalizedLower);
+
+        if (!canControlCurrent) {
+          for (const identifier of controlledCharacterIdentifiersLower) {
+            const normalizedValue =
+              controlledCharacterIdentifiersNormalizedByLower.get(identifier);
+            if (normalizedValue) {
+              targetCharacterId = normalizedValue;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!targetCharacterId) {
         return;
       }
 
-      handleCommitMove({ characterId: normalizedCurrentCharacterId, x, y });
+      if (currentToken) {
+        const normalizedCurrentTokenId = normalizeMapId(currentToken.characterId);
+        const normalizedTargetId = normalizeMapId(targetCharacterId);
+
+        if (
+          normalizedCurrentTokenId &&
+          normalizedTargetId &&
+          normalizedCurrentTokenId.toLowerCase() === normalizedTargetId.toLowerCase()
+        ) {
+          return;
+        }
+      }
+
+      handleCommitMove({ characterId: targetCharacterId, x, y });
     },
-    [currentToken, handleCommitMove, isInteractive, normalizedCurrentCharacterId, placementPending]
+    [
+      canManipulateTokens,
+      controlledCharacterIdentifiersLower,
+      controlledCharacterIdentifiersNormalizedByLower,
+      currentToken,
+      handleCommitMove,
+      normalizedCurrentCharacterId,
+      placementPending,
+      readOnly,
+    ]
+  );
+
+  const backgroundBoardStyleValue = useMemo(() => {
+    const style = {
+      '--map-modal-background-scale': `${clampBackgroundZoom(backgroundZoom)}`,
+    };
+
+    if (backgroundBoardDimensions) {
+      style.width = `${backgroundBoardDimensions.width}px`;
+      style.height = `${backgroundBoardDimensions.height}px`;
+    }
+
+    return style;
+  }, [backgroundBoardDimensions, backgroundZoom]);
+
+  const backgroundBoardClassName = 'map-modal-background__board-inner';
+
+  const handleBackgroundWheel = useCallback(
+    (event) => {
+      if (!isBackground) {
+        return;
+      }
+
+      const wheelEvent = event?.nativeEvent ?? event;
+      if (!wheelEvent || typeof wheelEvent.deltaY !== 'number' || wheelEvent.deltaY === 0) {
+        return;
+      }
+
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
+      if (typeof event?.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
+
+      const { deltaY, ctrlKey, deltaMode } = wheelEvent;
+
+      const deltaPixels = (() => {
+        if (typeof deltaMode !== 'number') {
+          return deltaY;
+        }
+
+        if (deltaMode === 1) {
+          // DOM_DELTA_LINE
+          return deltaY * 16;
+        }
+
+        if (deltaMode === 2) {
+          // DOM_DELTA_PAGE
+          return deltaY * 800;
+        }
+
+        return deltaY;
+      })();
+
+      if (!Number.isFinite(deltaPixels) || deltaPixels === 0) {
+        return;
+      }
+
+      const normalizedDelta = Math.max(-1, Math.min(1, deltaPixels / 120));
+      const zoomStrength = ctrlKey ? 0.12 : 0.2;
+      const zoomMultiplier = 1 - normalizedDelta * zoomStrength;
+
+      if (!Number.isFinite(zoomMultiplier) || zoomMultiplier <= 0) {
+        return;
+      }
+
+      setBackgroundZoom((previousZoom) => {
+        const safePrevious = clampBackgroundZoom(previousZoom);
+        const nextZoom = safePrevious * zoomMultiplier;
+        return clampBackgroundZoom(nextZoom);
+      });
+    },
+    [isBackground]
   );
 
   const handleTokenRemove = useCallback(
     ({ characterId, token }) => {
-      if (!isInteractive || placementPending) {
+      if (!canHandleTokenRemoval || placementPending) {
         return false;
       }
 
-      if (typeof onTokenRemove !== 'function' || !previewMapId) {
+      if (typeof onTokenRemove !== 'function') {
         return false;
       }
 
@@ -589,30 +1729,46 @@ const MapModal = ({
         return false;
       }
 
-      if (readOnly && normalizedCharacterId !== normalizedCurrentCharacterId) {
+      if (readOnly && !canControlCharacterId(normalizedCharacterId)) {
         return false;
       }
 
       const payload = {
-        mapId: previewMapId,
         characterId: normalizedCharacterId,
       };
+
+      if (resolvedPlacementMapId) {
+        payload.mapId = resolvedPlacementMapId;
+      }
 
       if (token) {
         payload.token = token;
       } else if (tokensDictionary[normalizedCharacterId]) {
         payload.token = tokensDictionary[normalizedCharacterId];
+      } else {
+        const aliasToken = Object.values(tokensDictionary).find((entry) =>
+          tokenMatchesCurrentCharacter(entry)
+        );
+
+        if (aliasToken) {
+          payload.token = aliasToken;
+        }
+      }
+
+      if (typeof onTokenRemove !== 'function') {
+        return false;
       }
 
       return onTokenRemove(payload);
     },
     [
-      isInteractive,
+      canHandleTokenRemoval,
       placementPending,
       onTokenRemove,
-      previewMapId,
+      resolvedPlacementMapId,
       readOnly,
-      normalizedCurrentCharacterId,
+      canControlCharacterId,
+      tokenMatchesCurrentCharacter,
       tokensDictionary,
     ]
   );
@@ -620,12 +1776,18 @@ const MapModal = ({
   const canClickToPlace = useMemo(
     () =>
       Boolean(
-        isInteractive &&
+        canManipulateTokens &&
           !placementPending &&
-          normalizedCurrentCharacterId &&
+          currentCharacterIdCandidatesLower &&
+          currentCharacterIdCandidatesLower.size > 0 &&
           !currentToken
       ),
-    [currentToken, isInteractive, normalizedCurrentCharacterId, placementPending]
+    [
+      currentCharacterIdCandidatesLower,
+      currentToken,
+      canManipulateTokens,
+      placementPending,
+    ]
   );
 
   const handleSelectMap = useCallback(
@@ -847,9 +2009,7 @@ const MapModal = ({
       return <p className="text-muted mb-0">No map image available.</p>;
     }
 
-    if (!isInteractive) {
-      return <MapDisplay map={previewMap} />;
-    }
+    const isBoardDisabled = placementPending;
 
     return (
       <>
@@ -857,12 +2017,19 @@ const MapModal = ({
           <CampaignMapBoard
             map={previewMap}
             tokens={boardTokens}
-            disabled={placementPending}
-            onTokenPositionChange={handleTokenPositionChange}
-            onBackgroundClick={handleBackgroundPlacement}
-            onTokenRemove={handleTokenRemove}
+            disabled={isBoardDisabled}
+            allowWheelZoom
+            onTokenPositionChange={
+              canManipulateTokens ? handleTokenPositionChange : undefined
+            }
+            onBackgroundClick={
+              canManipulateTokens ? handleBackgroundPlacement : undefined
+            }
+            onTokenRemove={
+              canHandleTokenRemoval ? handleTokenRemove : undefined
+            }
           />
-          {placementPending && (
+          {canManipulateTokens && placementPending && (
             <div
               className="map-modal__saving-indicator d-flex align-items-center gap-2 text-muted small"
               data-testid="map-modal-placement-pending"
@@ -874,12 +2041,12 @@ const MapModal = ({
             </div>
           )}
         </div>
-        {canClickToPlace && (
+        {canManipulateTokens && canClickToPlace && (
           <div className="text-info small mt-3" data-testid="map-modal-placement-hint">
             Click the map to place your figurine.
           </div>
         )}
-        {placementError && (
+        {canManipulateTokens && placementError && (
           <Alert variant="danger" className="mt-3" data-testid="map-modal-placement-error">
             {placementError}
           </Alert>
@@ -889,7 +2056,7 @@ const MapModal = ({
   };
 
   const dialogClassName = useMemo(() => {
-    if (!isDocked) {
+    if (!isDocked || isBackground) {
       return undefined;
     }
 
@@ -902,6 +2069,10 @@ const MapModal = ({
   }, [isDocked, dockedSide]);
 
   const modalClassName = useMemo(() => {
+    if (isBackground) {
+      return undefined;
+    }
+
     const classes = ['dnd-modal', 'modern-modal'];
 
     if (isDocked) {
@@ -922,6 +2093,71 @@ const MapModal = ({
     onHide?.();
   }, [isDocked, onDockClose, onHide]);
 
+  const titleContent = <>{title}</>;
+  const backgroundAriaLabel = useMemo(() => {
+    if (typeof title === 'string' && title.trim() !== '') {
+      return title.trim();
+    }
+
+    return 'Campaign map';
+  }, [title]);
+
+  const emptyBoardMessage = hasManagementFeatures ? (
+    <p className="text-muted mb-0">No map selected.</p>
+  ) : (
+    <p className="text-muted mb-0">No map image available.</p>
+  );
+
+  const boardContent = previewMap ? (
+    renderPreviewContent()
+  ) : (
+    <div className="map-modal__empty" data-testid="map-modal-empty">
+      {emptyBoardMessage}
+    </div>
+  );
+
+  const bodyContent = hasManagementFeatures ? (
+    <div className="d-flex flex-column flex-lg-row gap-4">
+      <div className="flex-grow-1" data-testid="map-modal-sidebar">
+        <h5 className="h6 mb-3">Saved Maps</h5>
+        {renderMapList()}
+      </div>
+      <div className="flex-grow-1" data-testid="map-modal-preview">
+        {boardContent}
+      </div>
+    </div>
+  ) : (
+    <div data-testid="map-modal-preview">{boardContent}</div>
+  );
+
+  const footerContent = (
+    <Button className="action-btn close-btn" onClick={handleModalHide} data-testid="map-modal-close">
+      Close
+    </Button>
+  );
+
+  if (isBackground) {
+    return (
+      <div
+        className={backgroundClassName}
+        style={backgroundStyle}
+        data-testid="map-modal-wrapper"
+      >
+        <div
+          ref={backgroundBoardContainerRef}
+          className="map-modal-background__board"
+          onWheel={handleBackgroundWheel}
+          role="region"
+          aria-label={backgroundAriaLabel}
+        >
+          <div className={backgroundBoardClassName} style={backgroundBoardStyleValue}>
+            {boardContent}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Modal
       className={modalClassName}
@@ -941,34 +2177,10 @@ const MapModal = ({
           onDockChange={onDockChange}
           isDocked={isDocked}
         />
-        <Modal.Title>{title}</Modal.Title>
+        <Modal.Title>{titleContent}</Modal.Title>
       </Modal.Header>
-      <Modal.Body>
-        {hasManagementFeatures ? (
-          <div className="d-flex flex-column flex-lg-row gap-4">
-            <div className="flex-grow-1" data-testid="map-modal-sidebar">
-              <h5 className="h6 mb-3">Saved Maps</h5>
-              {renderMapList()}
-            </div>
-            <div className="flex-grow-1" data-testid="map-modal-preview">
-              {previewMap ? renderPreviewContent() : (
-                <p className="text-muted mb-0">No map selected.</p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div data-testid="map-modal-preview">
-            {previewMap ? renderPreviewContent() : (
-              <p className="text-muted mb-0">No map image available.</p>
-            )}
-          </div>
-        )}
-      </Modal.Body>
-      <Modal.Footer>
-        <Button className="action-btn close-btn" onClick={handleModalHide} data-testid="map-modal-close">
-          Close
-        </Button>
-      </Modal.Footer>
+      <Modal.Body>{bodyContent}</Modal.Body>
+      <Modal.Footer>{footerContent}</Modal.Footer>
     </Modal>
   );
 };
@@ -1009,6 +2221,7 @@ MapModal.propTypes = {
   dockedSide: PropTypes.oneOf(['left', 'right']),
   onDockClose: PropTypes.func,
   onDockChange: PropTypes.func,
+  displayMode: PropTypes.oneOf(['modal', 'background']),
 };
 
 MapModal.defaultProps = {
@@ -1036,6 +2249,7 @@ MapModal.defaultProps = {
   dockedSide: null,
   onDockClose: null,
   onDockChange: null,
+  displayMode: 'modal',
 };
 
 export default MapModal;

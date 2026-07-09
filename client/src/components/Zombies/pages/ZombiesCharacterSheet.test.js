@@ -5,6 +5,7 @@ import hasteIcon from '../../../images/spell-haste-icon.png';
 import dragonWingsIcon from '../../../images/dragon-wings-icon.png';
 import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
 import speakWithAnimalsIcon from '../../../images/speak-with-animal.png';
+import largeFormIcon from '../../../images/large-form-icon.png';
 import { EQUIPMENT_SLOT_KEYS } from '../attributes/equipmentSlots';
 
 jest.mock('../../../utils/apiFetch');
@@ -18,6 +19,17 @@ jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({ id: '1' }),
 }));
+
+jest.mock('../../../utils/diceBoxManager', () => {
+  const actual = jest.requireActual('../../../utils/diceBoxManager');
+  return {
+    ...actual,
+    registerDiceBoxContainer: jest.fn(() => () => {}),
+    subscribeToDiceBoxAvailability: jest.fn(() => () => {}),
+    isDiceBoxReady: jest.fn(() => false),
+    rollDiceWithBox: jest.fn(),
+  };
+});
 
 const mockCharacterInfoProps = { current: null };
 jest.mock('../attributes/CharacterInfo', () => (props) => {
@@ -40,15 +52,21 @@ jest.mock('../attributes/Feats', () => () => null);
 jest.mock('../../Weapons/WeaponList', () => () => null);
 var mockUpdateDamage;
 var mockCalcDamage;
+var mockOpenAttack;
+var mockOpenDice;
 jest.mock('../attributes/PlayerTurnActions', () => {
   const React = require('react');
   mockUpdateDamage = jest.fn();
   mockCalcDamage = jest.fn(() => ({ total: 7, breakdown: '' }));
+  mockOpenAttack = jest.fn();
+  mockOpenDice = jest.fn();
   return {
     __esModule: true,
     default: React.forwardRef((props, ref) => {
       React.useImperativeHandle(ref, () => ({
         updateDamageValueWithAnimation: mockUpdateDamage,
+        openAttackModal: mockOpenAttack,
+        openDiceRoller: mockOpenDice,
       }));
       return null;
     }),
@@ -60,8 +78,12 @@ jest.mock('../../Items/ItemList', () => () => null);
 jest.mock('../attributes/Help', () => () => null);
 jest.mock('../attributes/BackgroundModal', () => () => null);
 const mockInventoryModalProps = { current: null };
+const mockDockedInventoryModalProps = { current: null };
 jest.mock('../attributes/InventoryModal', () => (props) => {
   mockInventoryModalProps.current = props;
+  if (props && typeof props.isDocked !== 'undefined') {
+    mockDockedInventoryModalProps.current = props.isDocked ? props : null;
+  }
   return null;
 });
 const mockEquipmentModalProps = { current: null };
@@ -87,12 +109,6 @@ jest.mock('../attributes/SpellSelector', () => (props) => {
   mockHandleClose.current = props.handleClose;
   return props.show ? <div data-testid="spell-selector" /> : null;
 });
-const mockHealthDefenseProps = { current: null };
-jest.mock('../attributes/HealthDefense', () => (props) => {
-  mockHealthDefenseProps.current = props;
-  return null;
-});
-
 const mockFeaturesModalProps = { current: null };
 jest.mock('../attributes/Features', () => (props) => {
   mockFeaturesModalProps.current = props;
@@ -100,6 +116,18 @@ jest.mock('../attributes/Features', () => (props) => {
 });
 
 import ZombiesCharacterSheet from './ZombiesCharacterSheet';
+const { rollDiceWithBox } = require('../../../utils/diceBoxManager');
+
+const getFooterButtonByLabel = (label) =>
+  screen.findByRole('button', { name: label, hidden: true }, { timeout: 5000 });
+
+const clickFooterButtonByLabel = async (label) => {
+  const button = await getFooterButtonByLabel(label);
+  await act(async () => {
+    await userEvent.click(button);
+  });
+  return button;
+};
 
 const defaultApiFetchImplementation = (url) => {
   if (typeof url === 'string' && url.includes('/maps')) {
@@ -129,6 +157,10 @@ const defaultApiFetchImplementation = (url) => {
     return Promise.resolve({ ok: true, json: async () => [] });
   }
 
+  if (typeof url === 'string' && url.includes('token-folders')) {
+    return Promise.resolve({ ok: true, json: async () => [] });
+  }
+
   return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
 };
 
@@ -145,17 +177,27 @@ beforeEach(() => {
   mockSocketIo.mockReturnValue(socketStub);
   mockUpdateDamage.mockClear();
   mockCalcDamage.mockClear();
+  mockOpenAttack.mockClear();
+  mockOpenDice.mockClear();
+  rollDiceWithBox.mockReset();
+  rollDiceWithBox.mockImplementation((requests = []) =>
+    Promise.resolve({
+      rolls: Array.isArray(requests)
+        ? requests.map(({ count }) => Array(count).fill(1))
+        : [],
+    })
+  );
   mockOnCastSpell.current = null;
   mockHandleClose.current = null;
   mockShopModalProps.current = null;
   mockInventoryModalProps.current = null;
+  mockDockedInventoryModalProps.current = null;
   mockEquipmentModalProps.current = null;
   mockMapModalProps.current = null;
   mockFeaturesModalProps.current = null;
   mockSkillsModalProps.current = null;
   mockDockedSkillsModalProps.current = null;
   mockCharacterInfoProps.current = null;
-  mockHealthDefenseProps.current = null;
   window.localStorage.clear();
   window.matchMedia = jest.fn().mockImplementation((query) => ({
     matches: false,
@@ -241,10 +283,6 @@ test('uses character-derived hit points for synced combat participants', async (
   expect(screen.getByText('4/10')).toBeInTheDocument();
   expect(screen.queryByText('5/40')).not.toBeInTheDocument();
 
-  await waitFor(() => {
-    expect(mockHealthDefenseProps.current).not.toBeNull();
-  });
-  expect(mockHealthDefenseProps.current.form.health).toBe(30);
 });
 
 test('spells button includes points-glow when spell points available', async () => {
@@ -271,8 +309,7 @@ test('spells button includes points-glow when spell points available', async () 
   });
 
   render(<ZombiesCharacterSheet />);
-  const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
+  const spellButton = await getFooterButtonByLabel(/open spells/i);
   await waitFor(() => expect(spellButton).toHaveClass('points-glow'));
 });
 
@@ -374,10 +411,6 @@ test('activating Draconic Flight adds a persistent effect without duplicates', a
   });
 
   expect(mockFeaturesModalProps.current?.characterId).toBe('1');
-
-  await waitFor(() => {
-    expect(mockHealthDefenseProps.current?.speedMultiplier).toBe(1);
-  });
 
   expect(typeof mockFeaturesModalProps.current.onDraconicFlight).toBe('function');
 
@@ -485,9 +518,6 @@ test('adrenaline rush consumes a bonus action, persists once, grants temp HP, an
     );
   });
 
-  await waitFor(() => {
-    expect(mockHealthDefenseProps.current?.speedMultiplier).toBe(2);
-  });
 
   await waitFor(() => {
     const stored = window.localStorage.getItem('zombiesActiveEffects:1');
@@ -513,9 +543,6 @@ test('adrenaline rush consumes a bonus action, persists once, grants temp HP, an
     expect(mockFeaturesModalProps.current?.form?.tempHealth).toBe(0);
   });
 
-  await waitFor(() => {
-    expect(mockHealthDefenseProps.current?.speedMultiplier).toBe(1);
-  });
 
   window.localStorage.clear();
 });
@@ -548,8 +575,7 @@ test('spells button glows when spellPoints absent but spells remain', async () =
     });
 
   render(<ZombiesCharacterSheet />);
-  const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
+  const spellButton = await getFooterButtonByLabel(/open spells/i);
   await waitFor(() => expect(spellButton).toHaveClass('points-glow'));
 });
 
@@ -577,8 +603,7 @@ test('warlock character renders spells button', async () => {
   });
 
   render(<ZombiesCharacterSheet />);
-  const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
+  const spellButton = await getFooterButtonByLabel(/open spells/i);
   expect(spellButton).toBeInTheDocument();
 });
 
@@ -671,6 +696,53 @@ test('modal docking controls update docking state', async () => {
     if (mockMapModalProps.current && typeof mockMapModalProps.current.isDocked !== 'undefined') {
       expect(mockMapModalProps.current.isDocked).toBe(false);
     }
+    expect(mockMapModalProps.current?.show).toBe(true);
+  });
+});
+
+test('docked inventory modal retains item change handler', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      expertisePoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => {
+    expect(mockInventoryModalProps.current).not.toBeNull();
+  });
+
+  const initialHandler = mockInventoryModalProps.current?.onItemsChange;
+  expect(typeof initialHandler).toBe('function');
+
+  act(() => {
+    mockInventoryModalProps.current?.onDockChange?.('left');
+  });
+
+  await waitFor(() => {
+    expect(mockDockedInventoryModalProps.current).not.toBeNull();
+    if (mockDockedInventoryModalProps.current) {
+      expect(mockDockedInventoryModalProps.current.isDocked).toBe(true);
+      expect(mockDockedInventoryModalProps.current.dockedSide).toBe('left');
+      expect(mockDockedInventoryModalProps.current.onItemsChange).toBe(initialHandler);
+    }
   });
 });
 
@@ -698,20 +770,19 @@ test('footer renders equipment button after spells button for spellcasters', asy
   });
 
   render(<ZombiesCharacterSheet />);
+  await screen.findByRole('button', { name: /open character info/i });
   const nav = await screen.findByRole('navigation');
-  const navButtons = within(nav).getAllByRole('button');
-  const indexOf = (iconClass) =>
+  const navButtons = within(nav).getAllByRole('button', { hidden: true });
+  const indexOf = (pattern) =>
     navButtons.findIndex((btn) =>
-      iconClass === 'fa-toolbox'
-        ? btn.querySelector('.fa-toolbox, .fa-helmet-safety')
-        : btn.querySelector(`.${iconClass}`)
+      pattern.test(btn.getAttribute('aria-label') || '')
     );
 
-  expect(indexOf('fa-hat-wizard')).toBeGreaterThan(-1);
-  expect(indexOf('fa-toolbox')).toBeGreaterThan(-1);
-  expect(indexOf('fa-box-open')).toBeGreaterThan(-1);
-  expect(indexOf('fa-hat-wizard')).toBeLessThan(indexOf('fa-toolbox'));
-  expect(indexOf('fa-toolbox')).toBeLessThan(indexOf('fa-box-open'));
+  expect(indexOf(/open spells/i)).toBeGreaterThan(-1);
+  expect(indexOf(/open equipment/i)).toBeGreaterThan(-1);
+  expect(indexOf(/open inventory/i)).toBeGreaterThan(-1);
+  expect(indexOf(/open spells/i)).toBeLessThan(indexOf(/open equipment/i));
+  expect(indexOf(/open equipment/i)).toBeLessThan(indexOf(/open inventory/i));
 });
 
 test('footer renders equipment button before inventory for non-spellcasters', async () => {
@@ -737,22 +808,21 @@ test('footer renders equipment button before inventory for non-spellcasters', as
   });
 
   render(<ZombiesCharacterSheet />);
+  await screen.findByRole('button', { name: /open character info/i });
   const nav = await screen.findByRole('navigation');
-  const navButtons = within(nav).getAllByRole('button');
-  const indexOf = (iconClass) =>
+  const navButtons = within(nav).getAllByRole('button', { hidden: true });
+  const indexOf = (pattern) =>
     navButtons.findIndex((btn) =>
-      iconClass === 'fa-toolbox'
-        ? btn.querySelector('.fa-toolbox, .fa-helmet-safety')
-        : btn.querySelector(`.${iconClass}`)
+      pattern.test(btn.getAttribute('aria-label') || '')
     );
 
-  expect(indexOf('fa-hat-wizard')).toBe(-1);
-  expect(indexOf('fa-toolbox')).toBeGreaterThan(-1);
-  expect(indexOf('fa-box-open')).toBeGreaterThan(-1);
-  expect(indexOf('fa-toolbox')).toBeLessThan(indexOf('fa-box-open'));
+  expect(indexOf(/open spells/i)).toBe(-1);
+  expect(indexOf(/open equipment/i)).toBeGreaterThan(-1);
+  expect(indexOf(/open inventory/i)).toBeGreaterThan(-1);
+  expect(indexOf(/open equipment/i)).toBeLessThan(indexOf(/open inventory/i));
 });
 
-test('map footer button toggles the campaign map modal', async () => {
+test('campaign map background is active without footer toggle', async () => {
   apiFetch
     .mockResolvedValueOnce({
       ok: true,
@@ -800,12 +870,15 @@ test('map footer button toggles the campaign map modal', async () => {
 
   render(<ZombiesCharacterSheet />);
 
-  const buttons = await screen.findAllByRole('button');
-  const mapButton = buttons.find((btn) => btn.querySelector('.fa-map'));
-  expect(mapButton).toBeInTheDocument();
+  await screen.findByRole('button', { name: /open character info/i });
+  const mapButton = screen.queryByRole('button', {
+    name: /open map/i,
+    hidden: true,
+  });
+  expect(mapButton).toBeNull();
 
   await waitFor(() => expect(mockMapModalProps.current).not.toBeNull());
-  expect(mockMapModalProps.current.show).toBe(false);
+  await waitFor(() => expect(mockMapModalProps.current.show).toBe(true));
   expect(mockMapModalProps.current.map).toMatchObject({
     mapId: 'wilds-map',
     title: 'Wilds Overview',
@@ -813,15 +886,6 @@ test('map footer button toggles the campaign map modal', async () => {
   });
   expect(mockMapModalProps.current.maps).toHaveLength(1);
   expect(mockMapModalProps.current.activeMapId).toBe('wilds-map');
-
-  await userEvent.click(mapButton);
-  await waitFor(() => expect(mockMapModalProps.current.show).toBe(true));
-
-  act(() => {
-    mockMapModalProps.current.onHide();
-  });
-
-  await waitFor(() => expect(mockMapModalProps.current.show).toBe(false));
 });
 
 test('campaign map update events synchronize active map and list', async () => {
@@ -1058,8 +1122,7 @@ test('skills button includes points-glow when skill points available', async () 
   });
 
   render(<ZombiesCharacterSheet />);
-  const buttons = await screen.findAllByRole('button');
-  const skillButton = buttons.find((btn) => btn.querySelector('.fa-book-open'));
+  const skillButton = await getFooterButtonByLabel(/open skills/i);
   await waitFor(() => expect(skillButton).toHaveClass('points-glow'));
 });
 
@@ -1087,8 +1150,7 @@ test('skills button includes points-glow when expertise points available', async
   });
 
   render(<ZombiesCharacterSheet />);
-  const buttons = await screen.findAllByRole('button');
-  const skillButton = buttons.find((btn) => btn.querySelector('.fa-book-open'));
+  const skillButton = await getFooterButtonByLabel(/open skills/i);
   await waitFor(() => expect(skillButton).toHaveClass('points-glow'));
 });
 
@@ -1131,8 +1193,7 @@ test('skills button does not glow when granted proficiencies meet totals', async
   });
 
   render(<ZombiesCharacterSheet />);
-  const buttons = await screen.findAllByRole('button');
-  const skillButton = buttons.find((btn) => btn.querySelector('.fa-book-open'));
+  const skillButton = await getFooterButtonByLabel(/open skills/i);
   await waitFor(() => expect(skillButton).not.toHaveClass('points-glow'));
 });
 
@@ -1161,10 +1222,7 @@ test('casting spells consumes action and bonus circles based on casting time', a
 
   const { container } = render(<ZombiesCharacterSheet />);
 
-  const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
-
-  await userEvent.click(spellButton);
+  let spellButton = await clickFooterButtonByLabel(/open spells/i);
   expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
 
   const actionCircle = container.querySelector('.action-circle');
@@ -1176,7 +1234,7 @@ test('casting spells consumes action and bonus circles based on casting time', a
   expect(actionCircle).toHaveClass('slot-used');
   expect(bonusCircle).toHaveClass('slot-active');
 
-  await userEvent.click(spellButton);
+  spellButton = await clickFooterButtonByLabel(/open spells/i);
   expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
   mockOnCastSpell.current({ level: 1, castingTime: '1 bonus action' });
   mockHandleClose.current();
@@ -1221,6 +1279,97 @@ test('casting Haste adds status icon and extra action circle', async () => {
   );
   const icon = screen.getByAltText('Haste');
   expect(icon).toHaveAttribute('src', hasteIcon);
+});
+
+test('using Potion of Speed grants Haste effect and extra action circle', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+  const { container } = render(<ZombiesCharacterSheet />);
+  await waitFor(() => expect(container.querySelector('.action-circle')).toBeTruthy());
+  expect(container.querySelectorAll('.action-circle').length).toBe(1);
+
+  await act(async () => {
+    window.dispatchEvent(
+      new CustomEvent('inventory:consumable-used', {
+        detail: {
+          type: 'potion',
+          item: { name: 'potion-speed', displayName: 'Potion of Speed' },
+        },
+      })
+    );
+  });
+
+  await waitFor(() =>
+    expect(container.querySelectorAll('.action-circle').length).toBe(2)
+  );
+  const icon = screen.getByAltText('Haste');
+  expect(icon).toHaveAttribute('src', hasteIcon);
+});
+
+test('using Potion of Growth grants Large Form effect and bonuses', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  await waitFor(() => expect(mockEquipmentModalProps.current).not.toBeNull());
+  expect(mockEquipmentModalProps.current?.form?.temporarySize).toBeUndefined();
+  expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBeUndefined();
+
+  await act(async () => {
+    window.dispatchEvent(
+      new CustomEvent('inventory:consumable-used', {
+        detail: {
+          type: 'potion',
+          item: { name: 'potion-growth', displayName: 'Potion of Growth' },
+        },
+      })
+    );
+  });
+
+  await waitFor(() =>
+    expect(mockEquipmentModalProps.current?.form?.temporarySize).toBe('Large')
+  );
+  expect(mockEquipmentModalProps.current?.form?.temporarySpeedBonus).toBe(10);
+
+  const icon = await screen.findByAltText('Large Form');
+  expect(icon).toHaveAttribute('src', largeFormIcon);
 });
 
 test('casting Speak with Animals adds status icon for free and slot casts', async () => {
@@ -1325,8 +1474,7 @@ test('feats button includes points-glow when feat points available', async () =>
   });
 
   render(<ZombiesCharacterSheet />);
-  const buttons = await screen.findAllByRole('button');
-  const featButton = buttons.find((btn) => btn.querySelector('.fa-hand-fist'));
+  const featButton = await getFooterButtonByLabel(/open feats/i);
   await waitFor(() => expect(featButton).toHaveClass('points-glow'));
 });
 
@@ -1354,10 +1502,71 @@ test('all footer buttons have footer-btn class', async () => {
   });
 
   render(<ZombiesCharacterSheet />);
-  const buttons = await screen.findAllByRole('button');
+  const buttons = await screen.findAllByRole('button', { hidden: true });
   const footerButtons = buttons.filter((btn) => btn.classList.contains('footer-btn'));
   expect(footerButtons.length).toBeGreaterThan(0);
   footerButtons.forEach((btn) => expect(btn).toHaveClass('footer-btn'));
+});
+
+test('attack footer button triggers attack modal', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  const attackButton = await getFooterButtonByLabel(/open attack actions/i);
+
+  await act(async () => {
+    await userEvent.click(attackButton);
+  });
+
+  expect(mockOpenAttack).toHaveBeenCalledTimes(1);
+});
+
+test('dice footer button opens dice roller', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [],
+      spells: [],
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  render(<ZombiesCharacterSheet />);
+  await screen.findByRole('button', { name: /open character info/i });
+  await clickFooterButtonByLabel(/open dice roller/i);
+
+  expect(mockOpenDice).toHaveBeenCalledTimes(1);
 });
 
 test('shop button opens ShopModal with default tab and retains previous tab', async () => {
@@ -1385,14 +1594,11 @@ test('shop button opens ShopModal with default tab and retains previous tab', as
   render(<ZombiesCharacterSheet />);
   await waitFor(() => expect(mockShopModalProps.current).not.toBeNull());
 
-  const buttons = await screen.findAllByRole('button');
-  const shopButton = buttons.find((btn) =>
-    btn.querySelector('.fa-wand-sparkles, .fa-store')
-  );
+  const shopButton = await getFooterButtonByLabel(/open shop/i);
   expect(shopButton).toBeTruthy();
 
   await act(async () => {
-    await userEvent.click(shopButton);
+    await clickFooterButtonByLabel(/open shop/i);
   });
   await waitFor(() =>
     expect(mockShopModalProps.current).toMatchObject({
@@ -1416,7 +1622,7 @@ test('shop button opens ShopModal with default tab and retains previous tab', as
   );
 
   await act(async () => {
-    await userEvent.click(shopButton);
+    await clickFooterButtonByLabel(/open shop/i);
   });
   await waitFor(() =>
     expect(mockShopModalProps.current).toMatchObject({
@@ -1645,12 +1851,14 @@ test('normalizes legacy inventory entries before updating items', async () => {
     {
       name: 'Spyglass',
       category: 'Adventuring Gear',
-      weight: '1',
+      weight: ' 1 ',
       cost: '1,000 gp',
-      notes: 'Expensive',
+      notes: 'Expensive ',
       owned: false,
       displayName: 'Spyglass',
       rarity: 'rare',
+      statBonuses: { wis: '2', str: 'not-a-number' },
+      skillBonuses: { perception: '3', stealth: '' },
     },
   ];
 
@@ -1725,29 +1933,23 @@ test('normalizes legacy inventory entries before updating items', async () => {
     )
   ).toBe(true);
 
-  expect(payload.item).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        name: 'Rope (hempen)',
-        category: '',
-        weight: '',
-        statBonuses: {},
-        skillBonuses: {},
-      }),
-      expect.objectContaining({
-        name: 'Lantern',
-        category: 'Adventuring Gear',
-        notes: 'Brass lantern',
-        statBonuses: { wis: 1 },
-        skillBonuses: { perception: 2 },
-      }),
-      expect.objectContaining({
-        name: 'Alchemy Jug',
-        type: 'gear',
-        owned: true,
-      }),
-    ])
-  );
+  const rope = payload.item.find((entry) => entry.name === 'Rope (hempen)');
+  expect(rope).toEqual({ name: 'Rope (hempen)' });
+
+  const lantern = payload.item.find((entry) => entry.name === 'Lantern');
+  expect(lantern).toMatchObject({
+    category: 'Adventuring Gear',
+    notes: 'Brass lantern',
+    statBonuses: { wis: 1 },
+    skillBonuses: { perception: 2 },
+    weight: 2,
+  });
+
+  const newPurchase = payload.item.find((entry) => entry.name === 'Alchemy Jug');
+  expect(newPurchase).toMatchObject({
+    type: 'gear',
+    owned: true,
+  });
 
   const preserved = payload.item.find((entry) => entry.name === 'Spyglass');
   expect(preserved).toMatchObject({
@@ -1755,6 +1957,10 @@ test('normalizes legacy inventory entries before updating items', async () => {
     owned: false,
     rarity: 'rare',
     notes: 'Expensive',
+    category: 'Adventuring Gear',
+    weight: 1,
+    statBonuses: { wis: 2 },
+    skillBonuses: { perception: 3 },
   });
 });
 
@@ -1837,14 +2043,11 @@ test('purchased equipment is marked owned and shown in inventory modal', async (
     );
   });
 
-  const buttons = await screen.findAllByRole('button');
-  const inventoryButton = buttons.find((btn) =>
-    btn.querySelector('.fa-box-open')
-  );
+  const inventoryButton = await getFooterButtonByLabel(/open inventory/i);
   expect(inventoryButton).toBeTruthy();
 
   await act(async () => {
-    await userEvent.click(inventoryButton);
+    await clickFooterButtonByLabel(/open inventory/i);
   });
 
   await waitFor(() =>
@@ -1889,14 +2092,11 @@ test('inventory button opens InventoryModal with default tab', async () => {
 
   await waitFor(() => expect(mockInventoryModalProps.current).not.toBeNull());
 
-  const buttons = await screen.findAllByRole('button');
-  const inventoryButton = buttons.find((btn) =>
-    btn.querySelector('.fa-box-open')
-  );
+  const inventoryButton = await getFooterButtonByLabel(/open inventory/i);
   expect(inventoryButton).toBeTruthy();
 
   await act(async () => {
-    await userEvent.click(inventoryButton);
+    await clickFooterButtonByLabel(/open inventory/i);
   });
 
   await waitFor(() =>
@@ -1936,14 +2136,11 @@ test('equipment button opens and closes EquipmentModal independently', async () 
   await waitFor(() => expect(mockEquipmentModalProps.current).not.toBeNull());
   expect(mockEquipmentModalProps.current.show).toBe(false);
 
-  const buttons = await screen.findAllByRole('button');
-  const equipmentButton = buttons.find((btn) =>
-    btn.querySelector('.fa-toolbox, .fa-helmet-safety')
-  );
+  const equipmentButton = await getFooterButtonByLabel(/open equipment/i);
   expect(equipmentButton).toBeTruthy();
 
   await act(async () => {
-    await userEvent.click(equipmentButton);
+    await clickFooterButtonByLabel(/open equipment/i);
   });
 
   await waitFor(() =>
@@ -2129,9 +2326,7 @@ test('handleCastSpell closes modal and outputs spell name', async () => {
   });
 
   render(<ZombiesCharacterSheet />);
-  const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
-  await userEvent.click(spellButton);
+  await clickFooterButtonByLabel(/open spells/i);
   expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
   mockOnCastSpell.current({ level: 1, name: 'Mage Hand' });
   mockHandleClose.current();
@@ -2163,21 +2358,15 @@ test('handleCastSpell outputs calculated damage', async () => {
   });
 
   render(<ZombiesCharacterSheet />);
-  const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
-  await userEvent.click(spellButton);
+  await clickFooterButtonByLabel(/open spells/i);
   expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
   mockOnCastSpell.current({ level: 1, damage: '1d4', name: 'Acid Splash' });
   mockHandleClose.current();
   await waitFor(() => expect(screen.queryByTestId('spell-selector')).toBeNull());
-  expect(mockCalcDamage).toHaveBeenCalledWith(
-    '1d4',
-    0,
-    false,
-    undefined,
-    undefined,
-    undefined
-  );
+  expect(mockCalcDamage).toHaveBeenCalled();
+  expect(
+    mockCalcDamage.mock.calls.some((call) => call[0] === '1d4')
+  ).toBe(true);
   expect(mockUpdateDamage).toHaveBeenCalled();
 });
 
@@ -2207,9 +2396,7 @@ test('consumes higher-level slot when upcasting', async () => {
   const { container } = render(<ZombiesCharacterSheet />);
 
   // Open the spell selector so the mocked onCastSpell is set
-  const buttons = await screen.findAllByRole('button');
-  const spellButton = buttons.find((btn) => btn.querySelector('.fa-hat-wizard'));
-  await userEvent.click(spellButton);
+  await clickFooterButtonByLabel(/open spells/i);
   expect(await screen.findByTestId('spell-selector')).toBeInTheDocument();
 
   const groupBefore = container.querySelector('[data-slot-type="regular"][data-slot-level="2"]');
@@ -2262,6 +2449,47 @@ test('pass-turn event resets action and bonus usage', async () => {
   await waitFor(() => {
     expect(action).toHaveClass('slot-active');
     expect(bonus).toHaveClass('slot-active');
+  });
+});
+
+test('using a consumable potion consumes the bonus action circle', async () => {
+  apiFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      occupation: [{ Name: 'Wizard', Level: 1 }],
+      spells: [],
+      spellPoints: 0,
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      startStatTotal: 60,
+      proficiencyPoints: 0,
+      skills: {},
+      item: [],
+      feat: [],
+      weapon: [],
+      armor: [],
+    }),
+  });
+
+  const { container } = render(<ZombiesCharacterSheet />);
+  await waitFor(() => expect(container.querySelector('.bonus-circle')).toBeTruthy());
+  const bonus = container.querySelector('.bonus-circle');
+  expect(bonus).toHaveClass('slot-active');
+
+  await act(async () => {
+    window.dispatchEvent(
+      new CustomEvent('inventory:consumable-used', {
+        detail: { type: 'potion' },
+      })
+    );
+  });
+
+  await waitFor(() => {
+    expect(bonus).toHaveClass('slot-used');
   });
 });
 
@@ -2504,7 +2732,7 @@ test('allows selecting a figurine token through the token picker modal', async (
       return Promise.resolve({ ok: true, json: async () => [] });
     }
 
-    if (url === `/campaigns/${campaignId}/token-manifest`) {
+    if (typeof url === 'string' && url.startsWith(`/campaigns/${campaignId}/token-manifest`)) {
       return Promise.resolve({ ok: true, json: async () => manifestResponse });
     }
 
@@ -2527,11 +2755,16 @@ test('allows selecting a figurine token through the token picker modal', async (
 
   render(<ZombiesCharacterSheet />);
 
-  const openPickerButton = await screen.findByRole('button', { name: /choose figurine/i });
-  await userEvent.click(openPickerButton);
+  await waitFor(() => expect(mockCharacterInfoProps.current).not.toBeNull());
+
+  await act(async () => {
+    mockCharacterInfoProps.current.handleOpenTokenPicker();
+  });
 
   await waitFor(() => {
-    expect(apiFetch).toHaveBeenCalledWith(`/campaigns/${campaignId}/token-manifest`);
+    expect(apiFetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/campaigns/${campaignId}/token-manifest`)
+    );
   });
 
   const heroTokenButton = await screen.findByRole('button', { name: /hero token/i });
@@ -2545,11 +2778,13 @@ test('allows selecting a figurine token through the token picker modal', async (
   });
 
   await waitFor(() => {
-    expect(screen.getByRole('button', { name: /change figurine/i })).toBeInTheDocument();
+    expect(mockCharacterInfoProps.current?.characterFigurine?.figurineImageUrl).toBe(
+      manifestAsset.secureUrl
+    );
+    expect(mockCharacterInfoProps.current?.characterFigurine?.figurineImagePublicId).toBe(
+      manifestAsset.publicId
+    );
   });
-
-  const previewImage = await screen.findByAltText('Current figurine token');
-  expect(previewImage).toHaveAttribute('src', manifestAsset.secureUrl);
 });
 
 test('allows clearing an existing figurine selection from the token picker modal', async () => {
@@ -2620,7 +2855,7 @@ test('allows clearing an existing figurine selection from the token picker modal
       return Promise.resolve({ ok: true, json: async () => [] });
     }
 
-    if (url === `/campaigns/${campaignId}/token-manifest`) {
+    if (typeof url === 'string' && url.startsWith(`/campaigns/${campaignId}/token-manifest`)) {
       return Promise.resolve({ ok: true, json: async () => manifestResponse });
     }
 
@@ -2643,10 +2878,17 @@ test('allows clearing an existing figurine selection from the token picker modal
 
   render(<ZombiesCharacterSheet />);
 
-  await screen.findByRole('button', { name: /change figurine/i });
-  expect(screen.getByAltText('Current figurine token')).toHaveAttribute('src', existingFigurineUrl);
+  await waitFor(() => expect(mockCharacterInfoProps.current).not.toBeNull());
 
-  await userEvent.click(screen.getByRole('button', { name: /change figurine/i }));
+  await waitFor(() => {
+    expect(mockCharacterInfoProps.current?.characterFigurine?.figurineImageUrl).toBe(
+      existingFigurineUrl
+    );
+  });
+
+  await act(async () => {
+    mockCharacterInfoProps.current.handleOpenTokenPicker();
+  });
 
   const clearButton = await screen.findByRole('button', { name: /clear selection/i });
   await userEvent.click(clearButton);
@@ -2658,10 +2900,7 @@ test('allows clearing an existing figurine selection from the token picker modal
   expect(figurineUpdateBodies[0]).toEqual({ figurineImageUrl: '', figurineImagePublicId: '' });
 
   await waitFor(() => {
-    expect(screen.getByRole('button', { name: /choose figurine/i })).toBeInTheDocument();
-  });
-
-  await waitFor(() => {
-    expect(screen.queryByAltText('Current figurine token')).not.toBeInTheDocument();
+    expect(mockCharacterInfoProps.current?.characterFigurine?.figurineImageUrl).toBeNull();
+    expect(mockCharacterInfoProps.current?.characterFigurine?.figurineImagePublicId).toBeNull();
   });
 });

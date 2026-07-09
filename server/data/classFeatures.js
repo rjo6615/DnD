@@ -3,7 +3,7 @@
 // keyed by level.
 
 /**
- * @typedef {{ name: string, description: string }} Feature
+ * @typedef {{ name: string, description: string, meta?: string }} Feature
  * @typedef {{
  *   featuresByLevel: Record<number, Feature[]>,
  *   spellSlots?: Record<number, Record<number, number>>,
@@ -676,17 +676,58 @@ const monkFeatures = {
     {
       name: 'Martial Arts',
       description:
-        'Your practice of martial arts gives you mastery of combat styles using unarmed strikes and monk weapons.'
+        'Your practice of martial arts gives you mastery of combat styles that use your Unarmed Strike and monk weapons. Monk weapons include simple melee weapons and martial melee weapons that have the Light property. You gain the following benefits while you are unarmed or wielding only monk weapons and you aren’t wearing armor or wielding a shield.'
+    },
+    {
+      name: 'Bonus Unarmed Strike',
+      meta: 'Martial Arts',
+      description: 'You can make an Unarmed Strike as a Bonus Action.'
+    },
+    {
+      name: 'Martial Arts Die',
+      meta: 'Martial Arts',
+      description:
+        'You can roll 1d6 in place of the normal damage of your Unarmed Strike or monk weapons. This die changes as you gain monk levels, as shown in the Martial Arts column of the Monk Features table.'
+    },
+    {
+      name: 'Dexterous Attacks',
+      meta: 'Martial Arts',
+      description:
+        'You can use your Dexterity modifier instead of your Strength modifier for the attack and damage rolls of your Unarmed Strikes and monk weapons. When you use the Grapple or Shove option of your Unarmed Strike, you can use your Dexterity modifier instead of your Strength modifier to determine the save DC.'
     }
   ],
   2: [
     {
-      name: 'Ki',
-      description: 'You can channel ki to fuel special abilities.'
+      name: "Monk's Focus",
+      description:
+        'Your focus and martial training allow you to harness a well of extraordinary energy represented by Focus Points. Your Monk level determines the number of points you have. You can expend these points to enhance or fuel certain Monk features. You start knowing Flurry of Blows, Patient Defense, and Step of the Wind.'
+    },
+    {
+      name: 'Flurry of Blows',
+      meta: "Monk's Focus",
+      description: 'You can expend 1 Focus Point to make two Unarmed Strikes as a Bonus Action.'
+    },
+    {
+      name: 'Patient Defense',
+      meta: "Monk's Focus",
+      description:
+        'You can take the Disengage action as a Bonus Action. Alternatively, you can expend 1 Focus Point to take both the Disengage and the Dodge actions as a Bonus Action.'
+    },
+    {
+      name: 'Step of the Wind',
+      meta: "Monk's Focus",
+      description:
+        'You can take the Dash action as a Bonus Action. Alternatively, you can expend 1 Focus Point to take both the Disengage and Dash actions as a Bonus Action, and your jump distance is doubled for the turn.'
     },
     {
       name: 'Unarmored Movement',
-      description: 'Your speed increases while you are not wearing armor or wielding a shield.'
+      description:
+        'Your speed increases by 10 feet while you are not wearing armor or wielding a shield. This bonus improves to 15 feet at 6th level, 20 feet at 10th level, 25 feet at 14th level, and 30 feet at 18th level.'
+    },
+    {
+      name: 'Uncanny Metabolism',
+      description:
+        'When you roll Initiative, you can regain all expended Focus Points. When you do so, roll your Martial Arts die, and regain a number of Hit Points equal to your Monk level plus the number rolled. Once you use this feature, you can’t use it again until you finish a Long Rest.'
     }
   ],
   3: [

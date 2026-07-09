@@ -1,7 +1,22 @@
 import React from 'react';
-import { render, screen, within, act } from '@testing-library/react';
+import { render, screen, within, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+jest.mock('../../../utils/diceBoxManager', () => ({
+  rollDiceWithBox: jest.fn(() => Promise.resolve({ rolls: [[16]] })),
+  setDiceBoxThemeColor: jest.fn(),
+}));
+
 import Stats from './Stats';
+
+const { rollDiceWithBox, setDiceBoxThemeColor } = require(
+  '../../../utils/diceBoxManager'
+);
+
+beforeEach(() => {
+  rollDiceWithBox.mockReset();
+  rollDiceWithBox.mockImplementation(() => Promise.resolve({ rolls: [[16]] }));
+  setDiceBoxThemeColor.mockReset();
+});
 
 test('clicking view shows description and breakdown', async () => {
   const form = {
@@ -134,4 +149,76 @@ test('stat overrides do not lower higher native scores', async () => {
 
   expect(screen.queryByText('Override')).not.toBeInTheDocument();
   expect(totalLabel.nextElementSibling).toHaveTextContent('22');
+});
+
+test('rolling a stat dispatches a roll event and closes the modal when undocked', async () => {
+  const form = {
+    str: 14,
+    dex: 0,
+    con: 0,
+    int: 0,
+    wis: 0,
+    cha: 0,
+    race: { abilities: {} },
+    feat: [],
+    item: [],
+    occupation: [],
+  };
+
+  const handleCloseStats = jest.fn();
+  const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.75);
+
+  render(
+    <Stats
+      form={form}
+      showStats={true}
+      handleCloseStats={handleCloseStats}
+      isDocked={false}
+    />
+  );
+
+  const strengthKey = screen.getByText('STR');
+  const strengthCard = strengthKey.closest('.stat-card');
+  expect(strengthCard).not.toBeNull();
+
+  try {
+    await act(async () => {
+      await userEvent.click(
+        within(strengthCard).getByRole('button', { name: /Roll Strength check/i })
+      );
+    });
+
+    await waitFor(() => {
+      expect(rollDiceWithBox).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(handleCloseStats).toHaveBeenCalled();
+    });
+
+    const rollEventCall = dispatchSpy.mock.calls.find(
+      ([event]) => event?.type === 'damage-roll'
+    );
+    expect(rollEventCall).toBeDefined();
+    const [rollEvent] = rollEventCall || [];
+    expect(rollEvent.detail).toMatchObject({
+      value: 18,
+      source: 'Strength',
+      breakdown: '16 (d20) + 2 Strength Modifier',
+      critical: false,
+      fumble: false,
+      diceRolls: [
+        expect.objectContaining({
+          sides: 20,
+          value: 16,
+          type: 'Strength Check',
+          category: 'base',
+        }),
+      ],
+    });
+  } finally {
+    randomSpy.mockRestore();
+    dispatchSpy.mockRestore();
+  }
 });

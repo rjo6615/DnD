@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import apiFetch from '../../../utils/apiFetch';
 import Button from 'react-bootstrap/Button';
-import { Table, Form, Modal, Card } from 'react-bootstrap';
+import { Form, Modal, Card } from 'react-bootstrap';
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
+import { resolveFigurineImageData } from '../utils/figurineAssets';
 import useUser from '../../../hooks/useUser';
 import { SKILLS } from "../skillSchema";
 import { STATS } from "../statSchema";
@@ -25,11 +26,167 @@ const getRaceSizeOptions = (race) => {
   return [];
 };
 
+const getOccupationList = (character) => Array.isArray(character?.occupation) ? character.occupation : [];
+
+const getCharacterLevel = (character) =>
+  getOccupationList(character).reduce((total, job) => total + Number(job.Level || job.level || 0), 0) || 1;
+
+const getClassSummary = (character) => {
+  const classes = getOccupationList(character);
+  if (!classes.length) return "Wanderer";
+  return classes.map((job) => `${job.Level || job.level || 1} ${job.Occupation || job.name || "Adventurer"}`).join(" / ");
+};
+
+const getPrimaryClass = (character) => {
+  const classes = getOccupationList(character);
+  return classes[0]?.Occupation || classes[0]?.name || "Adventurer";
+};
+
+const formatCharacterDate = (value) => {
+  if (!value) return "Awaiting first quest";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Recently prepared";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+};
+
+const getInitials = (name = "Hero") => name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "RT";
+
+const CharacterPortrait = ({ character }) => {
+  const { figurineImageUrl } = resolveFigurineImageData(character, character?.figurine, character?.figurineImage, character?.tokenImage);
+  const portrait = figurineImageUrl || character?.portrait || character?.image || character?.avatar;
+  const name = character?.characterName || "Unnamed Hero";
+  const portraitClassName = `character-select-portrait${figurineImageUrl ? " character-select-portrait--figurine" : ""}`;
+
+  return (
+    <div className={portraitClassName} aria-label={`${name} portrait`}>
+      {portrait ? <img src={portrait} alt="" /> : <span>{getInitials(name)}</span>}
+    </div>
+  );
+};
+
+const CharacterStats = ({ character }) => {
+  const stats = [
+    ["STR", character?.str],
+    ["DEX", character?.dex],
+    ["CON", character?.con],
+  ];
+  return (
+    <div className="character-select-card__stats">
+      {stats.map(([label, value]) => (
+        <span key={label}><strong>{value || "—"}</strong>{label}</span>
+      ))}
+    </div>
+  );
+};
+
+const CharacterActions = ({ character, onContinue }) => (
+  <div className="character-select-card__actions">
+    <Button className="character-select-card__continue" onClick={() => onContinue(character._id)}>Continue Adventure</Button>
+    <Button className="character-select-card__ghost" onClick={() => onContinue(character._id)}>View Character</Button>
+    <details className="character-select-card__more">
+      <summary aria-label="More character actions">⋯</summary>
+      <div>
+        <button type="button" disabled>Duplicate</button>
+        <button type="button" disabled>Delete</button>
+      </div>
+    </details>
+  </div>
+);
+
+const CharacterCard = ({ character, onContinue }) => {
+  const name = character?.characterName || "Unnamed Hero";
+  const race = character?.race?.name || character?.race || "Unknown Lineage";
+  const background = character?.background?.name || character?.background || "Unwritten Legend";
+  const health = character?.health || character?.maxHealth || character?.hp;
+  return (
+    <article className="character-select-card">
+      <div className="character-select-card__favorite">☆ Future Favorite</div>
+      <CharacterPortrait character={character} />
+      <div className="character-select-card__body">
+        <p className="character-select-card__eyebrow">Level {getCharacterLevel(character)} • {getPrimaryClass(character)}</p>
+        <h3>{name}</h3>
+        <p className="character-select-card__lineage">{race}</p>
+        <div className="character-select-card__chips">
+          <span>{getClassSummary(character)}</span>
+          <span>{background}</span>
+          {character?.alignment && <span>{character.alignment}</span>}
+        </div>
+        <CharacterStats character={character} />
+        <div className="character-select-card__meta">
+          <span>Status <strong>Ready</strong></span>
+          {health && <span>HP <strong>{health}</strong></span>}
+          <span>Last played <strong>{formatCharacterDate(character?.lastPlayed || character?.updatedAt)}</strong></span>
+        </div>
+      </div>
+      <CharacterActions character={character} onContinue={onContinue} />
+    </article>
+  );
+};
+
+const CampaignHero = ({ campaignName, playerCount, onCreateManual, onCreateRandom }) => (
+  <section className="character-select-hero">
+    <div className="character-select-hero__art" aria-hidden="true"><span>✦</span></div>
+    <div className="character-select-hero__content">
+      <p className="character-select-kicker">RealmTracker Campaign</p>
+      <h1>{campaignName}</h1>
+      <p>Gather your party, choose the hero who will step through the portal, and continue the next chapter of the adventure.</p>
+      <div className="character-select-hero__facts">
+        <span>Dungeon Master <strong>{campaignName}</strong></span>
+        <span>Players <strong>{playerCount}</strong></span>
+        <span>System <strong>D&D 5e</strong></span>
+        <span>Recent activity <strong>Campaign roster updated</strong></span>
+      </div>
+    </div>
+    <div className="character-select-hero__actions">
+      <Button onClick={onCreateManual}>Create Manually</Button>
+      <Button onClick={onCreateRandom}>Generate Randomly</Button>
+    </div>
+  </section>
+);
+
+const EmptyState = ({ onCreateManual }) => (
+  <section className="character-select-empty">
+    <div className="character-select-empty__sigil">☾</div>
+    <h2>No heroes have joined this realm yet.</h2>
+    <p>Create the first champion for this campaign and begin building a legend worth remembering.</p>
+    <Button onClick={onCreateManual}>Create Your First Character</Button>
+  </section>
+);
+
+const CreateCharacterCard = ({ onCreateManual, onCreateRandom }) => (
+  <aside className="character-select-create">
+    <p className="character-select-kicker">New Hero</p>
+    <h2>Forge another legend</h2>
+    <p>Start from a blank sheet, let fate roll the dice, or reserve space for future imports.</p>
+    <div className="character-select-create__actions">
+      <Button onClick={onCreateManual}>Create Manually</Button>
+      <Button onClick={onCreateRandom}>Generate Randomly</Button>
+      <Button disabled>Future Import</Button>
+    </div>
+  </aside>
+);
+
+const CharacterGrid = ({ records, onContinue }) => (
+  <div className="character-select-grid">
+    {records.map((character) => <CharacterCard key={character._id} character={character} onContinue={onContinue} />)}
+  </div>
+);
+
 export default function RecordList() {
   const params = useParams();
   const [records, setRecords] = useState([]);
   const navigate = useNavigate();
   const user = useUser();
+
+  useEffect(() => {
+    document.body.classList.add("character-select-scroll-enabled");
+    document.documentElement.classList.add("character-select-scroll-enabled");
+
+    return () => {
+      document.body.classList.remove("character-select-scroll-enabled");
+      document.documentElement.classList.remove("character-select-scroll-enabled");
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -245,6 +402,17 @@ const attachSelectedAncestryToRace = useCallback((race, {
     updatedRace.__baseSpeed = baseSpeed;
   }
 
+  const hasStoredBaseAbilities = Object.prototype.hasOwnProperty.call(
+    race,
+    "__baseAbilities"
+  );
+  const baseAbilities = hasStoredBaseAbilities ? race.__baseAbilities : race.abilities;
+  if (baseAbilities) {
+    updatedRace.__baseAbilities = { ...baseAbilities };
+  } else {
+    delete updatedRace.__baseAbilities;
+  }
+
   const hasStoredBaseDarkvision = Object.prototype.hasOwnProperty.call(
     race,
     "__baseDarkvisionRange"
@@ -313,6 +481,7 @@ const attachSelectedAncestryToRace = useCallback((race, {
       typeof lineageToApply?.darkvisionRange === "number"
         ? lineageToApply.darkvisionRange
         : null;
+    const lineageAbilities = lineageToApply?.abilities || null;
 
     if (typeof baseSpeed === "number") {
       updatedRace.speed = lineageSpeed ?? baseSpeed;
@@ -328,6 +497,24 @@ const attachSelectedAncestryToRace = useCallback((race, {
       } else {
         updatedRace.darkvisionRange = baseDarkvision;
       }
+    }
+
+    if (baseAbilities || lineageAbilities) {
+      const combinedAbilities = baseAbilities ? { ...baseAbilities } : {};
+
+      if (lineageAbilities) {
+        Object.entries(lineageAbilities).forEach(([abilityKey, bonusValue]) => {
+          const numericBase = Number(combinedAbilities[abilityKey] ?? 0);
+          const numericBonus = Number(bonusValue ?? 0);
+          const safeBase = Number.isNaN(numericBase) ? 0 : numericBase;
+          const safeBonus = Number.isNaN(numericBonus) ? 0 : numericBonus;
+          combinedAbilities[abilityKey] = safeBase + safeBonus;
+        });
+      }
+
+      updatedRace.abilities = combinedAbilities;
+    } else if (updatedRace.abilities) {
+      delete updatedRace.abilities;
     }
   }
 
@@ -660,17 +847,17 @@ function bigMaff() {
 
   // Stat Randomizer
     const raceAbilities = (chosenRace && chosenRace.abilities) || {};
-    let randomStr = sumArray[0] + Number(newOccupation.str || 0) + (raceAbilities.str || 0);
+    let randomStr = sumArray[0];
     updateForm({ str: randomStr });
-    let randomDex = sumArray[1] + Number(newOccupation.dex || 0) + (raceAbilities.dex || 0);
+    let randomDex = sumArray[1];
     updateForm({ dex: randomDex });
-    let randomCon = sumArray[2] + Number(newOccupation.con || 0) + (raceAbilities.con || 0);
+    let randomCon = sumArray[2];
     updateForm({ con: randomCon });
-    let randomInt = sumArray[3] + Number(newOccupation.int || 0) + (raceAbilities.int || 0);
+    let randomInt = sumArray[3];
     updateForm({ int: randomInt });
-    let randomWis = sumArray[4] + Number(newOccupation.wis || 0) + (raceAbilities.wis || 0);
+    let randomWis = sumArray[4];
     updateForm({ wis: randomWis });
-    let randomCha = sumArray[5] + Number(newOccupation.cha || 0) + (raceAbilities.cha || 0);
+    let randomCha = sumArray[5];
     updateForm({ cha: randomCha });
 
   const stats = [randomStr, randomDex, randomCon, randomInt, randomWis, randomCha];
@@ -741,6 +928,7 @@ useEffect(() => {
     if (raceWithAncestry) {
       newCharacter.race = raceWithAncestry;
       delete newCharacter.race.__baseSpeed;
+      delete newCharacter.race.__baseAbilities;
       delete newCharacter.race.__baseDarkvisionRange;
     } else {
       delete newCharacter.race;
@@ -1616,9 +1804,10 @@ const handleConfirmOccupation = useCallback(() => {
     );
 
     if (!occupationExists && selectedAddOccupationObject) {
+      const hitDieValue = Number(selectedAddOccupationObject.hitDie || 0);
       const normalizedOcc = {
         Occupation: selectedAddOccupationObject.name,
-        Health: selectedAddOccupationObject.hitDie,
+        Health: hitDieValue,
         Level: 1,
         proficiencyPoints: selectedAddOccupationObject.proficiencies?.skills?.count || 0,
         armor: selectedAddOccupationObject.proficiencies?.armor || [],
@@ -1656,6 +1845,13 @@ const handleConfirmOccupation = useCallback(() => {
         addOccupationWis +
         addOccupationCha;
 
+      const conModValue = Math.floor((addOccupationCon - 10) / 2);
+      const calculatedTempHealth = hitDieValue +
+        conModValue * Number(normalizedOcc.Level || 1);
+      const normalizedTempHealth = Number.isFinite(calculatedTempHealth)
+        ? calculatedTempHealth
+        : hitDieValue;
+
       const updatedForm = {
         ...form,
         occupation: [normalizedOcc],
@@ -1666,6 +1862,8 @@ const handleConfirmOccupation = useCallback(() => {
         wis: addOccupationWis,
         cha: addOccupationCha,
         startStatTotal: totalNewStats,
+        health: hitDieValue,
+        tempHealth: normalizedTempHealth,
       };
 
       setForm(updatedForm);
@@ -1704,6 +1902,7 @@ const sendManualToDb = useCallback(async (characterData) => {
   if (raceWithAncestry) {
     newCharacter.race = raceWithAncestry;
     delete newCharacter.race.__baseSpeed;
+    delete newCharacter.race.__baseAbilities;
     delete newCharacter.race.__baseDarkvisionRange;
   } else {
     delete newCharacter.race;
@@ -1833,71 +2032,33 @@ const getAvailableSkillOptions = (index) => {
 };
 
   return (
-    <div className="pt-2 text-center" style={{ fontFamily: 'Raleway, sans-serif', backgroundImage: `url(${loginbg})`, backgroundSize: "cover", backgroundRepeat: "no-repeat", height: "100vh"}}>
-      <div style={{paddingTop: '150px'}}>
-<div style={{ maxHeight: '500px', overflowY: 'auto', position: 'relative', zIndex: '4'}}>
-        <Table style={{ width: 'auto', position: "relative", zIndex: "4", margin: "0 auto" }} striped bordered condensed="true" className="zombieCharacterSelectTable dnd-background">
-          <thead>
-            <tr>
-                <th colSpan="4" style={{fontSize: 28}}>{params.campaign.toString()}</th>
-            </tr>
-            <tr>
-              <th colSpan="2">
-                  <Button
-                    className="fantasy-button"
-                    size="sm"
-                    style={{ width: 'auto', border: "none" }}
-                    variant="primary"
-                    onClick={(e) => { e.preventDefault(); bigMaff(); handleShow(); }}
-                  >
-                    Create Character Random
-                  </Button>
-              </th>
-                <th colSpan="2">
-                  <Button
-                    className="fantasy-button"
-                    size="sm"
-                    style={{ width: 'auto', border: "none" }}
-                    variant="primary"
-                    onClick={(e) => { e.preventDefault(); handleShow5();}}
-                  >
-                    Create Character Manual
-                  </Button>
-              </th>
-            </tr>
-            <tr>
-              <th>Character</th>
-              <th>Level</th>
-              <th>Class</th>
-              <th>View</th>
-            </tr>
-          </thead>
-          <tbody>
-          {records.map((Characters) => (
-              <tr key={Characters._id}>
-                <td>{Characters.characterName}</td>
-                <td>{Characters.occupation.reduce((total, el) => total + Number(el.Level), 0)}</td>
-                <td>
-                  {Characters.occupation.map((el, i) => (
-                    <span key={i}>{el.Level + " " + el.Occupation}<br></br></span>
-                  ))}
-                </td>
-                <td>
-                  <Button
-                    className="fantasy-button"
-                    size="sm"
-                    style={{ width: 'auto', border: "none" }}
-                    variant="primary"
-                    onClick={() => navigateToCharacter(Characters._id)}
-                  >
-                    View
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-        </div>
+    <div className="character-select-page" style={{ backgroundImage: `url(${loginbg})` }}>
+      <div className="character-select-shell">
+        <CampaignHero
+          campaignName={params.campaign.toString()}
+          playerCount={records.length}
+          onCreateManual={(e) => { e.preventDefault(); handleShow5(); }}
+          onCreateRandom={(e) => { e.preventDefault(); bigMaff(); handleShow(); }}
+        />
+
+        <section className="character-select-library">
+          <div className="character-select-library__header">
+            <div>
+              <p className="character-select-kicker">Character Library</p>
+              <h2>Choose your hero</h2>
+            </div>
+            <div className="character-select-tools" aria-label="Future character search and filters">
+              <span>Search</span><span>Sort</span><span>Class</span><span>Level</span><span>Favorites</span>
+            </div>
+          </div>
+          {records.length ? <CharacterGrid records={records} onContinue={navigateToCharacter} /> : <EmptyState onCreateManual={handleShow5} />}
+        </section>
+
+        <CreateCharacterCard
+          onCreateManual={handleShow5}
+          onCreateRandom={(e) => { e.preventDefault(); bigMaff(); handleShow(); }}
+        />
+      </div>
     {/* ---------------------------Create Character (Random)------------------------------------------------------- */}
     <Modal className="dnd-modal" centered show={show} onHide={handleClose}>
        <div className="text-center">
@@ -2124,9 +2285,6 @@ const getAvailableSkillOptions = (index) => {
             />
           </React.Fragment>
         ))}
-        <Form.Label className="text-light">Health</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ health: e.target.value, tempHealth: e.target.value })}
-        type="number" placeholder="Enter health" pattern="[0-9]*" />
      </Form.Group>
      <div className="text-center">
      <Button variant="primary" type="submit">
@@ -2190,7 +2348,6 @@ const getAvailableSkillOptions = (index) => {
         </div>
        </Modal>
       </div>
-    </div>
 
   );
 }

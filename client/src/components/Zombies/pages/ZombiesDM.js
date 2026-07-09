@@ -12,9 +12,6 @@ import {
   Card,
   Alert,
   Spinner,
-  Nav,
-  Tab,
-  CloseButton,
   ListGroup,
   Badge,
 } from "react-bootstrap";
@@ -28,9 +25,13 @@ import { calculateCharacterInitiative } from '../utils/derivedStats';
 import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
+import DamageDiceCanvas from '../attributes/DamageDiceCanvas';
 import { calculateDamage } from '../attributes/PlayerTurnActions';
+import { rollSkillWithDiceBox } from '../attributes/Skills';
+import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
 import D20RollerModal, { DEFAULT_DICE_COLOR } from '../common/D20RollerModal';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
+import ShopVisibilityManager from '../attributes/ShopVisibilityManager';
 import {
   GiCharacter,
   GiStoneAxe,
@@ -45,6 +46,7 @@ import {
   GiArmorVest,
   GiBackpack,
   GiAmmoBox,
+  GiPotionBall,
   GiHammerNails,
   GiHorseHead,
   GiSaddle,
@@ -67,7 +69,10 @@ import { FiChevronDown, FiChevronRight, FiList, FiPlus } from "react-icons/fi";
 import { groupMapsByFolder, UNGROUPED_FOLDER_KEY } from "../utils/mapGrouping";
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import TokenPickerModal from '../components/TokenPickerModal';
+import ActiveEnemyQuickList from '../components/ActiveEnemyQuickList';
+import CombatTurnHeader from '../components/CombatTurnHeader';
 import { buildEnemyTokenFilterScopeValues } from '../utils/enemyTokenFilters';
+import { sanitizeIdentifierForTestId } from '../utils/sanitizeIdentifierForTestId';
 
 const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
@@ -93,6 +98,223 @@ const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
   return acc;
 }, {});
 
+const toTitleCase = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .replace(/[_-]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+};
+
+const formatSignedModifier = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+
+  return numeric >= 0 ? `+${numeric}` : `${numeric}`;
+};
+
+const getStatLabel = (rawKey) => {
+  if (!rawKey) {
+    return '';
+  }
+
+  const normalized = String(rawKey).toLowerCase();
+  const statKey = STAT_LOOKUP[normalized];
+  if (statKey && STAT_LABELS[statKey]) {
+    return STAT_LABELS[statKey];
+  }
+
+  return toTitleCase(String(rawKey));
+};
+
+const getSkillLabel = (rawKey) => {
+  if (!rawKey) {
+    return '';
+  }
+
+  const normalized = String(rawKey).toLowerCase();
+  const skillKey = SKILL_LOOKUP[normalized];
+  if (skillKey && SKILL_LABELS[skillKey]) {
+    return SKILL_LABELS[skillKey];
+  }
+
+  return toTitleCase(String(rawKey));
+};
+
+const formatSavingThrowsDisplay = (savingThrows) => {
+  if (!savingThrows) {
+    return '—';
+  }
+
+  const entries = [];
+
+  const pushEntry = (rawKey, rawValue) => {
+    if (!rawKey) {
+      return;
+    }
+
+    const label = getStatLabel(rawKey);
+    const modifier = formatSignedModifier(rawValue);
+    if (label && modifier) {
+      entries.push(`${label} ${modifier}`);
+    } else if (label) {
+      entries.push(label);
+    }
+  };
+
+  if (Array.isArray(savingThrows)) {
+    savingThrows.forEach((entry) => {
+      if (!entry) {
+        return;
+      }
+
+      if (typeof entry === 'string') {
+        entries.push(entry);
+        return;
+      }
+
+      if (typeof entry === 'object') {
+        if (entry.name !== undefined) {
+          pushEntry(entry.name, entry.value);
+          return;
+        }
+
+        const [firstKey] = Object.keys(entry);
+        if (firstKey) {
+          pushEntry(firstKey, entry[firstKey]);
+        }
+      }
+    });
+  } else if (typeof savingThrows === 'object') {
+    Object.entries(savingThrows).forEach(([key, value]) => pushEntry(key, value));
+  }
+
+  return entries.length > 0 ? entries.join(', ') : '—';
+};
+
+const formatSkillsDisplay = (skills) => {
+  if (!skills) {
+    return '—';
+  }
+
+  const entries = [];
+
+  const appendEntry = (rawKey, rawValue) => {
+    if (!rawKey) {
+      return;
+    }
+
+    const label = getSkillLabel(rawKey);
+    const modifier = formatSignedModifier(rawValue);
+    if (label && modifier) {
+      entries.push(`${label} ${modifier}`);
+    } else if (label) {
+      entries.push(label);
+    }
+  };
+
+  if (Array.isArray(skills)) {
+    skills.forEach((entry) => {
+      if (!entry) {
+        return;
+      }
+
+      if (typeof entry === 'string') {
+        entries.push(entry);
+        return;
+      }
+
+      if (typeof entry === 'object') {
+        if (entry.name !== undefined) {
+          appendEntry(entry.name, entry.value);
+          return;
+        }
+
+        const [firstKey] = Object.keys(entry);
+        if (firstKey) {
+          appendEntry(firstKey, entry[firstKey]);
+        }
+      }
+    });
+  } else if (typeof skills === 'object') {
+    Object.entries(skills).forEach(([key, value]) => appendEntry(key, value));
+  }
+
+  return entries.length > 0 ? entries.join(', ') : '—';
+};
+
+const formatSensesDisplay = (senses) => {
+  if (!senses) {
+    return '—';
+  }
+
+  if (typeof senses === 'string') {
+    const trimmed = senses.trim();
+    return trimmed || '—';
+  }
+
+  if (typeof senses !== 'object') {
+    return '—';
+  }
+
+  const entries = [];
+
+  if (typeof senses.summary === 'string' && senses.summary.trim()) {
+    entries.push(senses.summary.trim());
+  }
+
+  Object.entries(senses).forEach(([key, value]) => {
+    if (key === 'summary' || value === null || value === undefined || value === '') {
+      return;
+    }
+
+    if (key === 'passive_perception') {
+      entries.push(`Passive Perception ${value}`);
+      return;
+    }
+
+    entries.push(`${toTitleCase(key)} ${value}`);
+  });
+
+  return entries.length > 0 ? entries.join(', ') : '—';
+};
+
+const formatDamageTraitsDisplay = (traits) => {
+  if (!traits) {
+    return '—';
+  }
+
+  if (Array.isArray(traits)) {
+    const values = traits
+      .map((value) => (typeof value === 'string' ? value.trim() : ''))
+      .filter(Boolean);
+    return values.length > 0 ? values.join(', ') : '—';
+  }
+
+  if (typeof traits === 'string') {
+    const trimmed = traits.trim();
+    return trimmed || '—';
+  }
+
+  return '—';
+};
+
+const formatXpDisplay = (xp) => {
+  const numeric = Number(xp);
+  if (!Number.isFinite(numeric)) {
+    return '—';
+  }
+
+  return numeric.toLocaleString();
+};
+
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
 
 const toFiniteNumberOrNull = (value) => {
@@ -106,6 +328,76 @@ const toFiniteNumberOrNull = (value) => {
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
 const NEW_FOLDER_OPTION_VALUE = '__create_new_folder__';
+const MAP_GRID_DIMENSION_OPTIONS = [24, 64, 120];
+const DEFAULT_MAP_GRID_DIMENSION = MAP_GRID_DIMENSION_OPTIONS[0];
+
+const normalizeGridSquareCount = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return null;
+  }
+
+  const roundedToPrecision = Number(numeric.toFixed(4));
+  return Number.isInteger(roundedToPrecision) ? Math.trunc(roundedToPrecision) : roundedToPrecision;
+};
+
+const resolveAspectMatchedGridRows = (columns, imageWidth, imageHeight) => {
+  const safeColumns = normalizeGridSquareCount(columns);
+  const safeWidth = Number(imageWidth);
+  const safeHeight = Number(imageHeight);
+
+  if (safeColumns === null || !Number.isFinite(safeWidth) || !Number.isFinite(safeHeight)) {
+    return safeColumns;
+  }
+
+  if (safeWidth <= 0 || safeHeight <= 0) {
+    return safeColumns;
+  }
+
+  return normalizeGridSquareCount((safeColumns * safeHeight) / safeWidth) ?? safeColumns;
+};
+
+const formatGridDimensionString = (columns, rows) => `${columns}x${rows}`;
+
+const loadMapEditorImageDimensions = (src, timeoutMs = 250) =>
+  new Promise((resolve) => {
+    let settled = false;
+    let timeoutId = null;
+    const finish = (value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      resolve(value);
+    };
+    if (typeof window === 'undefined' || typeof window.Image !== 'function') {
+      finish(null);
+      return;
+    }
+
+    if (typeof src !== 'string' || src.trim() === '') {
+      finish(null);
+      return;
+    }
+
+    timeoutId = window.setTimeout(() => finish(null), timeoutMs);
+
+    const image = new window.Image();
+    image.onload = () => {
+      const width = Number(image.naturalWidth || image.width);
+      const height = Number(image.naturalHeight || image.height);
+      if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+        finish({ width, height });
+        return;
+      }
+      finish(null);
+    };
+    image.onerror = () => finish(null);
+    image.src = src;
+  });
 
 const normalizeCreatureSize = (value) => {
   if (typeof value !== 'string') {
@@ -139,6 +431,79 @@ const normalizeCreatureSize = (value) => {
 const normalizeMapId = (value) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 
+const parseMapGridDimensionCandidate = (value) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const rounded = Math.round(value);
+    return MAP_GRID_DIMENSION_OPTIONS.includes(rounded) ? rounded : null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const pairMatch = trimmed.match(/(\d+)\s*[x×]/i);
+    if (pairMatch) {
+      const parsed = Number.parseInt(pairMatch[1], 10);
+      if (Number.isFinite(parsed) && MAP_GRID_DIMENSION_OPTIONS.includes(parsed)) {
+        return parsed;
+      }
+    }
+
+    const numeric = Number.parseInt(trimmed, 10);
+    if (Number.isFinite(numeric) && MAP_GRID_DIMENSION_OPTIONS.includes(numeric)) {
+      return numeric;
+    }
+  }
+
+  return null;
+};
+
+const resolveMapGridSelection = (map) => {
+  if (!map || typeof map !== 'object') {
+    return `${DEFAULT_MAP_GRID_DIMENSION}`;
+  }
+
+  const candidateValues = [
+    map.gridColumns,
+    map.gridRows,
+    map.gridSize,
+    map.gridDimensions,
+    map.dimensions,
+    map.size,
+    map.mapSize,
+  ];
+
+  const nestedCandidates = [map.grid, map.meta, map.metadata, map.settings, map.details];
+
+  nestedCandidates.forEach((entry) => {
+    if (entry && typeof entry === 'object') {
+      candidateValues.push(
+        entry.columns,
+        entry.rows,
+        entry.size,
+        entry.dimensions,
+        entry.gridSize,
+        entry.gridDimensions
+      );
+    }
+  });
+
+  for (const candidate of candidateValues) {
+    const parsed = parseMapGridDimensionCandidate(candidate);
+    if (parsed !== null) {
+      return `${parsed}`;
+    }
+  }
+
+  return `${DEFAULT_MAP_GRID_DIMENSION}`;
+};
+
 const sanitizeTestIdValue = (value, fallback = 'item') => {
   if (typeof value !== 'string') {
     return fallback;
@@ -151,6 +516,365 @@ const sanitizeTestIdValue = (value, fallback = 'item') => {
 
   return trimmed.replace(/[^0-9A-Za-z_-]/g, '-').toLowerCase();
 };
+
+function EnemyCard({
+  enemy,
+  inCombat,
+  challengeText,
+  sizeDisplay,
+  armorClassDisplay,
+  maxHpValue,
+  resolvedCurrentHp,
+  healthSummary,
+  languagesDisplay,
+  alignmentDisplay,
+  speedDisplay,
+  savingThrowsDisplay,
+  skillsDisplay,
+  sensesDisplay,
+  xpDisplay,
+  damageVulnerabilitiesDisplay,
+  damageResistancesDisplay,
+  damageImmunitiesDisplay,
+  conditionImmunitiesDisplay,
+  abilityScoreBadges,
+  damagingActions,
+  actionsList,
+  bonusActionsList,
+  reactionsList,
+  legendaryActionsList,
+  latestEnemyRoll,
+  onEnemyDamageRoll,
+  onEnemyAttackRoll,
+  onEnemyAdjustmentInputChange,
+  onApplyEnemyHealthAdjustment,
+  onResetEnemyHealth,
+  enemyHealthAdjustments,
+  enemyHealthSaving,
+  onToggleParticipant,
+  onOpenMapPlacement,
+  onRemoveEnemy,
+  removingEnemyId,
+  formatAttackBonus,
+  getEnemyActionDamageString,
+}) {
+  const [showAttacks, setShowAttacks] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
+  if (!enemy) {
+    return null;
+  }
+
+  const adjustmentValue = enemy.enemyId ? enemyHealthAdjustments[enemy.enemyId] ?? '' : '';
+  const isSavingHealth = enemy.enemyId ? Boolean(enemyHealthSaving[enemy.enemyId]) : false;
+  const hasActions = Array.isArray(damagingActions) && damagingActions.length > 0;
+
+  const renderActionSection = (label, actions, keyPrefix) => (
+    <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+      <span className="enemy-card__summary-label">{label}</span>
+      {Array.isArray(actions) && actions.length > 0 ? (
+        <div className="flex-grow-1 d-flex flex-column gap-2" style={{ minWidth: 0 }}>
+          {actions.map((action, index) => {
+            const actionKey = `${enemy.enemyId || 'enemy'}-${keyPrefix}-${index}`;
+            const actionName = action?.name || label.replace(/:$/, '');
+            const actionDesc = action?.desc;
+
+            return (
+              <div key={actionKey} className="d-flex flex-column gap-1">
+                <div className="fw-semibold small text-body">{actionName}</div>
+                {actionDesc ? (
+                  <div className="small text-muted" style={{ whiteSpace: 'pre-line' }}>
+                    {actionDesc}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <span className="flex-grow-1" aria-hidden="true">
+          —
+        </span>
+      )}
+    </div>
+  );
+
+  let healthPercent = null;
+  if (
+    maxHpValue !== null &&
+    maxHpValue > 0 &&
+    resolvedCurrentHp !== null &&
+    Number.isFinite(resolvedCurrentHp)
+  ) {
+    healthPercent = Math.max(0, Math.min(100, Math.round((resolvedCurrentHp / maxHpValue) * 100)));
+  }
+
+  const healthText = healthSummary;
+
+  return (
+    <Card className="resource-card h-100 w-100 text-start enemy-card d-flex flex-column">
+      <Card.Body className="d-flex flex-column gap-2">
+        <div>
+          <Card.Title className="mb-1">{enemy.name || 'Unnamed Enemy'}</Card.Title>
+          <Card.Subtitle className="text-muted small mb-2">
+            {[enemy.displayType, challengeText].filter(Boolean).join(' • ') || '—'}
+          </Card.Subtitle>
+          <div className="enemy-card__summary">
+            <div className="enemy-card__summary-line">
+              <span className="enemy-card__summary-label">SIZE:</span>
+              <span aria-hidden="true">{sizeDisplay}</span>
+            </div>
+            <div className="enemy-card__summary-line">
+              <span className="enemy-card__summary-label">AC:</span>
+              <span aria-hidden="true">{armorClassDisplay}</span>
+            </div>
+          </div>
+        </div>
+        <div className="enemy-card__health">
+          <div
+            className="enemy-card__health-bar"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={maxHpValue ?? undefined}
+            aria-valuenow={resolvedCurrentHp ?? undefined}
+          >
+            <div
+              className="enemy-card__health-bar-fill"
+              style={{ width: `${healthPercent !== null ? healthPercent : resolvedCurrentHp !== null ? 100 : 0}%` }}
+            />
+          </div>
+          <div className="enemy-card__health-text">{healthText}</div>
+        </div>
+        <div className="enemy-card__health-controls" role="group" aria-label="Enemy health controls">
+          <Button
+            variant="outline-danger"
+            size="sm"
+            className="enemy-card__health-button"
+            onClick={() => onApplyEnemyHealthAdjustment(enemy.enemyId, -1)}
+            disabled={isSavingHealth}
+          >
+            Damage
+          </Button>
+          <Form.Control
+            value={adjustmentValue}
+            onChange={(e) => onEnemyAdjustmentInputChange(enemy.enemyId, e.target.value)}
+            placeholder="Amount"
+            type="number"
+            min="0"
+            aria-label={`Adjust ${enemy.name || 'enemy'} health amount`}
+            disabled={isSavingHealth}
+            size="sm"
+            className="enemy-card__health-input"
+          />
+          <Button
+            variant="outline-success"
+            size="sm"
+            className="enemy-card__health-button"
+            onClick={() => onApplyEnemyHealthAdjustment(enemy.enemyId, 1)}
+            disabled={isSavingHealth}
+          >
+            Heal
+          </Button>
+          <Button
+            variant="outline-light"
+            size="sm"
+            className="enemy-card__health-button enemy-card__health-button--reset"
+            onClick={() => onResetEnemyHealth(enemy.enemyId)}
+            disabled={isSavingHealth || maxHpValue === null}
+          >
+            Reset
+          </Button>
+        </div>
+        <div className="enemy-card__controls">
+          {hasActions && (
+            <Button
+              variant="outline-primary"
+              size="sm"
+              onClick={() => setShowAttacks((prev) => !prev)}
+            >
+              {showAttacks ? 'Hide Attacks' : 'Attacks'}
+            </Button>
+          )}
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            onClick={() => setShowDetails((prev) => !prev)}
+          >
+            {showDetails ? 'Hide Info' : 'More Info'}
+          </Button>
+        </div>
+        {hasActions && showAttacks && (
+          <div className="enemy-card__section">
+            <h6 className="enemy-card__section-title text-uppercase text-muted small fw-semibold mb-2">
+              Attacks
+            </h6>
+            <div className="attack-card-grid enemy-card__attack-grid">
+              {damagingActions.map((action, actionIndex) => {
+                const actionLabel = action?.name || 'Action';
+                const attackBonusDisplay = formatAttackBonus(action?.attack_bonus);
+                const damageLine = getEnemyActionDamageString(action);
+                const actionKey = `${enemy.enemyId || 'enemy'}-${actionLabel}-${actionIndex}`;
+                const isLatestRoll =
+                  latestEnemyRoll?.enemyId === enemy.enemyId &&
+                  latestEnemyRoll?.actionName === actionLabel;
+
+                return (
+                  <div key={actionKey} className="attack-card enemy-card__attack-card">
+                    <div className="attack-card__title">{actionLabel}</div>
+                    <div className="attack-card__details">
+                      <div className="attack-card__row">
+                        <span className="attack-card__label">Attack Bonus</span>
+                        <span className="attack-card__value">{attackBonusDisplay ?? '—'}</span>
+                      </div>
+                      <div className="attack-card__row">
+                        <span className="attack-card__label">Damage</span>
+                        <span className="attack-card__value">{damageLine || '—'}</span>
+                      </div>
+                    </div>
+                    <div className="attack-card__actions">
+                      <Button
+                        variant="link"
+                        className="attack-card__roll"
+                        onClick={() => onEnemyAttackRoll(enemy, action)}
+                        aria-label={`Roll attack for ${actionLabel}`}
+                      >
+                        <i className="fa-solid fa-bullseye" aria-hidden="true"></i>
+                      </Button>
+                      <Button
+                        variant="link"
+                        className="attack-card__roll"
+                        onClick={() => onEnemyDamageRoll(enemy, action)}
+                        aria-label={`Roll damage for ${actionLabel}`}
+                      >
+                        <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>
+                      </Button>
+                    </div>
+                    {isLatestRoll && latestEnemyRoll?.breakdown && (
+                      <div className="mt-2 small fw-semibold text-primary">
+                        {`${latestEnemyRoll.rollType === 'attack' ? 'Attack' : 'Damage'}: ${latestEnemyRoll.total} (${latestEnemyRoll.breakdown})`}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {showDetails && (
+          <div className="enemy-card__section">
+            <div className="enemy-card__section-subtitle">Ability Scores</div>
+            <div className="d-flex flex-wrap gap-2">
+              {abilityScoreBadges.map(({ key, value }) => (
+                <span key={`${enemy.enemyId}-${key}`} className="badge bg-secondary">
+                  {value}
+                </span>
+              ))}
+            </div>
+            <div className="border-top border-secondary opacity-25 my-3" aria-hidden="true" />
+            <div className="enemy-card__detail-grid">
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Speed:</span>
+                <span aria-hidden="true">{speedDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Saving Throws:</span>
+                <span aria-hidden="true">{savingThrowsDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Skills:</span>
+                <span aria-hidden="true">{skillsDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Senses:</span>
+                <span aria-hidden="true">{sensesDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Damage Vulnerabilities:</span>
+                <span aria-hidden="true">{damageVulnerabilitiesDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Damage Resistances:</span>
+                <span aria-hidden="true">{damageResistancesDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Damage Immunities:</span>
+                <span aria-hidden="true">{damageImmunitiesDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Condition Immunities:</span>
+                <span aria-hidden="true">{conditionImmunitiesDisplay}</span>
+              </div>
+            </div>
+            <div className="border-top border-secondary opacity-25 my-3" aria-hidden="true" />
+            <div className="enemy-card__detail-grid">
+              {renderActionSection('Actions:', actionsList, 'actions')}
+              {renderActionSection('Bonus Actions:', bonusActionsList, 'bonus-actions')}
+              {renderActionSection('Reactions:', reactionsList, 'reactions')}
+              {renderActionSection('Legendary Actions:', legendaryActionsList, 'legendary-actions')}
+            <div className="border-top border-secondary opacity-25 my-3" aria-hidden="true" />
+              {renderActionSection('Special Abilities:', enemy.specialAbilities, 'special-abilities')}
+            </div>
+            <div className="border-top border-secondary opacity-25 my-3" aria-hidden="true" />
+            <div className="enemy-card__detail-grid">
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Alignment:</span>
+                <span aria-hidden="true">{alignmentDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line enemy-card__detail-line--wrap">
+                <span className="enemy-card__summary-label">Languages:</span>
+                <span aria-hidden="true">{languagesDisplay}</span>
+              </div>
+              <div className="enemy-card__detail-line">
+                <span className="enemy-card__summary-label">Xp:</span>
+                <span aria-hidden="true">{xpDisplay}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </Card.Body>
+      <Card.Footer className="resource-card-footer-safe-area d-flex flex-wrap gap-2 justify-content-end mt-auto">
+        <Button
+          variant={inCombat ? 'success' : 'outline-primary'}
+          size="sm"
+          onClick={() => onToggleParticipant(enemy.enemyId)}
+        >
+          {inCombat ? 'Remove from Combat' : 'Add to Combat'}
+        </Button>
+        <Button
+          variant="outline-primary"
+          size="sm"
+          onClick={() =>
+            onOpenMapPlacement(enemy.enemyId, enemy.name || enemy.displayType || enemy.enemyId)
+          }
+        >
+          Place on Map
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => onRemoveEnemy(enemy.enemyId)}
+          disabled={removingEnemyId === enemy.enemyId}
+        >
+          {removingEnemyId === enemy.enemyId ? (
+            <>
+              <Spinner
+                as="span"
+                animation="border"
+                size="sm"
+                role="status"
+                aria-hidden="true"
+                className="me-2"
+              />
+              Removing…
+            </>
+          ) : (
+            'Remove'
+          )}
+        </Button>
+      </Card.Footer>
+    </Card>
+  );
+}
 
 const sortParticipantsDescending = (participantsWithMeta) =>
   participantsWithMeta
@@ -235,6 +959,145 @@ const normalizeCombatState = (state) => {
   }
 
   return { participants: sortedParticipants, activeTurn };
+};
+
+export const createActiveMapEnemySummaries = ({
+  activeMapTokens,
+  enemies,
+  tokenMetaById = {},
+  participantLookup,
+  formatArmorClass,
+  formatChallengeRatingValue,
+  activeParticipantId,
+}) => {
+  if (
+    !Array.isArray(enemies) ||
+    enemies.length === 0 ||
+    !activeMapTokens ||
+    typeof activeMapTokens !== 'object'
+  ) {
+    return [];
+  }
+
+  const activeEnemyIds = new Set();
+  Object.entries(activeMapTokens).forEach(([key, token]) => {
+    const candidateId =
+      (typeof key === 'string' && key.trim()) ||
+      (typeof token?.characterId === 'string' && token.characterId.trim()) ||
+      null;
+    if (!candidateId) {
+      return;
+    }
+
+    const meta = tokenMetaById?.[candidateId];
+    if (meta?.entityType === 'enemy') {
+      activeEnemyIds.add(candidateId);
+    }
+  });
+
+  if (activeEnemyIds.size === 0) {
+    return [];
+  }
+
+  const normalizedActiveParticipantId =
+    typeof activeParticipantId === 'string' && activeParticipantId.trim() !== ''
+      ? activeParticipantId.trim()
+      : null;
+
+  const summaries = enemies
+    .filter((enemy) => {
+      if (!enemy || typeof enemy.enemyId !== 'string') {
+        return false;
+      }
+      const trimmedId = enemy.enemyId.trim();
+      if (!trimmedId) {
+        return false;
+      }
+      return activeEnemyIds.has(trimmedId);
+    })
+    .map((enemy) => {
+      const resolvedChallengeValue =
+        typeof formatChallengeRatingValue === 'function'
+          ? formatChallengeRatingValue(enemy.challengeRating)
+          : enemy.challengeRating;
+      const challengeText =
+        enemy.challengeRating !== null && enemy.challengeRating !== undefined
+          ? `CR ${resolvedChallengeValue}`
+          : null;
+      const sizeDisplay = enemy.size || enemy.displayType || '—';
+      const armorClassDisplay =
+        typeof formatArmorClass === 'function'
+          ? formatArmorClass(enemy.armorClass)
+          : '—';
+      const maxHpValue = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
+      const currentHpCandidate =
+        enemy.currentHp !== undefined
+          ? toFiniteNumberOrNull(enemy.currentHp)
+          : null;
+      const resolvedCurrentHp =
+        currentHpCandidate !== null
+          ? currentHpCandidate
+          : maxHpValue !== null
+            ? maxHpValue
+            : null;
+      const healthSummary =
+        maxHpValue !== null
+          ? `${resolvedCurrentHp !== null ? resolvedCurrentHp : '—'} / ${maxHpValue}`
+          : resolvedCurrentHp !== null
+            ? `${resolvedCurrentHp}`
+            : '—';
+
+      let inCombat = false;
+      if (enemy.enemyId) {
+        if (participantLookup && typeof participantLookup.get === 'function') {
+          inCombat = Boolean(participantLookup.get(enemy.enemyId));
+        } else if (
+          participantLookup &&
+          typeof participantLookup === 'object' &&
+          enemy.enemyId in participantLookup
+        ) {
+          inCombat = Boolean(participantLookup[enemy.enemyId]);
+        }
+      }
+
+      const normalizedEnemyId =
+        typeof enemy.enemyId === 'string' && enemy.enemyId.trim() !== ''
+          ? enemy.enemyId.trim()
+          : null;
+      const isActiveTurn =
+        normalizedEnemyId &&
+        normalizedActiveParticipantId &&
+        normalizedEnemyId === normalizedActiveParticipantId;
+
+      return {
+        enemy,
+        challengeText,
+        sizeDisplay,
+        armorClassDisplay,
+        maxHpValue,
+        resolvedCurrentHp,
+        healthSummary,
+        inCombat,
+        ...(isActiveTurn ? { isActiveTurn: true } : {}),
+      };
+    });
+
+  summaries.sort((a, b) => {
+    const nameA = (a.enemy?.name || '').toLowerCase();
+    const nameB = (b.enemy?.name || '').toLowerCase();
+    if (nameA && nameB) {
+      return nameA.localeCompare(nameB);
+    }
+    if (nameA) {
+      return -1;
+    }
+    if (nameB) {
+      return 1;
+    }
+    return 0;
+  });
+
+  return summaries;
 };
 
 const applyDerivedInitiativesToParticipants = (participants, initiativeMap) => {
@@ -346,7 +1209,25 @@ const sanitizeToken = (tokenValue, fallbackId) => {
     return null;
   }
 
-  return { ...candidate, characterId: candidateId, x, y };
+  const sanitized = { ...candidate, characterId: candidateId, x, y };
+
+  if (Object.prototype.hasOwnProperty.call(candidate, 'rotation')) {
+    const normalizedRotation = normalizeRotation(candidate.rotation);
+    if (normalizedRotation === null) {
+      delete sanitized.rotation;
+    } else {
+      sanitized.rotation = normalizedRotation;
+    }
+  }
+
+  const normalizedSize = normalizeCreatureSize(candidate.size);
+  if (normalizedSize) {
+    sanitized.size = normalizedSize;
+  } else if (Object.prototype.hasOwnProperty.call(candidate, 'size')) {
+    delete sanitized.size;
+  }
+
+  return sanitized;
 };
 
 const sanitizeTokenDictionary = (tokens) => {
@@ -396,13 +1277,6 @@ const getNormalizedIdentifiers = (entity) => {
     identifiers.push(entity.characterId.trim());
   }
   return Array.from(new Set(identifiers));
-};
-
-const sanitizeIdentifierForTestId = (value, fallback) => {
-  if (typeof value === 'string' && value.trim() !== '') {
-    return value.trim().replace(/[^0-9A-Za-z_-]/g, '-');
-  }
-  return fallback;
 };
 
 export const matchesCharacterIdentifier = (record, normalizedCharacterId) => {
@@ -674,6 +1548,8 @@ export default function ZombiesDM() {
     const [monsterCatalogLoading, setMonsterCatalogLoading] = useState(false);
     const [monsterCatalogLoaded, setMonsterCatalogLoaded] = useState(false);
     const [monsterCatalogError, setMonsterCatalogError] = useState(null);
+    const [monsterMinChallengeRating, setMonsterMinChallengeRating] = useState('');
+    const [monsterMaxChallengeRating, setMonsterMaxChallengeRating] = useState('');
     const [monsterSearch, setMonsterSearch] = useState('');
     const [selectedMonsterIndex, setSelectedMonsterIndex] = useState('');
     const [selectedMonster, setSelectedMonster] = useState(null);
@@ -705,7 +1581,10 @@ export default function ZombiesDM() {
       imageUrl: '',
       imageBase64: '',
       imageType: '',
+      imageWidth: null,
+      imageHeight: null,
       altText: '',
+      gridSelection: `${DEFAULT_MAP_GRID_DIMENSION}`,
       activateOnSave: true,
       fileInputKey: 0,
     });
@@ -728,7 +1607,13 @@ export default function ZombiesDM() {
       enemyId: null,
       enemyName: null,
     });
+    const [mapPlacementSaving, setMapPlacementSaving] = useState(false);
+    const [mapPlacementError, setMapPlacementError] = useState(null);
     const [showDiceRoller, setShowDiceRoller] = useState(false);
+    const [enemyRollPopup, setEnemyRollPopup] = useState(null);
+    const [enemyDiceOverlayActive, setEnemyDiceOverlayActive] = useState(false);
+    const [enemyRollDice, setEnemyRollDice] = useState([]);
+    const enemyDiceClearTimeoutRef = useRef(null);
     const socketRef = useRef(null);
     const mapTokensRef = useRef(mapTokens);
     const activeMapTokensRef = useRef(activeMapTokens);
@@ -745,6 +1630,57 @@ export default function ZombiesDM() {
     const encodedCampaign = useMemo(
       () => (campaignId ? encodeURIComponent(campaignId) : ''),
       [campaignId]
+    );
+
+
+    const waitForNextAnimationFrame = useCallback(
+      () =>
+        new Promise((resolve) => {
+          if (
+            typeof window === 'undefined' ||
+            typeof window.requestAnimationFrame !== 'function'
+          ) {
+            resolve();
+            return;
+          }
+
+          window.requestAnimationFrame(() => resolve());
+        }),
+      []
+    );
+
+    const showEnemyDiceOverlay = useCallback(async () => {
+      clearTimeout(enemyDiceClearTimeoutRef.current);
+      setEnemyDiceOverlayActive(true);
+      setEnemyRollDice([]);
+      await waitForNextAnimationFrame();
+    }, [waitForNextAnimationFrame]);
+
+    const displayEnemyDiceResults = useCallback((diceDetails = []) => {
+      const timestamp = Date.now();
+      const nextDice = Array.isArray(diceDetails)
+        ? diceDetails.map((detail, index) => ({
+            id: `${timestamp}-${index}`,
+            value: typeof detail?.value === 'number' ? detail.value : Number(detail?.value) || 0,
+            sides: Number.isFinite(detail?.sides) ? Math.max(2, Math.round(detail.sides)) : 20,
+            type: detail?.type || '',
+            category: detail?.category || 'base',
+          }))
+        : [];
+
+      setEnemyRollDice(nextDice);
+      clearTimeout(enemyDiceClearTimeoutRef.current);
+      enemyDiceClearTimeoutRef.current = setTimeout(() => {
+        setEnemyRollDice([]);
+        setEnemyDiceOverlayActive(false);
+      }, 2600);
+    }, []);
+
+    useEffect(
+      () => () => {
+        clearTimeout(enemyDiceClearTimeoutRef.current);
+      },
+      []
     );
 
     const normalizedMaps = useMemo(
@@ -1761,8 +2697,102 @@ export default function ZombiesDM() {
       return null;
     }, []);
 
+    const formatChallengeRatingValue = useCallback((value) => {
+      if (value === null || value === undefined || value === '') {
+        return '—';
+      }
+
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) {
+        return String(value);
+      }
+
+      const fractionMap = {
+        '0.125': '1/8',
+        '0.25': '1/4',
+        '0.5': '1/2',
+      };
+
+      const fractionKey = numeric.toString();
+      if (Object.prototype.hasOwnProperty.call(fractionMap, fractionKey)) {
+        return fractionMap[fractionKey];
+      }
+
+      if (Number.isInteger(numeric)) {
+        return numeric.toString();
+      }
+
+      return numeric.toString();
+    }, []);
+
+    const handleEnemyAttackRoll = useCallback(
+      async (enemy, action) => {
+        if (!enemy || !action) {
+          return;
+        }
+
+        const rawBonus = Number(action.attack_bonus);
+        const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
+        await showEnemyDiceOverlay();
+        const { result, d20 } = await rollSkillWithDiceBox(bonus, {
+          diceColor: DEFAULT_DICE_COLOR,
+        });
+        const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
+        const actionName = action.name || 'Action';
+        const segments = [`${d20} (d20)`];
+        if (bonus) {
+          const sign = bonus >= 0 ? '+' : '-';
+          segments.push(`${sign} ${Math.abs(bonus)} Attack Bonus`);
+        }
+
+        window.dispatchEvent(
+          new CustomEvent('damage-roll', {
+            detail: {
+              value: result,
+              breakdown: segments.join(' '),
+              source: `${enemyName} ${actionName} Attack Roll`,
+              critical: d20 === 20,
+              fumble: d20 === 1,
+              rollLabel: 'Attack Roll',
+              diceRolls: [
+                {
+                  sides: 20,
+                  value: d20,
+                  type: 'Attack Roll',
+                  category: 'base',
+                },
+              ],
+            },
+          })
+        );
+
+        displayEnemyDiceResults([
+          {
+            sides: 20,
+            value: d20,
+            type: 'Attack Roll',
+            category: 'base',
+          },
+        ]);
+        setEnemyRollPopup({
+          value: result,
+          label: 'Attack Roll',
+          timestamp: Date.now(),
+        });
+        setLatestEnemyRoll({
+          enemyId: enemy.enemyId,
+          enemyName,
+          actionName,
+          total: result,
+          breakdown: segments.join(' '),
+          rollType: 'attack',
+        });
+      },
+      [displayEnemyDiceResults, showEnemyDiceOverlay]
+    );
+
     const handleEnemyDamageRoll = useCallback(
-      (enemy, action) => {
+      async (enemy, action) => {
         if (!enemy || !action) {
           return;
         }
@@ -1776,7 +2806,63 @@ export default function ZombiesDM() {
           return;
         }
 
-        const result = calculateDamage(damageString);
+        const validation = calculateDamage(damageString);
+        if (!validation) {
+          setStatus({
+            type: 'warning',
+            message: 'Unable to roll damage for this action.',
+          });
+          return;
+        }
+
+        let result = validation;
+        await showEnemyDiceOverlay();
+        const diceRequests = Array.isArray(validation.diceRolls)
+          ? validation.diceRolls.reduce((requests, die) => {
+              const sides = Number(die?.sides);
+              if (!Number.isFinite(sides) || sides < 2) {
+                return requests;
+              }
+              const existing = requests.find((request) => request.sides === sides);
+              if (existing) {
+                existing.count += 1;
+              } else {
+                requests.push({ count: 1, sides });
+              }
+              return requests;
+            }, [])
+          : [];
+
+        if (diceRequests.length > 0) {
+          try {
+            setDiceBoxThemeColor(DEFAULT_DICE_COLOR);
+            const { rolls } = await rollDiceWithBox(diceRequests);
+            const rolledValuesBySides = new Map();
+            diceRequests.forEach((request, requestIndex) => {
+              const rawGroup = Array.isArray(rolls) ? rolls[requestIndex] : undefined;
+              const values = Array.isArray(rawGroup) ? rawGroup : [rawGroup];
+              rolledValuesBySides.set(
+                request.sides,
+                values
+                  .map((value) => Number(value))
+                  .filter((value) => Number.isFinite(value))
+              );
+            });
+
+            result = calculateDamage(damageString, 0, false, (count, sides) => {
+              const queue = rolledValuesBySides.get(sides) || [];
+              return Array.from({ length: count }, () => {
+                const nextValue = queue.shift();
+                return Number.isFinite(nextValue)
+                  ? nextValue
+                  : Math.floor(Math.random() * sides) + 1;
+              });
+            });
+          } catch (error) {
+            console.error('Enemy damage roll using dice box failed', error);
+          }
+        }
+
         if (!result) {
           setStatus({
             type: 'warning',
@@ -1787,7 +2873,27 @@ export default function ZombiesDM() {
 
         const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
         const actionName = action.name || 'Action';
-        const message = `${enemyName} deals ${result.total} damage with ${actionName} (${result.breakdown}).`;
+        window.dispatchEvent(
+          new CustomEvent('damage-roll', {
+            detail: {
+              value: result.total,
+              breakdown: result.breakdown,
+              source: `${enemyName} ${actionName}`,
+              rollLabel: 'Damage',
+              diceRolls: result.diceRolls,
+              sourceLabel: `${enemyName} ${actionName}`,
+              actionLabel: 'Damage',
+              expression: damageString,
+            },
+          })
+        );
+
+        displayEnemyDiceResults(result.diceRolls);
+        setEnemyRollPopup({
+          value: result.total,
+          label: 'Damage',
+          timestamp: Date.now(),
+        });
 
         setLatestEnemyRoll({
           enemyId: enemy.enemyId,
@@ -1796,23 +2902,128 @@ export default function ZombiesDM() {
           total: result.total,
           breakdown: result.breakdown,
           damageFormula: damageString,
+          rollType: 'damage',
         });
 
-        setStatus({ type: 'info', message });
       },
-      [getEnemyActionDamageString, setStatus]
+      [displayEnemyDiceResults, getEnemyActionDamageString, setStatus, showEnemyDiceOverlay]
     );
+
+    const challengeRatingOptions = useMemo(() => {
+      if (!Array.isArray(monsterCatalog) || monsterCatalog.length === 0) {
+        return [];
+      }
+
+      const values = new Set();
+      monsterCatalog.forEach((monster) => {
+        const rating =
+          monster?.challengeRating !== undefined && monster?.challengeRating !== null
+            ? monster.challengeRating
+            : monster?.challenge_rating !== undefined && monster?.challenge_rating !== null
+            ? monster.challenge_rating
+            : null;
+        const numeric = Number(rating);
+        if (Number.isFinite(numeric)) {
+          values.add(numeric);
+        }
+      });
+
+      return Array.from(values)
+        .sort((a, b) => a - b)
+        .map((value) => ({
+          value: value.toString(),
+          label: formatChallengeRatingValue(value),
+        }));
+    }, [monsterCatalog, formatChallengeRatingValue]);
+
+    useEffect(() => {
+      if (monsterMinChallengeRating) {
+        const hasOption = challengeRatingOptions.some(
+          (option) => option.value === monsterMinChallengeRating
+        );
+        if (!hasOption) {
+          setMonsterMinChallengeRating('');
+        }
+      }
+
+      if (monsterMaxChallengeRating) {
+        const hasOption = challengeRatingOptions.some(
+          (option) => option.value === monsterMaxChallengeRating
+        );
+        if (!hasOption) {
+          setMonsterMaxChallengeRating('');
+        }
+      }
+    }, [challengeRatingOptions, monsterMinChallengeRating, monsterMaxChallengeRating]);
 
     const filteredMonsterCatalog = useMemo(() => {
       if (!Array.isArray(monsterCatalog) || monsterCatalog.length === 0) {
         return [];
       }
+
       const query = monsterSearch.trim().toLowerCase();
-      if (!query) {
-        return monsterCatalog;
+      const minValue =
+        monsterMinChallengeRating !== '' ? Number(monsterMinChallengeRating) : null;
+      const maxValue =
+        monsterMaxChallengeRating !== '' ? Number(monsterMaxChallengeRating) : null;
+
+      let effectiveMin = minValue;
+      let effectiveMax = maxValue;
+      if (effectiveMin !== null && effectiveMax !== null && effectiveMin > effectiveMax) {
+        [effectiveMin, effectiveMax] = [effectiveMax, effectiveMin];
       }
-      return monsterCatalog.filter((monster) => monster?.name?.toLowerCase().includes(query));
-    }, [monsterCatalog, monsterSearch]);
+
+      return monsterCatalog.filter((monster) => {
+        const nameMatches =
+          !query || monster?.name?.toLowerCase().includes(query);
+        if (!nameMatches) {
+          return false;
+        }
+
+        const ratingRaw =
+          monster?.challengeRating !== undefined && monster?.challengeRating !== null
+            ? monster.challengeRating
+            : monster?.challenge_rating !== undefined && monster?.challenge_rating !== null
+            ? monster.challenge_rating
+            : null;
+        const ratingNumeric = Number(ratingRaw);
+        const hasNumericRating = Number.isFinite(ratingNumeric);
+
+        if (effectiveMin !== null || effectiveMax !== null) {
+          if (!hasNumericRating) {
+            return false;
+          }
+          if (effectiveMin !== null && ratingNumeric < effectiveMin) {
+            return false;
+          }
+          if (effectiveMax !== null && ratingNumeric > effectiveMax) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+    }, [
+      monsterCatalog,
+      monsterSearch,
+      monsterMinChallengeRating,
+      monsterMaxChallengeRating,
+    ]);
+
+    useEffect(() => {
+      if (!selectedMonsterIndex) {
+        return;
+      }
+
+      const existsInFiltered = filteredMonsterCatalog.some(
+        (monster) => monster?.index === selectedMonsterIndex
+      );
+
+      if (!existsInFiltered) {
+        setSelectedMonsterIndex('');
+        setSelectedMonster(null);
+      }
+    }, [filteredMonsterCatalog, selectedMonsterIndex, setSelectedMonster]);
 
 
     useEffect(() => {
@@ -2359,6 +3570,121 @@ export default function ZombiesDM() {
       },
       [characterLookup]
     );
+
+    const combatHeaderParticipants = useMemo(() => {
+      const participants = Array.isArray(combatState.participants)
+        ? combatState.participants
+        : [];
+
+      if (participants.length === 0) {
+        return [];
+      }
+
+      const activeTurnIndex =
+        Number.isInteger(combatState.activeTurn) && combatState.activeTurn >= 0
+          ? combatState.activeTurn
+          : null;
+
+      const activeParticipantId =
+        activeTurnIndex !== null &&
+        activeTurnIndex < participants.length &&
+        participants[activeTurnIndex]
+          ? participants[activeTurnIndex].characterId
+          : null;
+
+      return participants
+        .slice()
+        .sort((a, b) => b.initiative - a.initiative)
+        .map((participant) => {
+          const characterId = participant.characterId;
+          const entity = characterLookup.get(characterId);
+          const displayName =
+            resolveDisplayName(characterId) ||
+            (typeof participant.displayName === 'string' &&
+            participant.displayName.trim() !== ''
+              ? participant.displayName.trim()
+              : null) ||
+            characterId;
+
+          const participantCurrentHp = toFiniteNumberOrNull(
+            participant.currentHp ?? participant.hpCurrent,
+          );
+          const participantMaxHp = toFiniteNumberOrNull(
+            participant.maxHp ?? participant.hpMax,
+          );
+
+          let normalizedCurrentHp = participantCurrentHp;
+          let normalizedMaxHp = participantMaxHp;
+
+          if (entity && entity.entityType !== 'enemy') {
+            const { currentHp: derivedCurrent, maxHp: derivedMax } =
+              calculateCharacterHitPoints(entity);
+            const resolvedCurrent = toFiniteNumberOrNull(derivedCurrent);
+            const resolvedMax = toFiniteNumberOrNull(derivedMax);
+
+            if (resolvedMax !== null) {
+              normalizedMaxHp = resolvedMax;
+              if (normalizedCurrentHp === null) {
+                normalizedCurrentHp =
+                  resolvedCurrent !== null ? resolvedCurrent : resolvedMax;
+              }
+            } else if (resolvedCurrent !== null && normalizedCurrentHp === null) {
+              normalizedCurrentHp = resolvedCurrent;
+            }
+
+            if (normalizedCurrentHp === null && normalizedMaxHp === null) {
+              const fallbackMax = toFiniteNumberOrNull(
+                entity.maxHp ?? entity.hpMax ?? entity.health,
+              );
+              if (fallbackMax !== null) {
+                normalizedMaxHp = fallbackMax;
+                if (normalizedCurrentHp === null) {
+                  normalizedCurrentHp = fallbackMax;
+                }
+              }
+            }
+          } else {
+            const enemyHealth = resolveParticipantHealth(characterId);
+            const enemyCurrent = toFiniteNumberOrNull(enemyHealth.currentHp);
+            const enemyMax = toFiniteNumberOrNull(enemyHealth.maxHp);
+            if (enemyMax !== null) {
+              normalizedMaxHp = enemyMax;
+              if (normalizedCurrentHp === null) {
+                normalizedCurrentHp =
+                  enemyCurrent !== null ? enemyCurrent : enemyMax;
+              }
+            } else if (enemyCurrent !== null && normalizedCurrentHp === null) {
+              normalizedCurrentHp = enemyCurrent;
+            }
+          }
+
+          let hpDisplay = '—';
+          if (normalizedCurrentHp !== null && normalizedMaxHp !== null) {
+            hpDisplay = `${normalizedCurrentHp}/${normalizedMaxHp}`;
+          } else if (normalizedCurrentHp !== null) {
+            hpDisplay = `${normalizedCurrentHp}`;
+          } else if (normalizedMaxHp !== null) {
+            hpDisplay = `${normalizedMaxHp}`;
+          }
+
+          return {
+            characterId,
+            name: displayName,
+            hpCurrent: normalizedCurrentHp,
+            hpMax: normalizedMaxHp,
+            hpDisplay,
+            initiative: participant.initiative,
+            isActive:
+              activeParticipantId !== null && characterId === activeParticipantId,
+          };
+        });
+    }, [
+      combatState.participants,
+      combatState.activeTurn,
+      characterLookup,
+      resolveDisplayName,
+      resolveParticipantHealth,
+    ]);
 
     const calculateEntityInitiative = useCallback(
       (entity) => {
@@ -2969,6 +4295,21 @@ export default function ZombiesDM() {
 
     const displayedMap = generatedMap || previewMap || campaignMap;
 
+    const activeMapTitle = useMemo(() => {
+      if (campaignMap) {
+        return getMapDisplayTitle(campaignMap, DEFAULT_MAP_TITLE);
+      }
+      if (
+        displayedMap &&
+        typeof displayedMap.mapId === 'string' &&
+        typeof activeMapId === 'string' &&
+        displayedMap.mapId.trim() === activeMapId.trim()
+      ) {
+        return getMapDisplayTitle(displayedMap, DEFAULT_MAP_TITLE);
+      }
+      return null;
+    }, [activeMapId, campaignMap, displayedMap]);
+
     const shouldShowCampaignTokens = useMemo(() => {
       const normalizedDisplayedMapId =
         typeof displayedMap?.mapId === 'string' && displayedMap.mapId.trim() !== ''
@@ -2996,43 +4337,6 @@ export default function ZombiesDM() {
         normalizedDisplayedMapId === normalizedActiveMapId
       );
     }, [activeMapId, campaignMap, displayedMap, generatedMap]);
-
-    const modalTokensByMapId = useMemo(() => {
-      const sanitizedMapTokens = sanitizeTokensByMapId(mapTokens);
-      const merged = { ...sanitizedMapTokens };
-
-      const campaignMapId =
-        typeof campaignMap?.mapId === 'string' && campaignMap.mapId.trim() !== ''
-          ? campaignMap.mapId.trim()
-          : null;
-
-      if (campaignMapId) {
-        const campaignTokens = sanitizeTokenDictionary(campaignMap?.tokens);
-        if (Object.keys(campaignTokens).length > 0) {
-          merged[campaignMapId] = {
-            ...(merged[campaignMapId] || {}),
-            ...campaignTokens,
-          };
-        }
-      }
-
-      const normalizedActiveMapId =
-        typeof activeMapId === 'string' && activeMapId.trim() !== ''
-          ? activeMapId.trim()
-          : null;
-
-      if (normalizedActiveMapId) {
-        const normalizedActiveTokens = sanitizeTokenDictionary(activeMapTokens);
-        if (Object.keys(normalizedActiveTokens).length > 0) {
-          merged[normalizedActiveMapId] = {
-            ...(merged[normalizedActiveMapId] || {}),
-            ...normalizedActiveTokens,
-          };
-        }
-      }
-
-      return merged;
-    }, [activeMapId, activeMapTokens, campaignMap, mapTokens]);
 
     const boardTokens = useMemo(() => {
       const activeCharacterId =
@@ -3169,6 +4473,51 @@ export default function ZombiesDM() {
       tokenMetaById,
     ]);
 
+    const activeMapEnemySummaries = useMemo(
+      () =>
+        createActiveMapEnemySummaries({
+          activeMapTokens,
+          enemies,
+          tokenMetaById,
+          participantLookup,
+          formatArmorClass,
+          formatChallengeRatingValue,
+          activeParticipantId: activeParticipant?.characterId,
+        }),
+      [
+        activeMapTokens,
+        enemies,
+        formatArmorClass,
+        formatChallengeRatingValue,
+        participantLookup,
+        activeParticipant?.characterId,
+        tokenMetaById,
+      ]
+    );
+
+    const placementEnemyName = useMemo(() => {
+      if (typeof mapPlacementState.enemyName === 'string' && mapPlacementState.enemyName.trim() !== '') {
+        return mapPlacementState.enemyName.trim();
+      }
+      return null;
+    }, [mapPlacementState.enemyName]);
+
+    const mapPlacementInstruction = useMemo(() => {
+      if (!mapPlacementState.show) {
+        return '';
+      }
+
+      if (!shouldShowCampaignTokens) {
+        return 'Activate the campaign map to place this enemy.';
+      }
+
+      if (placementEnemyName) {
+        return `Click the map to place ${placementEnemyName}.`;
+      }
+
+      return 'Click the map to place the enemy.';
+    }, [mapPlacementState.show, placementEnemyName, shouldShowCampaignTokens]);
+
     const handleTokenPositionChange = useCallback(
       ({ characterId, x, y, rotation }) => {
         const normalizedDisplayedMapId =
@@ -3200,36 +4549,34 @@ export default function ZombiesDM() {
       [campaignMap, displayedMap, persistTokenPosition, shouldShowCampaignTokens]
     );
 
-    const handleOpenMapPlacement = useCallback((enemyId, enemyName) => {
-      const normalizedId =
-        typeof enemyId === 'string' && enemyId.trim() !== '' ? enemyId.trim() : null;
-
-      if (!normalizedId) {
-        return;
-      }
-
-      const normalizedName =
-        typeof enemyName === 'string' && enemyName.trim() !== '' ? enemyName.trim() : null;
-
-      setMapPlacementState({
-        show: true,
-        enemyId: normalizedId,
-        enemyName: normalizedName,
-      });
-    }, []);
-
     const handleCloseMapPlacement = useCallback(() => {
       setMapPlacementState({ show: false, enemyId: null, enemyName: null });
     }, []);
 
-    const handleMapModalTokenMove = useCallback(
-      async ({ mapId, characterId, x, y, rotation }) => {
-        const normalizedMapId =
-          typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
+    useEffect(() => {
+      if (!mapPlacementState.show) {
+        setMapPlacementSaving(false);
+        setMapPlacementError(null);
+      }
+    }, [mapPlacementState.show]);
+
+    const commitEnemyMapPlacement = useCallback(
+      async ({ mapId, x, y, rotation }) => {
+        if (!mapPlacementState.show || !shouldShowCampaignTokens) {
+          return false;
+        }
+
         const normalizedCharacterId =
-          typeof characterId === 'string' && characterId.trim() !== ''
-            ? characterId.trim()
-            : mapPlacementState.enemyId;
+          typeof mapPlacementState.enemyId === 'string' && mapPlacementState.enemyId.trim() !== ''
+            ? mapPlacementState.enemyId.trim()
+            : null;
+        const candidateMapId =
+          typeof mapId === 'string' && mapId.trim() !== '' ? mapId.trim() : null;
+        const normalizedDisplayedMapId =
+          typeof displayedMap?.mapId === 'string' && displayedMap.mapId.trim() !== ''
+            ? displayedMap.mapId.trim()
+            : null;
+        const normalizedMapId = candidateMapId || normalizedDisplayedMapId;
         const clampedX = clamp01(x);
         const clampedY = clamp01(y);
         const normalizedRotation = normalizeRotation(rotation);
@@ -3248,33 +4595,96 @@ export default function ZombiesDM() {
 
         return true;
       },
-      [mapPlacementState.enemyId, persistTokenPosition]
+      [
+        displayedMap,
+        mapPlacementState.enemyId,
+        mapPlacementState.show,
+        persistTokenPosition,
+        shouldShowCampaignTokens,
+      ]
+    );
+
+    const handleMapBackgroundPlacement = useCallback(
+      async ({ x, y }) => {
+        if (!mapPlacementState.show || mapPlacementSaving) {
+          return false;
+        }
+
+        setMapPlacementSaving(true);
+        setMapPlacementError(null);
+
+        try {
+          const result = await commitEnemyMapPlacement({ x, y });
+          if (!result) {
+            setMapPlacementError('Unable to update figurine position.');
+            return false;
+          }
+
+          handleCloseMapPlacement();
+          return true;
+        } catch (error) {
+          const message =
+            (error && typeof error.message === 'string' && error.message.trim()) ||
+            'Failed to update figurine position.';
+          setMapPlacementError(message);
+          return false;
+        } finally {
+          setMapPlacementSaving(false);
+        }
+      },
+      [commitEnemyMapPlacement, handleCloseMapPlacement, mapPlacementSaving, mapPlacementState.show]
     );
 
 
     const RESOURCE_TABS = useMemo(
       () => [
-        { key: 'characters', title: 'Characters' },
-        { key: 'players', title: 'Players' },
-        { key: 'map', title: 'Map' },
-        { key: 'enemies', title: 'Enemies' },
-        { key: 'weapons', title: 'Weapons' },
-        { key: 'armor', title: 'Armor' },
-        { key: 'items', title: 'Items' },
-        { key: 'accessories', title: 'Accessories' },
+        { key: 'characters', title: 'Characters', icon: GiCharacter },
+        { key: 'players', title: 'Players', icon: GiHolyGrail },
+        { key: 'map', title: 'Map', icon: GiTreasureMap },
+        { key: 'enemies', title: 'Enemies', icon: GiPentagramRose },
+        { key: 'weapons', title: 'Weapons', icon: GiBroadsword },
+        { key: 'armor', title: 'Armor', icon: GiArmorVest },
+        { key: 'items', title: 'Items', icon: GiBackpack },
+        { key: 'accessories', title: 'Accessories', icon: GiSpellBook },
+        { key: 'shop', title: 'Shop', icon: GiHolyGrail },
       ],
       [calculateCharacterInitiative]
     );
-    const [activeResourceTab, setActiveResourceTab] = useState('characters');
+    const [activeResourceTab, setActiveResourceTab] = useState(null);
 
-    const handleSelectResourceTab = useCallback(
-      (key) => {
-        if (!key || key === activeResourceTab) {
+    const handleSelectResourceTab = useCallback((key) => {
+      if (!key) {
+        return;
+      }
+
+      setActiveResourceTab((current) => (current === key ? null : key));
+    }, []);
+
+    const handleShowEnemiesTab = useCallback(() => {
+      setActiveResourceTab('enemies');
+    }, [setActiveResourceTab]);
+
+    const handleOpenMapPlacement = useCallback(
+      (enemyId, enemyName) => {
+        const normalizedId =
+          typeof enemyId === 'string' && enemyId.trim() !== '' ? enemyId.trim() : null;
+
+        if (!normalizedId) {
           return;
         }
-        setActiveResourceTab(key);
+
+        const normalizedName =
+          typeof enemyName === 'string' && enemyName.trim() !== '' ? enemyName.trim() : null;
+
+        setMapPlacementState({
+          show: true,
+          enemyId: normalizedId,
+          enemyName: normalizedName,
+        });
+
+        setActiveResourceTab((current) => (current === 'enemies' ? null : current));
       },
-      [activeResourceTab]
+      [setActiveResourceTab, setMapPlacementState]
     );
 
     useEffect(() => {
@@ -3581,6 +4991,8 @@ export default function ZombiesDM() {
           ? lastMapFolder
           : '';
 
+      const defaultGridSelection = resolveMapGridSelection(safeMap);
+
       const shouldUseExistingOption =
         defaultFolder && availableMapFolders.includes(defaultFolder);
 
@@ -3598,7 +5010,10 @@ export default function ZombiesDM() {
         imageUrl: '',
         imageBase64: '',
         imageType: '',
+        imageWidth: null,
+        imageHeight: null,
         altText: '',
+        gridSelection: defaultGridSelection,
         activateOnSave: maps.length === 0,
         fileInputKey: Date.now(),
       });
@@ -3640,7 +5055,10 @@ export default function ZombiesDM() {
           typeof safeMap.imageBase64 === 'string' ? safeMap.imageBase64 : '',
         imageType:
           typeof safeMap.imageType === 'string' ? safeMap.imageType : '',
+        imageWidth: Number.isFinite(Number(safeMap.imageWidth)) ? Number(safeMap.imageWidth) : null,
+        imageHeight: Number.isFinite(Number(safeMap.imageHeight)) ? Number(safeMap.imageHeight) : null,
         altText: typeof safeMap.altText === 'string' ? safeMap.altText : '',
+        gridSelection: resolveMapGridSelection(safeMap),
         activateOnSave: false,
         fileInputKey: Date.now(),
       });
@@ -3681,6 +5099,8 @@ export default function ZombiesDM() {
           ...prev,
           imageBase64: '',
           imageType: '',
+          imageWidth: null,
+          imageHeight: null,
         }));
         return;
       }
@@ -3693,6 +5113,8 @@ export default function ZombiesDM() {
             ...prev,
             imageBase64: '',
             imageType: '',
+            imageWidth: null,
+            imageHeight: null,
           }));
           return;
         }
@@ -3714,7 +5136,23 @@ export default function ZombiesDM() {
           imageBase64: nextImageBase64,
           imageType: nextImageType,
           imageUrl: '',
+          imageWidth: null,
+          imageHeight: null,
         }));
+
+        const dataUrl = result.startsWith('data:') ? result : `data:${nextImageType || 'image/*'};base64,${nextImageBase64}`;
+
+        loadMapEditorImageDimensions(dataUrl).then((dimensions) => {
+          if (!dimensions) {
+            return;
+          }
+
+          setMapEditorState((prev) => ({
+            ...prev,
+            imageWidth: dimensions.width,
+            imageHeight: dimensions.height,
+          }));
+        });
       };
 
       reader.onerror = () => {
@@ -3722,6 +5160,8 @@ export default function ZombiesDM() {
           ...prev,
           imageBase64: '',
           imageType: '',
+          imageWidth: null,
+          imageHeight: null,
         }));
       };
 
@@ -3743,7 +5183,10 @@ export default function ZombiesDM() {
           imageUrl,
           imageBase64,
           imageType,
+          imageWidth,
+          imageHeight,
           altText,
+          gridSelection,
           activateOnSave,
         } = mapEditorState;
 
@@ -3815,6 +5258,51 @@ export default function ZombiesDM() {
           if (trimmedImageType) {
             payloadMap.imageType = trimmedImageType;
           }
+        }
+
+        const parsedGridSelection = Number.parseInt(gridSelection, 10);
+        const resolvedGridDimension = MAP_GRID_DIMENSION_OPTIONS.includes(parsedGridSelection)
+          ? parsedGridSelection
+          : DEFAULT_MAP_GRID_DIMENSION;
+
+        if (Number.isFinite(resolvedGridDimension) && resolvedGridDimension > 0) {
+          const hasStoredImageDimensions =
+            Number.isFinite(Number(imageWidth)) &&
+            Number.isFinite(Number(imageHeight)) &&
+            Number(imageWidth) > 0 &&
+            Number(imageHeight) > 0;
+          const existingDimensions = hasStoredImageDimensions
+            ? { width: Number(imageWidth), height: Number(imageHeight) }
+            : trimmedImageUrl
+            ? await loadMapEditorImageDimensions(trimmedImageUrl)
+            : null;
+          const resolvedGridRows = resolveAspectMatchedGridRows(
+            resolvedGridDimension,
+            existingDimensions?.width,
+            existingDimensions?.height
+          );
+          const gridDimensionString = formatGridDimensionString(resolvedGridDimension, resolvedGridRows);
+          payloadMap.gridColumns = resolvedGridDimension;
+          payloadMap.gridRows = resolvedGridRows;
+          if (existingDimensions) {
+            payloadMap.imageWidth = existingDimensions.width;
+            payloadMap.imageHeight = existingDimensions.height;
+          }
+          payloadMap.gridDimensions = gridDimensionString;
+          payloadMap.gridSize = gridDimensionString;
+
+          const existingGrid =
+            payloadMap.grid && typeof payloadMap.grid === 'object' ? payloadMap.grid : {};
+
+          payloadMap.grid = {
+            ...existingGrid,
+            columns: resolvedGridDimension,
+            rows: resolvedGridRows,
+            dimensions: gridDimensionString,
+            size: gridDimensionString,
+            gridSize: gridDimensionString,
+            gridDimensions: gridDimensionString,
+          };
         }
 
         if (mode === 'create') {
@@ -4153,6 +5641,14 @@ export default function ZombiesDM() {
     };
 //--------------------------------------------Campaign Section------------------------------
 const [campaignDM, setCampaignDM] = useState({ players: [] });
+
+const campaignTitle = useMemo(
+  () =>
+    campaignDM && campaignDM.campaignName
+      ? campaignDM.campaignName
+      : params.campaign ?? '',
+  [campaignDM, params.campaign]
+);
 
 // Fetch CampaignsDM
 useEffect(() => {
@@ -5098,6 +6594,7 @@ const armorCategoryIcons = {
 const itemCategoryIcons = {
   'adventuring gear': GiBackpack,
   ammunition: GiAmmoBox,
+  consumable: GiPotionBall,
   tool: GiHammerNails,
   mount: GiHorseHead,
   'tack and harness': GiSaddle,
@@ -5128,62 +6625,218 @@ const resolveIcon = (category, iconMap, fallback) => {
 // -----------------------------------Display-----------------------------------------------------------------------------
   return (
     <div
-      className="pt-2 text-center"
+      className="zombies-dm-page text-center"
       style={{
         fontFamily: 'Raleway, sans-serif',
         backgroundImage: `url(${loginbg})`,
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
         minHeight: '100vh',
-        paddingBottom: '5rem',
       }}
     >
-      <div style={{ paddingTop: '5rem' }}></div>
-      {status && (
-        <Alert variant={status.type} dismissible onClose={() => setStatus(null)}>
-          {status.message}
-        </Alert>
-      )}
+      <div className="zombies-dm-page__map-surface" role="presentation">
+        {displayedMap ? (
+          <CampaignMapBoard
+            className="zombies-dm-page__map-board"
+            map={displayedMap}
+            tokens={boardTokens}
+            disabled={!shouldShowCampaignTokens || mapPlacementSaving}
+            allowWheelZoom
+            onTokenPositionChange={
+              shouldShowCampaignTokens && !mapPlacementSaving
+                ? handleTokenPositionChange
+                : undefined
+            }
+            onTokenRemove={handleMapTokenRemove}
+            onBackgroundClick={
+              mapPlacementState.show && shouldShowCampaignTokens && !mapPlacementSaving
+                ? handleMapBackgroundPlacement
+                : undefined
+            }
+          />
+        ) : (
+          <div className="zombies-dm-page__map-empty text-light">
+            No map selected.
+          </div>
+        )}
+      </div>
 
-      <Container className="zombies-dm-container zombies-dm-container--spaced">
-        <Tab.Container activeKey={activeResourceTab || null} onSelect={handleSelectResourceTab}>
-          <div
-            className="d-flex justify-content-center mb-2"
-            style={{ position: 'relative', zIndex: '4' }}
+      <div className="zombies-dm-page__chrome">
+        {status && (
+          <Alert
+            variant={status.type}
+            dismissible
+            onClose={() => setStatus(null)}
+            className="zombies-dm-page__status-alert"
           >
-            <h2 className="text-white text-center mb-0">
-              {campaignDM.campaignName ?? params.campaign}
-            </h2>
-          </div>
+            {status.message}
+          </Alert>
+        )}
+
+        {mapPlacementState.show && (
           <div
-            className="d-flex justify-content-center mb-3"
-            style={{ position: 'relative', zIndex: '4' }}
+            className="zombies-dm-page__map-placement-overlay"
+            data-testid="map-placement-overlay"
           >
-            <Nav variant="tabs" className="flex-wrap">
-              {RESOURCE_TABS.map(({ key, title }) => (
-                <Nav.Item key={key}>
-                  <Nav.Link eventKey={key}>{title}</Nav.Link>
-                </Nav.Item>
-              ))}
-            </Nav>
+            <div
+              className="zombies-dm-page__map-placement-message"
+              aria-live="polite"
+            >
+              {mapPlacementSaving ? (
+                <>
+                  <Spinner
+                    animation="border"
+                    role="status"
+                    size="sm"
+                    className="me-2"
+                  >
+                    <span className="visually-hidden">Saving figurine position…</span>
+                  </Spinner>
+                  <span>Saving figurine position…</span>
+                </>
+              ) : (
+                <span>{mapPlacementInstruction}</span>
+              )}
+            </div>
+            {mapPlacementError && (
+              <div
+                className="zombies-dm-page__map-placement-error"
+                role="alert"
+              >
+                {mapPlacementError}
+              </div>
+            )}
+            <div className="zombies-dm-page__map-placement-actions">
+              <Button
+                variant="outline-light"
+                size="sm"
+                onClick={handleCloseMapPlacement}
+                disabled={mapPlacementSaving}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
-          <Tab.Content>
-    <Tab.Pane eventKey="characters">
+        )}
+
+        {campaignTitle && (
+          <div className="zombies-dm-page__map-heading">
+            <span className="zombies-dm-page__map-heading-label">DM Command Center</span>
+            <span className="zombies-dm-page__map-heading-title">
+              {campaignTitle}
+            </span>
+            <span className="zombies-dm-page__map-heading-meta">
+              {activeMapTitle || 'No battleground selected'} • {combatParticipantCount ? `${combatParticipantCount} in initiative` : 'Encounter idle'}
+            </span>
+          </div>
+        )}
+
+        <div className="zombies-dm-page__combat-header">
+          <CombatTurnHeader
+            participants={combatHeaderParticipants}
+            tokenLookup={tokenMetaById}
+          />
+        </div>
+
+        {enemyDiceOverlayActive && (
+          <div className="zombies-dm-roll-dice-overlay" aria-hidden="true">
+            <div className="damage-roller__dice-wrapper zombies-dm-roll-dice-overlay__wrapper">
+              <div className="damage-roller__dice-area zombies-dm-roll-dice-overlay__area">
+                <DamageDiceCanvas
+                  dice={enemyRollDice}
+                  diceColor={DEFAULT_DICE_COLOR}
+                  instanceKey="zombies-dm-enemy-rolls"
+                  showOverlayDice={false}
+                  diceAreaSize={520}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {enemyRollPopup && (
+          <div className="combat-hud-damage-popup" role="status" aria-live="polite">
+            <button
+              type="button"
+              className="combat-hud-damage-popup__close"
+              onClick={() => setEnemyRollPopup(null)}
+              aria-label="Close enemy roll popup"
+            >
+              ×
+            </button>
+            <span className="combat-hud-damage-popup__label">{enemyRollPopup.label || 'Damage'}</span>
+            <strong className="combat-hud-damage-popup__value">{enemyRollPopup.value}</strong>
+          </div>
+        )}
+
+        <ActiveEnemyQuickList
+          summaries={activeMapEnemySummaries}
+          activeMapTitle={activeMapTitle}
+          onManageEnemies={handleShowEnemiesTab}
+          onResetInitiative={handleResetInitiative}
+          onRollInitiative={handleRollInitiative}
+          onAdvanceTurn={handleAdvanceTurn}
+          combatControlsDisabled={combatParticipantCount === 0}
+          onToggleParticipant={handleToggleParticipant}
+          onOpenMapPlacement={handleOpenMapPlacement}
+          onViewDetails={handleShowEnemiesTab}
+          enemyHealthAdjustments={enemyHealthAdjustments}
+          enemyHealthSaving={enemyHealthSaving}
+          onEnemyAdjustmentInputChange={handleEnemyAdjustmentInputChange}
+          onApplyEnemyHealthAdjustment={handleApplyEnemyHealthAdjustment}
+          onResetEnemyHealth={handleResetEnemyHealth}
+          onEnemyDamageRoll={handleEnemyDamageRoll}
+          onEnemyAttackRoll={handleEnemyAttackRoll}
+          formatAttackBonus={formatAttackBonus}
+          getEnemyActionDamageString={getEnemyActionDamageString}
+          latestEnemyRoll={latestEnemyRoll}
+        />
+      </div>
+
+      <div
+        className="zombies-dm-bottom-bar"
+        role="toolbar"
+        aria-label="Dungeon Master resources"
+      >
+        {RESOURCE_TABS.map(({ key, title, icon: DockIcon }) => {
+          const isActiveTab = activeResourceTab === key;
+          const tabClassName = `zombies-dm-bottom-bar__button btn ${
+            isActiveTab ? 'btn-primary' : 'btn-outline-light'
+          }`;
+
+          return (
+            <button
+              key={key}
+              type="button"
+              className={tabClassName}
+              onClick={() => handleSelectResourceTab(key)}
+              role="tab"
+              aria-selected={isActiveTab}
+              aria-pressed={isActiveTab}
+            >
+              {DockIcon && <DockIcon className="zombies-dm-bottom-bar__icon" aria-hidden="true" />}
+              <span>{title}</span>
+            </button>
+          );
+        })}
+      </div>
+
+          <Modal
+        show={activeResourceTab === 'characters'}
+        onHide={() => handleCloseResourceTab('characters')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Characters</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'characters' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-characters-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <CloseButton
-                    className="ms-auto"
-                    variant="white"
-                    onClick={() => handleCloseResourceTab('characters')}
-                    aria-label="Close characters tab"
-                  />
-                </div>
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -5553,23 +7206,24 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="players">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'players'}
+        onHide={() => handleCloseResourceTab('players')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Players</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'players' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-players-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <CloseButton
-                    className="ms-auto"
-                    variant="white"
-                    onClick={() => handleCloseResourceTab('players')}
-                    aria-label="Close players tab"
-                  />
-                </div>
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -5636,23 +7290,24 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="map">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'map'}
+        onHide={() => handleCloseResourceTab('map')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Map</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'map' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-map-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <CloseButton
-                    className="ms-auto"
-                    variant="white"
-                    onClick={() => handleCloseResourceTab('map')}
-                    aria-label="Close map tab"
-                  />
-                </div>
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -5698,157 +7353,158 @@ const resolveIcon = (category, iconMap, fallback) => {
                             </Button>
                           </div>
                         </div>
-                        {groupedMaps.length > 0 ? (
-                          <ListGroup
-                            variant="flush"
-                            className="bg-transparent map-list"
-                            data-testid="map-list"
-                          >
-                            {groupedMaps.map((group) => {
-                              const folderTestId = sanitizeTestIdValue(
-                                group.key === UNGROUPED_FOLDER_KEY ? 'ungrouped' : group.key,
-                                'folder'
-                              );
-                              const isExpanded =
-                                typeof mapFolderExpansion[group.key] === 'boolean'
-                                  ? mapFolderExpansion[group.key]
-                                  : group.key === UNGROUPED_FOLDER_KEY;
+                        <div data-testid="map-list">
+                          {groupedMaps.length > 0 ? (
+                            <ListGroup
+                              variant="flush"
+                              className="bg-transparent map-list"
+                            >
+                              {groupedMaps.map((group) => {
+                                const folderTestId = sanitizeTestIdValue(
+                                  group.key === UNGROUPED_FOLDER_KEY ? 'ungrouped' : group.key,
+                                  'folder'
+                                );
+                                const isExpanded =
+                                  typeof mapFolderExpansion[group.key] === 'boolean'
+                                    ? mapFolderExpansion[group.key]
+                                    : group.key === UNGROUPED_FOLDER_KEY;
 
-                              return (
-                                <React.Fragment key={group.key}>
-                                  <ListGroup.Item
-                                    className="bg-dark text-light border-secondary"
-                                    data-testid={`map-folder-${folderTestId}-header`}
-                                  >
-                                    <div className="d-flex align-items-center justify-content-between gap-2">
-                                      <button
-                                        type="button"
-                                        className="btn btn-link text-light text-decoration-none p-0 d-flex align-items-center gap-2"
-                                        onClick={() => handleToggleMapFolder(group.key)}
-                                        aria-expanded={isExpanded}
-                                        data-testid={`map-folder-toggle-${folderTestId}`}
-                                      >
-                                        <span
-                                          className="d-inline-flex align-items-center justify-content-center"
-                                          aria-hidden="true"
+                                return (
+                                  <React.Fragment key={group.key}>
+                                    <ListGroup.Item
+                                      className="bg-dark text-light border-secondary"
+                                      data-testid={`map-folder-${folderTestId}-header`}
+                                    >
+                                      <div className="d-flex align-items-center justify-content-between gap-2">
+                                        <button
+                                          type="button"
+                                          className="btn btn-link text-light text-decoration-none p-0 d-flex align-items-center gap-2"
+                                          onClick={() => handleToggleMapFolder(group.key)}
+                                          aria-expanded={isExpanded}
+                                          data-testid={`map-folder-toggle-${folderTestId}`}
                                         >
-                                          {isExpanded ? (
-                                            <FiChevronDown aria-hidden="true" />
-                                          ) : (
-                                            <FiChevronRight aria-hidden="true" />
-                                          )}
-                                        </span>
-                                        <span className="fw-semibold text-start">
-                                          {group.label}
-                                        </span>
-                                      </button>
-                                      <Badge
-                                        bg="secondary"
-                                        pill
-                                        data-testid={`map-folder-count-${folderTestId}`}
-                                      >
-                                        {group.maps.length}
-                                        <span className="visually-hidden"> maps</span>
-                                      </Badge>
-                                    </div>
-                                  </ListGroup.Item>
-                                  {isExpanded &&
-                                    group.maps.map((mapItem, index) => {
-                                      const mapIdValue = normalizeMapId(mapItem?.mapId);
-                                      const mapKey = mapIdValue || `map-${group.key}-${index}`;
-                                      const isActive = Boolean(
-                                        mapIdValue && mapIdValue === normalizedActiveMapId
-                                      );
-                                      const isSelected = Boolean(
-                                        mapIdValue && normalizedSelectedMapId === mapIdValue
-                                      );
-                                      const isProcessing = Boolean(
-                                        mapIdValue && mapActionLoadingId === mapIdValue
-                                      );
-                                      const title = getMapDisplayTitle(
-                                        mapItem,
-                                        DEFAULT_MAP_TITLE
-                                      );
-                                      const mapTestId = `map-list-item-${mapKey}`;
-
-                                      return (
-                                        <ListGroup.Item
-                                          key={mapKey}
-                                          action={Boolean(mapIdValue)}
-                                          active={isSelected}
-                                          onClick={() => mapIdValue && handleSelectMap(mapIdValue)}
-                                          className="bg-dark text-light border-secondary ps-4"
-                                          data-testid={mapTestId}
-                                          data-folder-key={group.key}
-                                        >
-                                          <div className="d-flex justify-content-between align-items-start">
-                                            <div className="fw-semibold">{title}</div>
-                                            {isActive && (
-                                              <Badge
-                                                bg="success"
-                                                className="ms-2"
-                                                data-testid={`map-active-badge-${mapKey}`}
-                                              >
-                                                Active
-                                              </Badge>
+                                          <span
+                                            className="d-inline-flex align-items-center justify-content-center"
+                                            aria-hidden="true"
+                                          >
+                                            {isExpanded ? (
+                                              <FiChevronDown aria-hidden="true" />
+                                            ) : (
+                                              <FiChevronRight aria-hidden="true" />
                                             )}
-                                          </div>
-                                          <div className="d-flex flex-wrap gap-2 mt-3">
-                                            <Button
-                                              variant="outline-light"
-                                              size="sm"
-                                              disabled={!mapIdValue || isProcessing}
-                                              onClick={(event) => {
-                                                event.stopPropagation();
-                                                if (mapIdValue) {
-                                                  openRenameMapModal(mapItem);
-                                                }
-                                              }}
-                                              data-testid={`map-rename-button-${mapKey}`}
-                                            >
-                                              Rename
-                                            </Button>
-                                            <Button
-                                              variant="outline-light"
-                                              size="sm"
-                                              disabled={!mapIdValue || isActive || isProcessing}
-                                              onClick={(event) => {
-                                                event.stopPropagation();
-                                                if (mapIdValue) {
-                                                  handleActivateMap(mapIdValue);
-                                                }
-                                              }}
-                                              data-testid={`map-activate-button-${mapKey}`}
-                                            >
-                                              {isActive ? 'Active' : 'Set Active'}
-                                            </Button>
-                                            <Button
-                                              variant="outline-danger"
-                                              size="sm"
-                                              disabled={!mapIdValue || isProcessing}
-                                              onClick={(event) => {
-                                                event.stopPropagation();
-                                                if (mapIdValue) {
-                                                  handleDeleteMap(mapIdValue);
-                                                }
-                                              }}
-                                              data-testid={`map-delete-button-${mapKey}`}
-                                            >
-                                              Delete
-                                            </Button>
-                                          </div>
-                                        </ListGroup.Item>
-                                      );
-                                    })}
-                                </React.Fragment>
-                              );
-                            })}
+                                          </span>
+                                          <span className="fw-semibold text-start">
+                                            {group.label}
+                                          </span>
+                                        </button>
+                                        <Badge
+                                          bg="secondary"
+                                          pill
+                                          data-testid={`map-folder-count-${folderTestId}`}
+                                        >
+                                          {group.maps.length}
+                                          <span className="visually-hidden"> maps</span>
+                                        </Badge>
+                                      </div>
+                                    </ListGroup.Item>
+                                    {isExpanded &&
+                                      group.maps.map((mapItem, index) => {
+                                        const mapIdValue = normalizeMapId(mapItem?.mapId);
+                                        const mapKey = mapIdValue || `map-${group.key}-${index}`;
+                                        const isActive = Boolean(
+                                          mapIdValue && mapIdValue === normalizedActiveMapId
+                                        );
+                                        const isSelected = Boolean(
+                                          mapIdValue && normalizedSelectedMapId === mapIdValue
+                                        );
+                                        const isProcessing = Boolean(
+                                          mapIdValue && mapActionLoadingId === mapIdValue
+                                        );
+                                        const title = getMapDisplayTitle(
+                                          mapItem,
+                                          DEFAULT_MAP_TITLE
+                                        );
+                                        const mapTestId = `map-list-item-${mapKey}`;
+
+                                        return (
+                                          <ListGroup.Item
+                                            key={mapKey}
+                                            action={Boolean(mapIdValue)}
+                                            active={isSelected}
+                                            onClick={() => mapIdValue && handleSelectMap(mapIdValue)}
+                                            className="bg-dark text-light border-secondary ps-4"
+                                            data-testid={mapTestId}
+                                            data-folder-key={group.key}
+                                          >
+                                            <div className="d-flex justify-content-between align-items-start">
+                                              <div className="fw-semibold">{title}</div>
+                                              {isActive && (
+                                                <Badge
+                                                  bg="success"
+                                                  className="ms-2"
+                                                  data-testid={`map-active-badge-${mapKey}`}
+                                                >
+                                                  Active
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            <div className="d-flex flex-wrap gap-2 mt-3">
+                                              <Button
+                                                variant="outline-light"
+                                                size="sm"
+                                                disabled={!mapIdValue || isProcessing}
+                                                onClick={(event) => {
+                                                  event.stopPropagation();
+                                                  if (mapIdValue) {
+                                                    openRenameMapModal(mapItem);
+                                                  }
+                                                }}
+                                                data-testid={`map-rename-button-${mapKey}`}
+                                              >
+                                                Rename
+                                              </Button>
+                                              <Button
+                                                variant="outline-light"
+                                                size="sm"
+                                                disabled={!mapIdValue || isActive || isProcessing}
+                                                onClick={(event) => {
+                                                  event.stopPropagation();
+                                                  if (mapIdValue) {
+                                                    handleActivateMap(mapIdValue);
+                                                  }
+                                                }}
+                                                data-testid={`map-activate-button-${mapKey}`}
+                                              >
+                                                {isActive ? 'Active' : 'Set Active'}
+                                              </Button>
+                                              <Button
+                                                variant="outline-danger"
+                                                size="sm"
+                                                disabled={!mapIdValue || isProcessing}
+                                                onClick={(event) => {
+                                                  event.stopPropagation();
+                                                  if (mapIdValue) {
+                                                    handleDeleteMap(mapIdValue);
+                                                  }
+                                                }}
+                                                data-testid={`map-delete-button-${mapKey}`}
+                                              >
+                                                Delete
+                                              </Button>
+                                            </div>
+                                          </ListGroup.Item>
+                                        );
+                                      })}
+                                  </React.Fragment>
+                                );
+                              })}
                           </ListGroup>
                         ) : (
                           <div className="text-muted small" data-testid="map-list-empty">
                             No maps saved yet.
                           </div>
                         )}
+                        </div>
                       </Col>
                       <Col md={8} className="text-start">
                         <div className="mb-4 p-3 bg-dark rounded" data-testid="map-preview-card">
@@ -5857,6 +7513,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                               map={displayedMap}
                               tokens={boardTokens}
                               disabled={!shouldShowCampaignTokens}
+                              allowWheelZoom
                               onTokenPositionChange={
                                 shouldShowCampaignTokens ? handleTokenPositionChange : undefined
                               }
@@ -5964,23 +7621,24 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="enemies">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'enemies'}
+        onHide={() => handleCloseResourceTab('enemies')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Enemies</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'enemies' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-enemies-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <CloseButton
-                    className="ms-auto"
-                    variant="white"
-                    onClick={() => handleCloseResourceTab('enemies')}
-                    aria-label="Close enemies tab"
-                  />
-                </div>
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
@@ -5988,7 +7646,7 @@ const resolveIcon = (category, iconMap, fallback) => {
               <Container className="mt-3">
                 <Form onSubmit={handleAddEnemy}>
                   <Row className="g-3 align-items-end">
-                    <Col md={6}>
+                    <Col md={6} lg={4}>
                       <Form.Group className="mb-3 mb-md-0">
                         <Form.Label className="text-light">Search Monsters</Form.Label>
                         <Form.Control
@@ -6000,8 +7658,41 @@ const resolveIcon = (category, iconMap, fallback) => {
                         />
                       </Form.Group>
                     </Col>
-                    <Col md={6}>
-                      <Form.Group>
+                    <Col md={6} lg={4}>
+                      <Form.Group className="mb-3 mb-md-0">
+                        <Form.Label className="text-light">Challenge Rating</Form.Label>
+                        <div className="d-flex flex-column flex-lg-row gap-2">
+                          <Form.Select
+                            value={monsterMinChallengeRating}
+                            onChange={(event) => setMonsterMinChallengeRating(event.target.value)}
+                            disabled={monsterCatalogLoading && !monsterCatalogLoaded}
+                            aria-label="Minimum challenge rating"
+                          >
+                            <option value="">No minimum</option>
+                            {challengeRatingOptions.map((option) => (
+                              <option key={`min-${option.value}`} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </Form.Select>
+                          <Form.Select
+                            value={monsterMaxChallengeRating}
+                            onChange={(event) => setMonsterMaxChallengeRating(event.target.value)}
+                            disabled={monsterCatalogLoading && !monsterCatalogLoaded}
+                            aria-label="Maximum challenge rating"
+                          >
+                            <option value="">No maximum</option>
+                            {challengeRatingOptions.map((option) => (
+                              <option key={`max-${option.value}`} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        </div>
+                      </Form.Group>
+                    </Col>
+                    <Col md={12} lg={4}>
+                      <Form.Group controlId="monster-select">
                         <Form.Label className="text-light">Select Monster</Form.Label>
                         <Form.Select
                           value={selectedMonsterIndex}
@@ -6022,7 +7713,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                           ) : (
                             monsterCatalogLoaded && (
                               <option value="" disabled>
-                                No monsters match your search
+                                No monsters match your filters
                               </option>
                             )
                           )}
@@ -6119,7 +7810,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                         <Card.Subtitle className="text-white-50 small mb-3">
                           {[selectedMonster.size, selectedMonster.type].filter(Boolean).join(' ') || '—'}
                           {selectedMonster.challengeRating !== null && selectedMonster.challengeRating !== undefined
-                            ? ` • CR ${selectedMonster.challengeRating}`
+                            ? ` • CR ${formatChallengeRatingValue(selectedMonster.challengeRating)}`
                             : ''}
                         </Card.Subtitle>
                         <div className="d-grid gap-1">
@@ -6200,7 +7891,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                   const inCombat = Boolean(participantInfo);
                   const challengeText =
                     enemy.challengeRating !== null && enemy.challengeRating !== undefined
-                      ? `CR ${enemy.challengeRating}`
+                      ? `CR ${formatChallengeRatingValue(enemy.challengeRating)}`
                       : null;
                   const languagesDisplay = Array.isArray(enemy.languages)
                     ? enemy.languages.join(', ')
@@ -6223,216 +7914,77 @@ const resolveIcon = (category, iconMap, fallback) => {
                       : resolvedCurrentHp !== null
                         ? `${resolvedCurrentHp}`
                         : '—';
-                  const adjustmentValue = enemyHealthAdjustments[enemy.enemyId] ?? '';
-                  const isSavingHealth = Boolean(enemyHealthSaving[enemy.enemyId]);
                   const damagingActions = Array.isArray(enemy.actions)
                     ? enemy.actions.filter((action) => Boolean(getEnemyActionDamageString(action)))
                     : [];
+                  const armorClassDisplay = formatArmorClass(enemy.armorClass);
+                  const speedDisplay = formatSpeed(enemy.speed);
+                  const alignmentDisplay = enemy.alignment || '—';
+                  const savingThrowsDisplay = formatSavingThrowsDisplay(enemy.savingThrows);
+                  const skillsDisplay = formatSkillsDisplay(enemy.skills);
+                  const sensesDisplay = formatSensesDisplay(enemy.senses);
+                  const xpDisplay = formatXpDisplay(enemy.xp);
+                  const damageVulnerabilitiesDisplay = formatDamageTraitsDisplay(
+                    enemy.damageVulnerabilities
+                  );
+                  const damageResistancesDisplay = formatDamageTraitsDisplay(enemy.damageResistances);
+                  const damageImmunitiesDisplay = formatDamageTraitsDisplay(enemy.damageImmunities);
+                  const conditionImmunitiesDisplay = formatDamageTraitsDisplay(enemy.conditionImmunities);
+                  const abilityScoreBadges = STAT_KEYS_ORDER.map((key) => ({
+                    key,
+                    value: formatAbilityScore(key, enemy?.abilityScores?.[key]),
+                  }));
+                  const actionsList = Array.isArray(enemy.actions) ? enemy.actions : [];
+                  const bonusActionsList = Array.isArray(enemy.bonusActions)
+                    ? enemy.bonusActions
+                    : [];
+                  const reactionsList = Array.isArray(enemy.reactions) ? enemy.reactions : [];
+                  const legendaryActionsList = Array.isArray(enemy.legendaryActions)
+                    ? enemy.legendaryActions
+                    : [];
 
                   return (
-                    <Card className="resource-card h-100 w-100 text-start">
-                      <Card.Body className="d-flex flex-column">
-                        <Card.Title className="mb-1">{enemy.name || 'Unnamed Enemy'}</Card.Title>
-                        <Card.Subtitle className="text-muted small mb-2">
-                          {[enemy.displayType, challengeText].filter(Boolean).join(' • ') || '—'}
-                        </Card.Subtitle>
-                        <div className="d-grid gap-1">
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Size:
-                            </span>
-                            <span aria-hidden="true">{sizeDisplay}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              AC:
-                            </span>
-                            <span aria-hidden="true">{formatArmorClass(enemy.armorClass)}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Max HP:
-                            </span>
-                            <span aria-hidden="true">{maxHpValue !== null ? maxHpValue : '—'}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Current HP:
-                            </span>
-                            <span aria-hidden="true">{healthSummary}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Speed:
-                            </span>
-                            <span aria-hidden="true">{formatSpeed(enemy.speed)}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Alignment:
-                            </span>
-                            <span aria-hidden="true">{enemy.alignment || '—'}</span>
-                          </Card.Text>
-                          <Card.Text className="small mb-1 text-body fw-semibold text-break">
-                            <span className="text-muted text-uppercase fw-semibold me-1" aria-hidden="true">
-                              Languages:
-                            </span>
-                            <span aria-hidden="true">{languagesDisplay}</span>
-                          </Card.Text>
-                        </div>
-                        {damagingActions.length > 0 && (
-                          <div className="mt-2">
-                            <h6 className="text-uppercase text-muted small fw-semibold mb-1">Actions</h6>
-                            <div className="d-flex flex-column gap-2">
-                              {damagingActions.map((action, actionIndex) => {
-                                const attackBonusDisplay = formatAttackBonus(action?.attack_bonus);
-                                const damageLine = getEnemyActionDamageString(action);
-                                const actionLabel = action?.name || 'Action';
-                                const actionKey = `${enemy.enemyId || 'enemy'}-${actionLabel}-${actionIndex}`;
-                                const isLatestRoll =
-                                  latestEnemyRoll?.enemyId === enemy.enemyId &&
-                                  latestEnemyRoll?.actionName === actionLabel;
-
-                                return (
-                                  <div
-                                    key={actionKey}
-                                    className="border rounded p-2 bg-dark bg-opacity-10 text-body"
-                                  >
-                                    <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
-                                      <div className="flex-grow-1">
-                                        <div className="fw-semibold small text-body">{actionLabel}</div>
-                                        <div className="small text-muted">
-                                          Attack Bonus: {attackBonusDisplay ?? '—'}
-                                        </div>
-                                        <div className="small text-muted">Damage: {damageLine || '—'}</div>
-                                      </div>
-                                      <div className="d-flex justify-content-start justify-content-sm-end">
-                                        <Button
-                                          variant="outline-primary"
-                                          size="sm"
-                                          onClick={() => handleEnemyDamageRoll(enemy, action)}
-                                        >
-                                          Roll
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    {isLatestRoll && latestEnemyRoll?.breakdown && (
-                                      <div className="mt-2 small fw-semibold text-primary">
-                                        {`Result: ${latestEnemyRoll.total} damage (${latestEnemyRoll.breakdown})`}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                        <div className="mt-2">
-                          <h6 className="text-uppercase text-muted small fw-semibold mb-1">Health</h6>
-                          <div className="d-flex flex-column gap-2">
-                            <div className="d-flex justify-content-between small text-body fw-semibold">
-                              <span>Current:</span>
-                              <span>{healthSummary}</span>
-                            </div>
-                            <div className="health-adjustment-group d-flex flex-column flex-sm-row gap-2 gap-sm-0 w-100">
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                className="health-adjustment-button"
-                                onClick={() => handleApplyEnemyHealthAdjustment(enemy.enemyId, -1)}
-                                disabled={isSavingHealth}
-                              >
-                                Damage
-                              </Button>
-                              <Form.Control
-                                value={adjustmentValue}
-                                onChange={(e) =>
-                                  handleEnemyAdjustmentInputChange(enemy.enemyId, e.target.value)
-                                }
-                                placeholder="Amount"
-                                type="number"
-                                min="0"
-                                aria-label={`Adjust ${enemy.name || 'enemy'} health amount`}
-                                disabled={isSavingHealth}
-                                size="sm"
-                                className="health-adjustment-input flex-sm-grow-1"
-                              />
-                              <Button
-                                variant="outline-success"
-                                size="sm"
-                                className="health-adjustment-button"
-                                onClick={() => handleApplyEnemyHealthAdjustment(enemy.enemyId, 1)}
-                                disabled={isSavingHealth}
-                              >
-                                Heal
-                              </Button>
-                            </div>
-                            <div className="d-flex justify-content-end">
-                              <Button
-                                variant="outline-light"
-                                size="sm"
-                                onClick={() => handleResetEnemyHealth(enemy.enemyId)}
-                                disabled={isSavingHealth || maxHpValue === null}
-                              >
-                                Reset to Max
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-2">
-                          <h6 className="text-uppercase text-muted small fw-semibold mb-1">Abilities</h6>
-                          <div className="d-flex flex-wrap gap-2">
-                            {STAT_KEYS_ORDER.map((key) => (
-                              <span key={`${enemy.enemyId}-${key}`} className="badge bg-secondary">
-                                {formatAbilityScore(key, enemy?.abilityScores?.[key])}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </Card.Body>
-                      <Card.Footer className="resource-card-footer-safe-area d-flex flex-wrap gap-2 justify-content-end">
-                        <Button
-                          variant={inCombat ? 'success' : 'outline-primary'}
-                          size="sm"
-                          onClick={() => handleToggleParticipant(enemy.enemyId)}
-                        >
-                          {inCombat ? 'Remove from Combat' : 'Add to Combat'}
-                        </Button>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() =>
-                            handleOpenMapPlacement(
-                              enemy.enemyId,
-                              enemy.name || enemy.displayType || enemy.enemyId
-                            )
-                          }
-                        >
-                          Place on Map
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleRemoveEnemy(enemy.enemyId)}
-                          disabled={removingEnemyId === enemy.enemyId}
-                        >
-                          {removingEnemyId === enemy.enemyId ? (
-                            <>
-                              <Spinner
-                                animation="border"
-                                size="sm"
-                                role="status"
-                                aria-hidden="true"
-                                className="me-2"
-                              />
-                              Removing
-                            </>
-                          ) : (
-                            'Remove'
-                          )}
-                        </Button>
-                      </Card.Footer>
-                    </Card>
+                    <EnemyCard
+                      enemy={enemy}
+                      inCombat={inCombat}
+                      challengeText={challengeText}
+                      sizeDisplay={sizeDisplay}
+                      armorClassDisplay={armorClassDisplay}
+                      maxHpValue={maxHpValue}
+                      resolvedCurrentHp={resolvedCurrentHp}
+                      healthSummary={healthSummary}
+                      languagesDisplay={languagesDisplay}
+                      alignmentDisplay={alignmentDisplay}
+                      speedDisplay={speedDisplay}
+                      savingThrowsDisplay={savingThrowsDisplay}
+                      skillsDisplay={skillsDisplay}
+                      sensesDisplay={sensesDisplay}
+                      xpDisplay={xpDisplay}
+                      damageVulnerabilitiesDisplay={damageVulnerabilitiesDisplay}
+                      damageResistancesDisplay={damageResistancesDisplay}
+                      damageImmunitiesDisplay={damageImmunitiesDisplay}
+                      conditionImmunitiesDisplay={conditionImmunitiesDisplay}
+                      abilityScoreBadges={abilityScoreBadges}
+                      damagingActions={damagingActions}
+                      actionsList={actionsList}
+                      bonusActionsList={bonusActionsList}
+                      reactionsList={reactionsList}
+                      legendaryActionsList={legendaryActionsList}
+                      latestEnemyRoll={latestEnemyRoll}
+                      onEnemyDamageRoll={handleEnemyDamageRoll}
+                      onEnemyAttackRoll={handleEnemyAttackRoll}
+                      onEnemyAdjustmentInputChange={handleEnemyAdjustmentInputChange}
+                      onApplyEnemyHealthAdjustment={handleApplyEnemyHealthAdjustment}
+                      onResetEnemyHealth={handleResetEnemyHealth}
+                      enemyHealthAdjustments={enemyHealthAdjustments}
+                      enemyHealthSaving={enemyHealthSaving}
+                      onToggleParticipant={handleToggleParticipant}
+                      onOpenMapPlacement={handleOpenMapPlacement}
+                      onRemoveEnemy={handleRemoveEnemy}
+                      removingEnemyId={removingEnemyId}
+                      formatAttackBonus={formatAttackBonus}
+                      getEnemyActionDamageString={getEnemyActionDamageString}
+                    />
                   );
                 }}
               />
@@ -6440,48 +7992,42 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="weapons">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'weapons'}
+        onHide={() => handleCloseResourceTab('weapons')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Weapons</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'weapons' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-weapons-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <Button
-                    className="action-btn create-btn"
-                    onClick={() => setIsCreatingWeapon((prev) => !prev)}
-                    aria-label={
-                      isCreatingWeapon ? 'View weapons list' : 'Create a new weapon'
-                    }
-                  >
-                    {isCreatingWeapon ? (
-                      <>
-                        <FiList aria-hidden="true" />
-                        View Weapons
-                      </>
-                    ) : (
-                      <>
-                        <FiPlus aria-hidden="true" />
-                        <span>Create</span>
-                        <span aria-hidden="true"> Weapon</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <CloseButton
-                  className="ms-auto"
-                  variant="white"
-                  onClick={() => handleCloseResourceTab('weapons')}
-                  aria-label="Close weapons tab"
-                />
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
             >
               <div className="text-center">
+                {!isCreatingWeapon && (
+                  <div className="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <Button
+                      variant="outline-primary"
+                      type="button"
+                      onClick={() => setIsCreatingWeapon(true)}
+                      className="d-inline-flex align-items-center"
+                    >
+                      <FiPlus aria-hidden="true" className="me-2" />
+                      Create Weapon
+                    </Button>
+                  </div>
+                )}
                 {isCreatingWeapon ? (
                   <Form onSubmit={onSubmit2} className="px-5">
                     <Form.Group className="mb-3 pt-3">
@@ -6678,48 +8224,42 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="armor">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'armor'}
+        onHide={() => handleCloseResourceTab('armor')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Armor</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'armor' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-armor-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <Button
-                    className="action-btn create-btn"
-                    onClick={() => setIsCreatingArmor((prev) => !prev)}
-                    aria-label={
-                      isCreatingArmor ? 'View armor list' : 'Create new armor'
-                    }
-                  >
-                    {isCreatingArmor ? (
-                      <>
-                        <FiList aria-hidden="true" />
-                        View Armor
-                      </>
-                    ) : (
-                      <>
-                        <FiPlus aria-hidden="true" />
-                        <span>Create</span>
-                        <span aria-hidden="true"> Armor</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <CloseButton
-                  className="ms-auto"
-                  variant="white"
-                  onClick={() => handleCloseResourceTab('armor')}
-                  aria-label="Close armor tab"
-                />
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ maxHeight: '70vh', overflowY: 'auto' }}
             >
               <div className="text-center">
+                {!isCreatingArmor && (
+                  <div className="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <Button
+                      variant="outline-primary"
+                      type="button"
+                      onClick={() => setIsCreatingArmor(true)}
+                      className="d-inline-flex align-items-center"
+                    >
+                      <FiPlus aria-hidden="true" className="me-2" />
+                      Create Armor
+                    </Button>
+                  </div>
+                )}
                 {isCreatingArmor ? (
                   <Form onSubmit={onSubmit3} className="px-5">
                     <Form.Group className="mb-3 pt-3">
@@ -6947,50 +8487,42 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="accessories">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'accessories'}
+        onHide={() => handleCloseResourceTab('accessories')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Accessories</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'accessories' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-accessories-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <Button
-                    className="action-btn create-btn"
-                    onClick={() => setIsCreatingAccessory((prev) => !prev)}
-                    aria-label={
-                      isCreatingAccessory
-                        ? 'View accessories list'
-                        : 'Create new accessory'
-                    }
-                  >
-                    {isCreatingAccessory ? (
-                      <>
-                        <FiList aria-hidden="true" />
-                        View Accessories
-                      </>
-                    ) : (
-                      <>
-                        <FiPlus aria-hidden="true" />
-                        <span>Create</span>
-                        <span aria-hidden="true"> Accessory</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <CloseButton
-                  className="ms-auto"
-                  variant="white"
-                  onClick={() => handleCloseResourceTab('accessories')}
-                  aria-label="Close accessories tab"
-                />
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
             >
               <div className="text-center">
+                {!isCreatingAccessory && (
+                  <div className="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <Button
+                      variant="outline-primary"
+                      type="button"
+                      onClick={() => setIsCreatingAccessory(true)}
+                      className="d-inline-flex align-items-center"
+                    >
+                      <FiPlus aria-hidden="true" className="me-2" />
+                      Create Accessory
+                    </Button>
+                  </div>
+                )}
                 {isCreatingAccessory ? (
                   <Form onSubmit={onSubmitAccessory} className="px-5">
                     <Form.Group className="mb-3 pt-3">
@@ -7222,48 +8754,42 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-    <Tab.Pane eventKey="items">
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'items'}
+        onHide={() => handleCloseResourceTab('items')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Items</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
       {activeResourceTab === 'items' && (
         <div className="text-center">
           <Card className="modern-card" data-testid="resource-items-card">
-            <Card.Header className="modal-header">
-              <div className="d-flex align-items-center justify-content-center w-100">
-                <div className="d-flex flex-grow-1 justify-content-center">
-                  <Button
-                    className="action-btn create-btn"
-                    onClick={() => setIsCreatingItem((prev) => !prev)}
-                    aria-label={
-                      isCreatingItem ? 'View items list' : 'Create new item'
-                    }
-                  >
-                    {isCreatingItem ? (
-                      <>
-                        <FiList aria-hidden="true" />
-                        View Items
-                      </>
-                    ) : (
-                      <>
-                        <FiPlus aria-hidden="true" />
-                        <span>Create</span>
-                        <span aria-hidden="true"> Item</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <CloseButton
-                  className="ms-auto"
-                  variant="white"
-                  onClick={() => handleCloseResourceTab('items')}
-                  aria-label="Close items tab"
-                />
-              </div>
-            </Card.Header>
+            
             <Card.Body
               className="resource-tab-safe-area"
               style={{ overflowY: 'auto', maxHeight: '70vh' }}
             >
               <div className="text-center">
+                {!isCreatingItem && (
+                  <div className="d-flex flex-wrap justify-content-end gap-2 mb-3">
+                    <Button
+                      variant="outline-primary"
+                      type="button"
+                      onClick={() => setIsCreatingItem(true)}
+                      className="d-inline-flex align-items-center"
+                    >
+                      <FiPlus aria-hidden="true" className="me-2" />
+                      Create Item
+                    </Button>
+                  </div>
+                )}
                 {isCreatingItem ? (
                   <Form onSubmit={onSubmit4} className="px-5">
                     <Form.Group className="mb-3 pt-3">
@@ -7469,27 +8995,58 @@ const resolveIcon = (category, iconMap, fallback) => {
           </Card>
         </div>
       )}
-    </Tab.Pane>
-  </Tab.Content>
-        </Tab.Container>
-        <TokenPickerModal
-          show={showEnemyTokenPicker}
-          onHide={handleCloseEnemyTokenPicker}
-          campaignId={campaignId || undefined}
-          onSelect={handleEnemyTokenSelected}
-          filterScope={enemyTokenFilterScope}
-          allowClear={Boolean(
-            enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
-          )}
-          onClear={() => handleEnemyTokenSelected(null)}
-          isDm
-        />
-        <D20RollerModal
-          show={showDiceRoller}
-          onHide={() => setShowDiceRoller(false)}
-          diceColor={activeDiceColor}
-        />
-      </Container>
+            </Modal.Body>
+      </Modal>
+          <Modal
+        show={activeResourceTab === 'shop'}
+        onHide={() => handleCloseResourceTab('shop')}
+        size="xl"
+        scrollable
+        centered
+        className="dnd-modal zombies-dm-resource-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Shop</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+      {activeResourceTab === 'shop' && (
+        <div className="text-center">
+          <Card className="modern-card" data-testid="resource-shop-card">
+            
+            <Card.Body
+              className="resource-tab-safe-area text-start"
+              style={{ overflowY: 'auto', maxHeight: '70vh' }}
+            >
+              <ShopVisibilityManager
+                campaign={currentCampaign}
+                active={activeResourceTab === 'shop'}
+                onStatus={setStatus}
+                characters={Array.isArray(records) ? records : []}
+                onInventoryUpdate={fetchRecords}
+              />
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+            </Modal.Body>
+      </Modal>
+      <TokenPickerModal
+        show={showEnemyTokenPicker}
+        onHide={handleCloseEnemyTokenPicker}
+        campaignId={campaignId || undefined}
+        onSelect={handleEnemyTokenSelected}
+        filterScope={enemyTokenFilterScope}
+        allowClear={Boolean(
+          enemyTokenSelection?.figurineImageUrl || enemyTokenSelection?.figurineImagePublicId
+        )}
+        onClear={() => handleEnemyTokenSelected(null)}
+        isDm
+      />
+      <D20RollerModal
+        show={showDiceRoller}
+        onHide={() => setShowDiceRoller(false)}
+        diceColor={activeDiceColor}
+      />
 
       <Modal
         show={mapEditorState.show}
@@ -7560,6 +9117,22 @@ const resolveIcon = (category, iconMap, fallback) => {
               ) : null}
               <Form.Text id="map-editor-folder-help" className="text-muted">
                 Choose an existing folder or create a new one.
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="map-editor-grid-size">
+              <Form.Label>Grid Size</Form.Label>
+              <Form.Select
+                value={mapEditorState.gridSelection}
+                onChange={handleMapEditorInputChange('gridSelection')}
+                disabled={mapEditorSaving}
+                data-testid="map-editor-grid-select"
+              >
+                {MAP_GRID_DIMENSION_OPTIONS.map((dimension) => (
+                  <option value={`${dimension}`} key={dimension}>{`${dimension} × ${dimension}`}</option>
+                ))}
+              </Form.Select>
+              <Form.Text className="text-muted">
+                Select the number of squares along each side of the map grid.
               </Form.Text>
             </Form.Group>
             <Form.Group className="mb-3" controlId="map-editor-image-url">
@@ -7690,98 +9263,75 @@ const resolveIcon = (category, iconMap, fallback) => {
         actionInProgressId={mapActionLoadingId}
         activeCharacterId={activeParticipant?.characterId}
       />
-
-      <MapModal
-        show={mapPlacementState.show}
-        onHide={handleCloseMapPlacement}
-        title={
-          mapPlacementState.enemyName
-            ? `Place ${mapPlacementState.enemyName}`
-            : 'Place Enemy on Map'
-        }
-        maps={maps}
-        map={campaignMap}
-        activeMapId={activeMapId}
-        selectedMapId={selectedMapId}
-        onSelectMap={handleSelectMap}
-        tokensByMapId={modalTokensByMapId}
-        currentCharacterId={mapPlacementState.enemyId}
-        activeCharacterId={activeParticipant?.characterId}
-        characterLookup={tokenMetaById}
-        onTokenMove={handleMapModalTokenMove}
-        onTokenRemove={handleMapTokenRemove}
-        readOnly={false}
-      />
-
       <Modal
-      className="dnd-modal"
-      size="sm"
-      centered
-      show={currencyModalState.show}
-      onHide={closeCurrencyModal}
-    >
-      <Form onSubmit={handleCurrencySubmit}>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            Adjust Currency{currencyModalState.character ? ` - ${currencyModalState.character.characterName}` : ''}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3" controlId="currencyCopper">
-            <Form.Label>Copper</Form.Label>
-            <Form.Control
-              type="number"
-              step="1"
-              value={currencyInputs.cp}
-              onChange={(event) => updateCurrencyInput('cp', event.target.value)}
-            />
-          </Form.Group>
-          <Form.Group className="mb-3" controlId="currencySilver">
-            <Form.Label>Silver</Form.Label>
-            <Form.Control
-              type="number"
-              step="1"
-              value={currencyInputs.sp}
-              onChange={(event) => updateCurrencyInput('sp', event.target.value)}
-            />
-          </Form.Group>
-          <Form.Group className="mb-3" controlId="currencyGold">
-            <Form.Label>Gold</Form.Label>
-            <Form.Control
-              type="number"
-              step="1"
-              value={currencyInputs.gp}
-              onChange={(event) => updateCurrencyInput('gp', event.target.value)}
-            />
-          </Form.Group>
-          <Form.Group className="mb-0" controlId="currencyPlatinum">
-            <Form.Label>Platinum</Form.Label>
-            <Form.Control
-              type="number"
-              step="1"
-              value={currencyInputs.pp}
-              onChange={(event) => updateCurrencyInput('pp', event.target.value)}
-            />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeCurrencyModal} disabled={currencySubmitting}>
-            Cancel
-          </Button>
-          <Button variant="primary" type="submit" disabled={currencySubmitting}>
-            Update Currency
-          </Button>
-        </Modal.Footer>
-      </Form>
-    </Modal>
-  <Modal className="dnd-modal" centered show={showItemNotes} onHide={closeItemNote}>
-    <Card className="dnd-background">
-      <Card.Header>
-        <Card.Title>Notes</Card.Title>
-      </Card.Header>
-      <Card.Body>{currentItemNote}</Card.Body>
-    </Card>
-  </Modal>
-      </div>
-    )
+        className="dnd-modal"
+        size="sm"
+        centered
+        show={currencyModalState.show}
+        onHide={closeCurrencyModal}
+      >
+        <Form onSubmit={handleCurrencySubmit}>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              Adjust Currency{currencyModalState.character ? ` - ${currencyModalState.character.characterName}` : ''}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Group className="mb-3" controlId="currencyCopper">
+              <Form.Label>Copper</Form.Label>
+              <Form.Control
+                type="number"
+                step="1"
+                value={currencyInputs.cp}
+                onChange={(event) => updateCurrencyInput('cp', event.target.value)}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="currencySilver">
+              <Form.Label>Silver</Form.Label>
+              <Form.Control
+                type="number"
+                step="1"
+                value={currencyInputs.sp}
+                onChange={(event) => updateCurrencyInput('sp', event.target.value)}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="currencyGold">
+              <Form.Label>Gold</Form.Label>
+              <Form.Control
+                type="number"
+                step="1"
+                value={currencyInputs.gp}
+                onChange={(event) => updateCurrencyInput('gp', event.target.value)}
+              />
+            </Form.Group>
+            <Form.Group className="mb-0" controlId="currencyPlatinum">
+              <Form.Label>Platinum</Form.Label>
+              <Form.Control
+                type="number"
+                step="1"
+                value={currencyInputs.pp}
+                onChange={(event) => updateCurrencyInput('pp', event.target.value)}
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={closeCurrencyModal} disabled={currencySubmitting}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={currencySubmitting}>
+              Update Currency
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+      <Modal className="dnd-modal" centered show={showItemNotes} onHide={closeItemNote}>
+        <Card className="dnd-background">
+          <Card.Header>
+            <Card.Title>Notes</Card.Title>
+          </Card.Header>
+          <Card.Body>{currentItemNote}</Card.Body>
+        </Card>
+      </Modal>
+    </div>
+  );
 }

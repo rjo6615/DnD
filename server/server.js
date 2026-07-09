@@ -38,8 +38,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 const apiHost = process.env.API_ORIGIN || 'https://realmtracker.org';
 const connectSrc = ["'self'", apiHost];
@@ -54,6 +54,9 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", 'blob:', "'unsafe-eval'", "'wasm-unsafe-eval'"],
+        workerSrc: ["'self'", 'blob:'],
+        childSrc: ["'self'", 'blob:'],
         connectSrc,
         imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
         mediaSrc: ["'self'", 'https:', 'data:', 'blob:'],
@@ -92,12 +95,24 @@ const authLimiter = rateLimit({
 app.use(['/login', '/logout', '/users/verify'], authLimiter);
 app.use(routes);
 
+const buildDir = path.join(__dirname, '../client/build');
+const publicAssetsDir = path.join(__dirname, '../client/public/assets');
+
+const staticOptions = {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.wasm')) {
+      res.setHeader('Content-Type', 'application/wasm');
+    }
+  },
+};
+
 // Adjusted to serve static files from the correct build directory
-app.use(express.static(path.join(__dirname, '../client/build')));
+app.use(express.static(buildDir, staticOptions));
+app.use('/assets', express.static(publicAssetsDir, staticOptions));
 
 app.get('*', (req, res) => {
   // Adjusted path for sending index.html
-  res.sendFile(path.join(__dirname, '../client/build/index.html'));
+  res.sendFile(path.join(buildDir, 'index.html'));
 });
 
 // Centralized error-handling middleware

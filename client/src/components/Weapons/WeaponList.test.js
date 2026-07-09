@@ -311,6 +311,73 @@ test('renders duplicate entries when multiple copies are owned', async () => {
   expect(screen.getAllByText('Dagger')).toHaveLength(1);
 });
 
+test('delete button removes a weapon after confirmation', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => weaponsData })
+    .mockResolvedValueOnce({ ok: true, json: async () => [] })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ allowed: null, proficient: {}, granted: [] }),
+    });
+
+  const onChange = jest.fn();
+  const initialWeapons = [
+    { name: 'dagger', displayName: 'Dagger', owned: true },
+    { name: 'dagger', displayName: 'Dagger', owned: true },
+    { name: 'club', displayName: 'Club', owned: true },
+  ];
+
+  render(
+    <WeaponList
+      ownedOnly
+      embedded
+      campaign="Camp1"
+      characterId="char1"
+      initialWeapons={initialWeapons}
+      onChange={onChange}
+    />
+  );
+
+  const deleteButtons = await screen.findAllByRole('button', {
+    name: /delete dagger/i,
+  });
+  expect(deleteButtons.length).toBeGreaterThan(0);
+  const deleteButton = deleteButtons[0];
+  const daggerCard = deleteButton.closest('.card');
+  expect(daggerCard).not.toBeNull();
+
+  await act(async () => {
+    await userEvent.click(deleteButton);
+  });
+
+  const confirmationMessage = await screen.findByText(
+    /are you sure you want to remove dagger from your inventory/i
+  );
+  const confirmationModal = confirmationMessage.closest('.modal');
+  expect(confirmationModal).not.toBeNull();
+
+  const confirmButton = within(confirmationModal).getByRole('button', {
+    name: /delete/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(confirmButton);
+  });
+
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  const updatedWeapons = onChange.mock.calls[0][0];
+  expect(Array.isArray(updatedWeapons)).toBe(true);
+  expect(updatedWeapons).toHaveLength(2);
+
+  await waitFor(() =>
+    expect(
+      screen.queryByText(
+        /are you sure you want to remove dagger from your inventory/i
+      )
+    ).not.toBeInTheDocument()
+  );
+});
+
 test('warns when unknown weapon names are returned', async () => {
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   apiFetch

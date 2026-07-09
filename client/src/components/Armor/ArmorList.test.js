@@ -355,6 +355,74 @@ test('renders duplicate armor entries when multiple copies are owned', async () 
   expect(screen.getAllByText('Chain Mail')).toHaveLength(1);
 });
 
+test('delete button removes armor after confirmation', async () => {
+  apiFetch
+    .mockResolvedValueOnce({ ok: true, json: async () => armorData })
+    .mockResolvedValueOnce({ ok: true, json: async () => [] })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ allowed: null, proficient: {}, granted: [] }),
+    });
+
+  const onChange = jest.fn();
+  const initialArmor = [
+    { name: 'Leather Armor', displayName: 'Leather Armor', owned: true },
+    { name: 'Leather Armor', displayName: 'Leather Armor', owned: true },
+    { name: 'Chain Mail', displayName: 'Chain Mail', owned: true },
+  ];
+
+  render(
+    <ArmorList
+      ownedOnly
+      embedded
+      campaign="Camp1"
+      characterId="char1"
+      strength={15}
+      initialArmor={initialArmor}
+      onChange={onChange}
+    />
+  );
+
+  const deleteButtons = await screen.findAllByRole('button', {
+    name: /delete leather armor/i,
+  });
+  expect(deleteButtons.length).toBeGreaterThan(0);
+  const deleteButton = deleteButtons[0];
+  const leatherCard = deleteButton.closest('.card');
+  expect(leatherCard).not.toBeNull();
+
+  await act(async () => {
+    await userEvent.click(deleteButton);
+  });
+
+  const confirmationMessage = await screen.findByText(
+    /are you sure you want to remove leather armor from your inventory/i
+  );
+  const confirmationModal = confirmationMessage.closest('.modal');
+  expect(confirmationModal).not.toBeNull();
+
+  const confirmButton = within(confirmationModal).getByRole('button', {
+    name: /delete/i,
+  });
+
+  await act(async () => {
+    await userEvent.click(confirmButton);
+  });
+
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  const updatedArmor = onChange.mock.calls[0][0];
+  expect(Array.isArray(updatedArmor)).toBe(true);
+  expect(updatedArmor).toHaveLength(2);
+
+  await waitFor(() =>
+    expect(
+      screen.queryByText(
+        /are you sure you want to remove leather armor from your inventory/i
+      )
+    ).not.toBeInTheDocument()
+  );
+});
+
 test('shows all armor when allowed list is empty', async () => {
   apiFetch.mockResolvedValueOnce({ ok: true, json: async () => armorData });
   apiFetch.mockResolvedValueOnce({

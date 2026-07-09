@@ -8,11 +8,61 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 import SkillInfoModal from './SkillInfoModal';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import DockControls from '../components/DockControls';
+import {
+  rollDiceWithBox,
+  setDiceBoxThemeColor,
+} from '../../../utils/diceBoxManager';
+import {
+  DEFAULT_DICE_COLOR,
+  normalizeDiceColor,
+  applyDiceFaceColor,
+} from '../../../utils/diceColors';
 
 const EMPTY_OBJECT = Object.freeze({});
 
-export function rollSkill(bonus = 0) {
-  const d20 = Math.floor(Math.random() * 20) + 1;
+const ABILITY_LABELS = {
+  str: 'Strength',
+  dex: 'Dexterity',
+  con: 'Constitution',
+  int: 'Intelligence',
+  wis: 'Wisdom',
+  cha: 'Charisma',
+};
+
+const formatAdjustmentSegment = (value, label) => {
+  if (!value) return null;
+  const sign = value >= 0 ? '+' : '-';
+  return `${sign} ${Math.abs(value)} ${label}`;
+};
+
+const normalizeD20Value = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  const rounded = Math.round(parsed);
+  if (rounded < 1) return 1;
+  if (rounded > 20) return 20;
+  return rounded;
+};
+
+const waitForNextAnimationFrame = () =>
+  new Promise((resolve) => {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.requestAnimationFrame !== 'function'
+    ) {
+      resolve();
+      return;
+    }
+
+    window.requestAnimationFrame(() => resolve());
+  });
+
+export function rollSkill(bonus = 0, d20Override = null) {
+  const normalizedOverride = normalizeD20Value(d20Override);
+  const d20 =
+    normalizedOverride !== null
+      ? normalizedOverride
+      : Math.floor(Math.random() * 20) + 1;
   if (d20 === 20) {
     window.dispatchEvent(new CustomEvent('critical-hit', { detail: 'critical' }));
   } else if (d20 === 1) {
@@ -20,6 +70,30 @@ export function rollSkill(bonus = 0) {
   }
   const result = d20 + bonus;
   return { result, d20 };
+}
+
+export async function rollSkillWithDiceBox(bonus = 0, options = {}) {
+  const { diceColor = null } = options || {};
+  const normalizedColor = normalizeDiceColor(diceColor) || DEFAULT_DICE_COLOR;
+
+  applyDiceFaceColor(normalizedColor);
+  setDiceBoxThemeColor(normalizedColor);
+  await waitForNextAnimationFrame();
+
+  try {
+    const { rolls } = await rollDiceWithBox([{ count: 1, sides: 20 }]);
+    const firstGroup = Array.isArray(rolls) ? rolls[0] : undefined;
+    const firstValue = Array.isArray(firstGroup) ? firstGroup[0] : firstGroup;
+    const override = normalizeD20Value(firstValue);
+    if (override !== null) {
+      return { ...rollSkill(bonus, override), usedDiceBox: true };
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Skill roll using dice box failed', error);
+  }
+
+  return { ...rollSkill(bonus), usedDiceBox: false };
 }
 
 export default function Skills({
@@ -42,6 +116,10 @@ export default function Skills({
 }) {
   const params = useParams();
   const safeForm = form ?? {};
+  const diceFaceColor = useMemo(
+    () => normalizeDiceColor(safeForm?.diceColor) || DEFAULT_DICE_COLOR,
+    [safeForm?.diceColor],
+  );
   const formSkills = safeForm.skills ?? EMPTY_OBJECT;
   const formProficiencyPoints = safeForm.proficiencyPoints || 0;
   const formExpertisePoints = safeForm.expertisePoints || 0;
@@ -291,32 +369,70 @@ export default function Skills({
     updateSkill(skill, updated);
   };
 
-  const handleRoll = (skillKey, ability, proficient, expertise) => {
+  const handleRoll = async (skillKey, ability, proficient, expertise) => {
     const skill = SKILLS.find((s) => s.key === skillKey);
+    const skillLabel = skill?.label || skill?.name || skillKey;
     const armorPenalty = skill?.armorPenalty || 0;
     const penalty = armorPenalty ? armorPenalty * totalCheckPenalty : 0;
+    const proficiencyValue = profBonus * (expertise ? 2 : proficient ? 1 : 0);
     const bonus =
       modMap[ability] +
-      profBonus * (expertise ? 2 : proficient ? 1 : 0) +
+      proficiencyValue +
       penalty +
       itemTotals[skillKey] +
       featTotals[skillKey] +
       raceTotals[skillKey];
-    const { result, d20 } = rollSkill(bonus);
-    window.dispatchEvent(
-      new CustomEvent('damage-roll', {
-        detail: {
-          value: result,
-          source: skill?.name,
-          critical: d20 === 20,
-          fumble: d20 === 1,
-        },
-      })
-    );
+    const abilityLabel =
+      ABILITY_LABELS[ability] || ability?.toUpperCase?.() || ability || 'Ability';
 
     if (!isDocked) {
       handleCloseSkill?.();
     }
+
+    const { result, d20 } = await rollSkillWithDiceBox(bonus, {
+      diceColor: diceFaceColor,
+    });
+    const breakdownParts = [`${d20} (d20)`];
+
+    const segments = [
+      formatAdjustmentSegment(modMap[ability], `${abilityLabel} Modifier`),
+      proficiencyValue
+        ? formatAdjustmentSegment(
+            proficiencyValue,
+            expertise ? 'Expertise Bonus' : 'Proficiency Bonus'
+          )
+        : null,
+      formatAdjustmentSegment(penalty, 'Armor Penalty'),
+      formatAdjustmentSegment(itemTotals[skillKey], 'Item Bonus'),
+      formatAdjustmentSegment(featTotals[skillKey], 'Feat Bonus'),
+      formatAdjustmentSegment(raceTotals[skillKey], 'Race Bonus'),
+    ];
+
+    segments.filter(Boolean).forEach((segment) => {
+      breakdownParts.push(segment);
+    });
+
+    const diceRolls = [
+      {
+        sides: 20,
+        value: d20,
+        type: `${skillLabel} Check`,
+        category: 'base',
+      },
+    ];
+    window.dispatchEvent(
+      new CustomEvent('damage-roll', {
+        detail: {
+          value: result,
+          breakdown: breakdownParts.join(' '),
+          source: skillLabel,
+          rollLabel: 'Skill Roll',
+          critical: d20 === 20,
+          fumble: d20 === 1,
+          diceRolls,
+        },
+      })
+    );
   };
 
   const handleView = (skill) => {

@@ -1,21 +1,43 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'; // Import useState and React
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Table, Button, Alert } from 'react-bootstrap'; // Adjust as per your actual UI library
+import { Modal, Card, Table, Button, Alert, Form } from 'react-bootstrap'; // Adjust as per your actual UI library
 import { useNavigate, useParams } from "react-router-dom";
 import CampaignModals from "../components/CampaignModals";
 import useCampaignActions from "../hooks/useCampaignActions";
 import DockControls from '../components/DockControls';
+import {
+  applyDiceFaceColor,
+  DEFAULT_DICE_COLOR,
+  normalizeDiceColor,
+} from '../../../utils/diceColors';
+import { setDiceBoxTheme, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
 
-const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
-const DEFAULT_DICE_COLOR = '#000000';
+const DICE_THEME_OPTIONS = [
+  { value: 'default', label: 'Default' },
+  { value: 'rust', label: 'Rust' },
+  { value: 'diceOfRolling', label: 'Dice of Rolling' },
+  { value: 'gemstone', label: 'Gemstone' },
+  { value: 'wooden', label: 'Wooden' },
+  { value: 'smooth', label: 'Smooth' },
+  { value: 'rock', label: 'Rock' },
+  { value: 'blueGreenMetal', label: 'Blue Green Metal' },
+];
 
-const normalizeDiceColor = (value) => {
+const DEFAULT_DICE_THEME = DICE_THEME_OPTIONS[0].value;
+
+const normalizeDiceTheme = (value) => {
   if (typeof value !== 'string') {
-    return null;
+    return DEFAULT_DICE_THEME;
   }
 
   const trimmed = value.trim();
-  return HEX_COLOR_PATTERN.test(trimmed) ? trimmed : null;
+  if (!trimmed) {
+    return DEFAULT_DICE_THEME;
+  }
+
+  const lower = trimmed.toLowerCase();
+  const match = DICE_THEME_OPTIONS.find((option) => option.value.toLowerCase() === lower);
+  return match ? match.value : DEFAULT_DICE_THEME;
 };
 
 export default function Help({
@@ -67,24 +89,17 @@ export default function Help({
   //-------------------------------------------Help Module--------------------------------------------------------------------
   const initialColor = normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR;
   const [newColor, setNewColor] = useState(initialColor);
-
-  const applyDiceFaceColor = useCallback((color) => {
-    if (typeof document === 'undefined') {
-      return;
-    }
-
-    const normalized = normalizeDiceColor(color) || DEFAULT_DICE_COLOR;
-    const r = parseInt(normalized.slice(1, 3), 16);
-    const g = parseInt(normalized.slice(3, 5), 16);
-    const b = parseInt(normalized.slice(5, 7), 16);
-    const opacity = 0.85;
-    const rgbaColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
-    document.documentElement.style.setProperty('--dice-face-color', rgbaColor);
-  }, []);
+  const [newTheme, setNewTheme] = useState(() => normalizeDiceTheme(form?.diceTheme));
+  const themeOptions = useMemo(() => DICE_THEME_OPTIONS, []);
 
   useEffect(() => {
     applyDiceFaceColor(newColor);
-  }, [applyDiceFaceColor, newColor]);
+    setDiceBoxThemeColor(newColor);
+  }, [newColor]);
+
+  useEffect(() => {
+    setDiceBoxTheme(newTheme);
+  }, [newTheme]);
 
   useEffect(() => {
     const normalized = normalizeDiceColor(form?.diceColor);
@@ -95,10 +110,22 @@ export default function Help({
     }
   }, [form?.diceColor]);
 
+  useEffect(() => {
+    const normalizedTheme = normalizeDiceTheme(form?.diceTheme);
+    setNewTheme((prev) => (prev === normalizedTheme ? prev : normalizedTheme));
+  }, [form?.diceTheme]);
+
   const handleColorChange = (event) => {
     const selectedColor = event?.target?.value;
     if (typeof selectedColor === 'string') {
       setNewColor(selectedColor);
+    }
+  };
+
+  const handleThemeChange = (event) => {
+    const selectedTheme = event?.target?.value;
+    if (typeof selectedTheme === 'string') {
+      setNewTheme(normalizeDiceTheme(selectedTheme));
     }
   };
 
@@ -108,13 +135,15 @@ export default function Help({
       return;
     }
 
+    const normalizedTheme = normalizeDiceTheme(newTheme);
+
     try {
       const response = await apiFetch(`/characters/update-dice-color/${params.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ diceColor: normalizedColor }),
+        body: JSON.stringify({ diceColor: normalizedColor, diceTheme: normalizedTheme }),
       });
 
       if (!response.ok) {
@@ -129,10 +158,15 @@ export default function Help({
       }
 
       const nextColor = normalizeDiceColor(payload?.diceColor) || normalizedColor;
+      let nextTheme = normalizedTheme;
+      if (payload && Object.prototype.hasOwnProperty.call(payload, 'diceTheme')) {
+        nextTheme = normalizeDiceTheme(payload?.diceTheme);
+      }
       setNewColor(nextColor);
+      setNewTheme((prev) => (prev === nextTheme ? prev : nextTheme));
 
       if (typeof onDiceColorChange === 'function') {
-        onDiceColorChange(nextColor);
+        onDiceColorChange(nextColor, nextTheme);
       }
     } catch (error) {
       // Swallow fetch errors silently for now.
@@ -208,7 +242,7 @@ export default function Help({
             )}
             <div className="table-container">
               <Table striped bordered hover size="sm" className="custom-table">
-                <thead>
+                <tbody>
                   <tr>
                     <td className="center-td">
                       <strong className="text-light">Change Dice Color:</strong>
@@ -221,17 +255,34 @@ export default function Help({
                         onChange={handleColorChange}
                       />
                     </td>
-                    <td className="center-td">
+                    <td className="center-td" rowSpan={2}>
                       <Button
                         onClick={diceColorUpdate}
                         className="action-btn save-btn fa-solid fa-floppy-disk"
+                        aria-label="Save dice preferences"
                       ></Button>
                     </td>
                   </tr>
-                </thead>
-                <tbody>
                   <tr>
-                    <td className="center-td" colSpan="3">
+                    <td className="center-td">
+                      <strong className="text-light">Change Theme:</strong>
+                    </td>
+                    <td className="center-td">
+                      <Form.Select
+                        aria-label="Select dice theme"
+                        value={newTheme}
+                        onChange={handleThemeChange}
+                      >
+                        {themeOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="center-td" colSpan={3}>
                       <Button onClick={handleLogout} className="action-btn close-btn">
                         Logout
                       </Button>

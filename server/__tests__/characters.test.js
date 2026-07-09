@@ -16,7 +16,7 @@ jest.mock('../utils/socket', () => ({
 const charactersRouter = require('../routes');
 const classes = require('../data/classes');
 const { EQUIPMENT_SLOT_KEYS } = require('../constants/equipmentSlots');
-const { emitMapUpdate, emitCombatUpdate } = require('../utils/socket');
+const { emitMapUpdate, emitCombatUpdate, emitCharacterMetadataUpdate } = require('../utils/socket');
 const { ObjectId } = require('mongodb');
 
 const app = express();
@@ -649,6 +649,49 @@ describe('Character routes', () => {
       .put('/characters/update-dice-color/507f1f77bcf86cd799439011')
       .send({ diceColor: 5 });
     expect(res.status).toBe(400);
+  });
+
+  test('update dice color invalid theme', async () => {
+    dbo.mockResolvedValue({});
+    const res = await request(app)
+      .put('/characters/update-dice-color/507f1f77bcf86cd799439011')
+      .send({ diceColor: '#ffffff', diceTheme: 'invalid-theme' });
+    expect(res.status).toBe(400);
+  });
+
+  test('update dice color with theme success', async () => {
+    const characterId = new ObjectId('507f1f77bcf86cd799439011');
+    const campaignId = 'campaign-123';
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOneAndUpdate: async () => ({
+          value: {
+            _id: characterId,
+            campaign: campaignId,
+            diceColor: '#ffffff',
+            diceTheme: 'rust',
+          },
+        }),
+      }),
+    });
+
+    const res = await request(app)
+      .put(`/characters/update-dice-color/${characterId.toHexString()}`)
+      .send({ diceColor: '#ffffff', diceTheme: 'rust' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      campaignId,
+      characterId: characterId.toHexString(),
+      diceColor: '#ffffff',
+      diceTheme: 'rust',
+    });
+    expect(emitCharacterMetadataUpdate).toHaveBeenCalledWith(campaignId, {
+      campaignId,
+      characterId: characterId.toHexString(),
+      diceColor: '#ffffff',
+      diceTheme: 'rust',
+    });
   });
 
   test('update feats success', async () => {

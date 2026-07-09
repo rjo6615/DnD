@@ -1,16 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Row, Col, Alert, Button, Modal, Badge } from 'react-bootstrap';
-import {
-  GiAmmoBox,
-  GiBackpack,
-  GiChariot,
-  GiHammerNails,
-  GiHorseHead,
-  GiSaddle,
-  GiSailboat,
-  GiTreasureMap,
-} from 'react-icons/gi';
+import { Card, Row, Col, Alert, Button, Modal, Badge, Form } from 'react-bootstrap';
+import ItemIcon from '../common/ItemIcon';
 import apiFetch from '../../utils/apiFetch';
+import { rollDiceWithBox, setDiceBoxThemeColor } from '../../utils/diceBoxManager';
+import {
+  applyDiceFaceColor,
+  normalizeDiceColor,
+} from '../../utils/diceColors';
 import { STATS } from '../Zombies/statSchema';
 import { SKILLS } from '../Zombies/skillSchema';
 
@@ -24,21 +20,145 @@ const SKILL_LABELS = SKILLS.reduce((acc, { key, label }) => {
   return acc;
 }, {});
 
-const categoryIcons = {
-  'adventuring gear': GiBackpack,
-  ammunition: GiAmmoBox,
-  tool: GiHammerNails,
-  mount: GiHorseHead,
-  'tack and harness': GiSaddle,
-  vehicle: GiChariot,
-  'water vehicle': GiSailboat,
-  custom: GiTreasureMap,
-};
 
 const renderBonuses = (bonuses, labels) =>
   Object.entries(bonuses || {})
     .map(([k, v]) => `${labels[k] || k}: ${v}`)
     .join(', ');
+
+const EMPTY_ARRAY = Object.freeze([]);
+
+const STOP_WORDS = new Set(['a', 'an', 'of', 'the']);
+
+const addNameVariants = (set, value) => {
+  if (typeof value !== 'string') {
+    return;
+  }
+
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) {
+    return;
+  }
+
+  set.add(trimmed);
+
+  const sanitized = trimmed
+    .replace(/&/g, ' and ')
+    .replace(/["'`’]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+  if (!sanitized) {
+    return;
+  }
+
+  set.add(sanitized);
+
+  const tokens = sanitized.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) {
+    return;
+  }
+
+  set.add(tokens.join('-'));
+  set.add(tokens.join(''));
+
+  const filteredTokens = tokens.filter((token) => !STOP_WORDS.has(token));
+  if (filteredTokens.length > 0) {
+    set.add(filteredTokens.join(' '));
+    set.add(filteredTokens.join('-'));
+    set.add(filteredTokens.join(''));
+  }
+};
+
+const extractEntryKeys = (entry) => {
+  const keys = new Set();
+  if (!entry) {
+    return keys;
+  }
+  if (typeof entry === 'string') {
+    addNameVariants(keys, entry);
+  } else if (Array.isArray(entry)) {
+    addNameVariants(keys, entry[0]);
+  } else if (typeof entry === 'object') {
+    addNameVariants(keys, entry.displayName);
+    addNameVariants(keys, entry.itemName);
+    addNameVariants(keys, entry.name);
+  }
+  return keys;
+};
+
+const buildMatchKeySet = (item, dataKey) => {
+  const keys = new Set();
+  addNameVariants(keys, dataKey);
+  if (item) {
+    addNameVariants(keys, item.displayName);
+    addNameVariants(keys, item.itemName);
+    addNameVariants(keys, item.name);
+  }
+  return keys;
+};
+
+const removeFirstMatchingEntry = (entries, item, dataKey) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return entries;
+  }
+  const matchKeys = buildMatchKeySet(item, dataKey);
+  if (matchKeys.size === 0) {
+    return entries;
+  }
+  const index = entries.findIndex((entry) => {
+    const entryKeys = extractEntryKeys(entry);
+    if (entryKeys.size === 0) {
+      return false;
+    }
+    for (const key of entryKeys) {
+      if (matchKeys.has(key)) {
+        return true;
+      }
+    }
+    return false;
+  });
+  if (index === -1) {
+    return entries;
+  }
+  const next = entries.slice();
+  next.splice(index, 1);
+  return next;
+};
+
+const isConsumableItem = (item) =>
+  Array.isArray(item?.properties) &&
+  item.properties.some(
+    (prop) => typeof prop === 'string' && prop.trim().toLowerCase() === 'consumable'
+  );
+
+const isConsumablePotion = (item) => {
+  if (!isConsumableItem(item)) {
+    return false;
+  }
+
+  const label = `${item?.displayName || item?.name || ''}`.toLowerCase();
+  return label.includes('potion');
+};
+
+const dispatchConsumablePotionUsed = (item) => {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+    return;
+  }
+
+  if (!isConsumablePotion(item)) {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent('inventory:consumable-used', {
+      detail: {
+        type: 'potion',
+        item,
+      },
+    })
+  );
+};
 
 /** @typedef {import('../../../../types/item').Item} Item */
 
@@ -55,6 +175,7 @@ const renderBonuses = (bonuses, labels) =>
  *   onAddToCart?: (item: Item & { type?: string }) => void,
  *   ownedOnly?: boolean,
  *   cartCounts?: Record<string, number> | null,
+ *   hiddenKeys?: Set<string> | string[] | Record<string, boolean> | null,
  * }} props
  */
 const buildItemOwnershipMap = (initialItems) => {
@@ -65,38 +186,226 @@ const buildItemOwnershipMap = (initialItems) => {
     if (!entry) return;
     if (typeof entry === 'object' && entry.owned === false) return;
 
-    let name = '';
-    if (typeof entry === 'string') {
-      name = entry;
-    } else if (Array.isArray(entry)) {
-      [name] = entry;
-    } else if (typeof entry === 'object') {
-      name = entry.name || entry.displayName || '';
+    const keys = extractEntryKeys(entry);
+    if (keys.size === 0) {
+      return;
     }
 
-    if (typeof name !== 'string') return;
+    let record = null;
+    for (const key of keys) {
+      const existing = map.get(key);
+      if (existing) {
+        record = existing;
+        break;
+      }
+    }
 
-    const key = name.trim().toLowerCase();
-    if (!key) return;
+    if (!record) {
+      const firstKey = keys.values().next().value || '';
+      record = {
+        item:
+          typeof entry === 'object' && !Array.isArray(entry)
+            ? entry
+            : { name: firstKey },
+        count: 0,
+      };
+    }
 
-    const existing = map.get(key);
-    const nextCount = (existing?.count ?? 0) + 1;
-    const normalizedItem =
-      existing?.item ||
-      (typeof entry === 'object' && !Array.isArray(entry)
-        ? entry
-        : { name });
+    record.count += 1;
 
-    map.set(key, { item: normalizedItem, count: nextCount });
+    for (const key of keys) {
+      map.set(key, record);
+    }
   });
 
   return map;
 };
 
+const HEALING_DICE_REGEX = /(\d+)d(\d+)/gi;
+const HEALING_MODIFIER_REGEX = /([+-]\s*\d+)/gi;
+
+const sanitizeHealingString = (healing) => {
+  if (typeof healing !== 'string') {
+    return '';
+  }
+
+  const withoutHpText = healing
+    .replace(/hit points?.*$/i, '')
+    .replace(/hp.*$/i, '')
+    .trim();
+
+  return withoutHpText.replace(/\s+/g, ' ').trim();
+};
+
+const rollHealingValue = async (healing) => {
+  const sanitized = sanitizeHealingString(healing);
+  if (!sanitized) {
+    return null;
+  }
+
+  HEALING_DICE_REGEX.lastIndex = 0;
+  const diceMatches = Array.from(sanitized.matchAll(HEALING_DICE_REGEX));
+  if (diceMatches.length === 0) {
+    return null;
+  }
+
+  const diceRequests = diceMatches
+    .map((match) => {
+      const count = parseInt(match[1], 10);
+      const sides = parseInt(match[2], 10);
+      if (!Number.isFinite(count) || !Number.isFinite(sides)) {
+        return null;
+      }
+
+      return {
+        label: match[0],
+        count: Math.max(1, count),
+        sides: Math.max(2, sides),
+      };
+    })
+    .filter(Boolean);
+
+  if (diceRequests.length === 0) {
+    return null;
+  }
+
+  let rolledGroups = [];
+  try {
+    const response = await rollDiceWithBox(
+      diceRequests.map(({ count, sides }) => ({ count, sides }))
+    );
+    if (response && Array.isArray(response.rolls)) {
+      rolledGroups = response.rolls;
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Potion healing roll failed', error);
+  }
+
+  if (!Array.isArray(rolledGroups) || rolledGroups.length === 0) {
+    rolledGroups = diceRequests.map(({ count, sides }) =>
+      Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1)
+    );
+  }
+
+  let total = 0;
+  const diceRolls = [];
+  const diceSections = diceRequests.map(({ label, count, sides }, index) => {
+    const group = Array.isArray(rolledGroups[index]) ? rolledGroups[index] : [];
+    const rolls = [];
+
+    for (let i = 0; i < count; i += 1) {
+      const rawValue = group[i];
+      const parsed = Number(rawValue);
+      const value = Number.isFinite(parsed) ? Math.max(1, Math.round(parsed)) : null;
+      const resolvedValue = value ?? Math.floor(Math.random() * sides) + 1;
+      rolls.push(resolvedValue);
+      diceRolls.push({
+        sides,
+        value: resolvedValue,
+        type: 'Healing',
+        category: 'base',
+      });
+    }
+
+    const subtotal = rolls.reduce((sum, value) => sum + value, 0);
+    total += subtotal;
+    return { label, rolls, sides };
+  });
+
+  HEALING_MODIFIER_REGEX.lastIndex = 0;
+  const modifierMatches = Array.from(
+    sanitized.matchAll(HEALING_MODIFIER_REGEX)
+  );
+  const modifierValues = modifierMatches
+    .map((match) => {
+      const raw = (match[1] || match[0] || '').replace(/\s+/g, '');
+      const value = parseInt(raw, 10);
+      if (!Number.isFinite(value)) {
+        return null;
+      }
+      total += value;
+      return value;
+    })
+    .filter((value) => value !== null);
+
+  const breakdownSections = [];
+  if (diceSections.length > 0) {
+    breakdownSections.push(
+      diceSections
+        .map(
+          ({ label, rolls }) => `${rolls.join(' + ')} (${label.trim()})`
+        )
+        .join(' + ')
+    );
+  }
+  if (modifierValues.length > 0) {
+    breakdownSections.push(
+      modifierValues
+        .map(
+          (value) => `${value >= 0 ? '+' : '-'}${Math.abs(value)} modifier`
+        )
+        .join(' + ')
+    );
+  }
+
+  return {
+    total,
+    breakdown: breakdownSections.join('; '),
+    expression: sanitized,
+    diceSections,
+    modifierValues,
+    diceRolls,
+  };
+};
+
+const triggerHealingRoll = async (item, { diceColor } = {}) => {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+    return;
+  }
+
+  if (diceColor) {
+    applyDiceFaceColor(diceColor);
+    setDiceBoxThemeColor(diceColor);
+  }
+
+  const result = await rollHealingValue(item?.healing);
+  if (!result) {
+    return;
+  }
+
+  const sourceLabel = item?.displayName || item?.name || 'Healing Potion';
+  const expression = result.expression
+    ? result.expression.replace(/([+-])/g, ' $1').trim()
+    : undefined;
+  const rollValues = Array.isArray(result.diceSections)
+    ? result.diceSections.flatMap(({ rolls }) => rolls)
+    : undefined;
+  const modifierLabels = Array.isArray(result.modifierValues)
+    ? result.modifierValues.map((value) =>
+        `${value >= 0 ? '+' : '-'}${Math.abs(value)} modifier`
+      )
+    : undefined;
+
+  const detail = {
+    value: result.total,
+    breakdown: result.breakdown || result.expression,
+    source: `${sourceLabel} Healing`,
+    sourceLabel,
+    actionLabel: 'Healing',
+    expression,
+    rollValues,
+    modifierValues: modifierLabels,
+    diceRolls: result.diceRolls,
+  };
+
+  window.dispatchEvent(new CustomEvent('damage-roll', { detail }));
+};
+
 function ItemList({
   campaign,
   onChange,
-  initialItems = [],
+  initialItems = EMPTY_ARRAY,
   characterId,
   show = true,
   onClose,
@@ -104,17 +413,97 @@ function ItemList({
   onAddToCart = () => {},
   ownedOnly = false,
   cartCounts = null,
+  diceColor,
+  hiddenKeys = null,
 }) {
   const [items, setItems] =
     useState/** @type {Record<string, Item & { owned?: boolean, ownedCount?: number, displayName?: string }> | null} */(null);
   const [error, setError] = useState(null);
   const [unknownItems, setUnknownItems] = useState([]);
   const [notesItem, setNotesItem] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [ownedEntries, setOwnedEntries] = useState(() =>
+    Array.isArray(initialItems) ? initialItems : EMPTY_ARRAY
+  );
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  const categoryOptions = useMemo(() => {
+    if (!items) {
+      return [];
+    }
+
+    const categoryMap = new Map();
+    Object.values(items).forEach((item) => {
+      const label = typeof item?.category === 'string' ? item.category.trim() : '';
+      if (!label) return;
+      const value = label.toLowerCase();
+      if (!categoryMap.has(value)) {
+        categoryMap.set(value, label);
+      }
+    });
+
+    return Array.from(categoryMap.entries())
+      .sort(([, aLabel], [, bLabel]) => aLabel.localeCompare(bLabel))
+      .map(([value, label]) => ({ value, label }));
+  }, [items]);
+
+  useEffect(() => {
+    if (!diceColor) {
+      return;
+    }
+
+    const normalized = normalizeDiceColor(diceColor);
+    if (!normalized) {
+      return;
+    }
+
+    applyDiceFaceColor(normalized);
+    setDiceBoxThemeColor(normalized);
+  }, [diceColor]);
+
+  useEffect(() => {
+    if (Array.isArray(initialItems)) {
+      setOwnedEntries((prev) => (prev === initialItems ? prev : initialItems));
+    } else {
+      setOwnedEntries((prev) => (prev === EMPTY_ARRAY ? prev : EMPTY_ARRAY));
+    }
+  }, [initialItems]);
+
+  useEffect(() => {
+    if (selectedCategory === 'all') {
+      return;
+    }
+
+    const hasSelected = categoryOptions.some(({ value }) => value === selectedCategory);
+    if (!hasSelected) {
+      setSelectedCategory('all');
+    }
+  }, [categoryOptions, selectedCategory]);
 
   const ownershipMap = useMemo(
-    () => buildItemOwnershipMap(initialItems),
-    [initialItems]
+    () => buildItemOwnershipMap(ownedEntries),
+    [ownedEntries]
   );
+
+  const hiddenSet = useMemo(() => {
+    if (!hiddenKeys) {
+      return null;
+    }
+    if (hiddenKeys instanceof Set) {
+      return new Set(Array.from(hiddenKeys, (value) => String(value).toLowerCase()));
+    }
+    if (Array.isArray(hiddenKeys)) {
+      return new Set(hiddenKeys.map((value) => String(value).toLowerCase()));
+    }
+    if (hiddenKeys && typeof hiddenKeys === 'object') {
+      return new Set(
+        Object.entries(hiddenKeys)
+          .filter(([, hidden]) => Boolean(hidden))
+          .map(([key]) => String(key).toLowerCase())
+      );
+    }
+    return null;
+  }, [hiddenKeys]);
 
   useEffect(() => {
     if (!show) return;
@@ -236,6 +625,70 @@ function ItemList({
     onAddToCart(payload);
   };
 
+  const handleCategoryChange = (event) => {
+    setSelectedCategory(event.target.value);
+  };
+
+  const handleUseItem = (dataKey, item) => () => {
+    if (!ownedOnly || !isConsumableItem(item)) {
+      return;
+    }
+
+    const nextEntries = removeFirstMatchingEntry(ownedEntries, item, dataKey);
+    if (nextEntries === ownedEntries) {
+      return;
+    }
+
+    setOwnedEntries(nextEntries);
+
+    if (item?.healing) {
+      void triggerHealingRoll(item, { diceColor: normalizeDiceColor(diceColor) });
+    }
+
+    if (isConsumablePotion(item)) {
+      dispatchConsumablePotionUsed(item);
+      if (typeof onClose === 'function') {
+        onClose();
+      }
+    }
+
+    if (typeof onChange === 'function') {
+      onChange(nextEntries);
+    }
+  };
+
+  const handleRequestDelete = (dataKey, item) => () => {
+    if (!ownedOnly) {
+      return;
+    }
+    setDeleteTarget({ dataKey, item });
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteTarget(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    const { dataKey, item } = deleteTarget;
+    const nextEntries = removeFirstMatchingEntry(ownedEntries, item, dataKey);
+
+    setDeleteTarget(null);
+
+    if (nextEntries === ownedEntries) {
+      return;
+    }
+
+    setOwnedEntries(nextEntries);
+
+    if (typeof onChange === 'function') {
+      onChange(nextEntries);
+    }
+  };
+
   const getCartCount = (item) => {
     if (!cartCounts) return 0;
     const key = `item::${String(item?.name || '').toLowerCase()}`;
@@ -246,39 +699,31 @@ function ItemList({
   const handleShowNotes = (item) => () => setNotesItem(item);
 
   const bodyStyle = embedded ? undefined : { overflowY: 'auto', maxHeight: '70vh' };
-  const filteredEntries = Object.entries(items).filter(([, item]) =>
-    ownedOnly ? (item.ownedCount ?? 0) > 0 : true
-  );
-  const expandedEntries = ownedOnly
-    ? filteredEntries.flatMap(([key, item]) => {
-        const count = item.ownedCount ?? 0;
-        if (count <= 0) return [];
-        if (count === 1) {
-          return [
-            {
-              reactKey: key,
-              dataKey: key,
-              item,
-              copyIndex: 0,
-              copyCount: 1,
-            },
-          ];
-        }
-        return Array.from({ length: count }, (_, index) => ({
-          reactKey: `${key}-${index}`,
-          dataKey: key,
-          item,
-          copyIndex: index,
-          copyCount: count,
-        }));
-      })
-    : filteredEntries.map(([key, item]) => ({
-        reactKey: key,
-        dataKey: key,
-        item,
-        copyIndex: 0,
-        copyCount: item.ownedCount ?? 0,
-      }));
+  const filteredEntries = Object.entries(items).filter(([key, item]) => {
+    if (hiddenSet) {
+      const normalizedKey = String(key || '').toLowerCase();
+      const displayKey = String(item.displayName || item.name || '').toLowerCase();
+      if (hiddenSet.has(normalizedKey) || (displayKey && hiddenSet.has(displayKey))) {
+        return false;
+      }
+    }
+    if (ownedOnly && (item.ownedCount ?? 0) <= 0) {
+      return false;
+    }
+
+    if (selectedCategory !== 'all') {
+      const normalizedCategory =
+        typeof item.category === 'string' ? item.category.trim().toLowerCase() : '';
+      return normalizedCategory === selectedCategory;
+    }
+
+    return true;
+  });
+  const displayEntries = filteredEntries.map(([key, item]) => ({
+    reactKey: key,
+    dataKey: key,
+    item,
+  }));
   const bodyContent = (
     <>
       {error && (
@@ -293,7 +738,29 @@ function ItemList({
           Unrecognized items from server: {unknownItems.join(', ')}
         </Alert>
       )}
-      {expandedEntries.length === 0 ? (
+      {categoryOptions.length > 0 && (
+        <div className="d-flex flex-wrap justify-content-end mb-3">
+          <Form.Group className="d-flex align-items-center gap-2 mb-0">
+            <Form.Label className="mb-0" htmlFor="item-category-filter">
+              Category
+            </Form.Label>
+            <Form.Select
+              id="item-category-filter"
+              size="sm"
+              value={selectedCategory}
+              onChange={handleCategoryChange}
+            >
+              <option value="all">All</option>
+              {categoryOptions.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </div>
+      )}
+      {displayEntries.length === 0 ? (
         <div className="text-center text-muted py-3">
           {ownedOnly
             ? 'No items in inventory.'
@@ -301,23 +768,31 @@ function ItemList({
         </div>
       ) : (
         <Row className="row-cols-2 row-cols-lg-3 g-3">
-          {expandedEntries.map(({ reactKey, dataKey, item, copyIndex, copyCount }) => {
-            const categoryKey =
-              typeof item.category === 'string'
-                ? item.category.toLowerCase()
-                : '';
-            const Icon = categoryIcons[categoryKey] || GiTreasureMap;
+          {displayEntries.map(({ reactKey, dataKey, item }) => {
+            const canUseItem = ownedOnly && isConsumableItem(item);
+            const quantity = ownedOnly ? item.ownedCount ?? 0 : 0;
             return (
               <Col key={reactKey}>
-                <Card className="item-card h-100">
+                <Card className="item-card h-100 position-relative">
+                  {ownedOnly && quantity > 1 ? (
+                    <span className="item-card__quantity badge bg-dark">
+                      ×{quantity}
+                    </span>
+                  ) : null}
                   <Card.Body className="d-flex flex-column">
                     <div className="d-flex justify-content-center mb-2">
-                      <Icon size={40} title={item.category} />
+                      <ItemIcon item={item} itemType="item" category={item.category} size={44} />
                     </div>
                     <Card.Title>{item.displayName || item.name}</Card.Title>
                     <Card.Text>Category: {item.category}</Card.Text>
                     <Card.Text>Weight: {item.weight}</Card.Text>
                     <Card.Text>Cost: {item.cost}</Card.Text>
+                    {item.rarity ? (
+                      <Card.Text>Rarity: {item.rarity}</Card.Text>
+                    ) : null}
+                    {item.healing ? (
+                      <Card.Text>HP Regained: {item.healing}</Card.Text>
+                    ) : null}
                     {renderBonuses(item.statBonuses, STAT_LABELS) && (
                       <Card.Text>
                         Stat Bonuses: {renderBonuses(
@@ -334,28 +809,43 @@ function ItemList({
                         )}
                       </Card.Text>
                     )}
-                    {(item.notes || (ownedOnly && copyCount > 1)) && (
+                    {item.notes && (
                       <div className="mt-auto d-flex flex-column align-items-start gap-1">
-                        {item.notes && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="p-0"
-                            onClick={handleShowNotes(item)}
-                          >
-                            Notes
-                          </Button>
-                        )}
-                        {ownedOnly && copyCount > 1 && (
-                          <span className="text-muted small">
-                            Copy {copyIndex + 1} of {copyCount}
-                          </span>
-                        )}
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0"
+                          onClick={handleShowNotes(item)}
+                        >
+                          Notes
+                        </Button>
                       </div>
                     )}
                   </Card.Body>
-                  {!ownedOnly && (
-                    <Card.Footer className="d-flex justify-content-center">
+                  <Card.Footer className="d-flex justify-content-center">
+                    {ownedOnly ? (
+                      <div className="d-flex align-items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={handleUseItem(dataKey, item)}
+                          disabled={!canUseItem}
+                          title={
+                            canUseItem
+                              ? undefined
+                              : 'Only consumable items can be used.'
+                          }
+                        >
+                          Use
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="btn-danger action-btn fa-solid fa-trash"
+                          onClick={handleRequestDelete(dataKey, item)}
+                          title={`Delete ${item.displayName || item.name || 'item'}`}
+                          aria-label={`Delete ${item.displayName || item.name || 'item'}`}
+                        />
+                      </div>
+                    ) : (
                       <div className="d-flex align-items-center gap-2">
                         <Button size="sm" onClick={handleAddToCart(item)}>
                           Add to Cart
@@ -366,8 +856,8 @@ function ItemList({
                           </Badge>
                         ) : null}
                       </div>
-                    </Card.Footer>
-                  )}
+                    )}
+                  </Card.Footer>
                 </Card>
               </Col>
             );
@@ -383,7 +873,7 @@ function ItemList({
     <Card.Body style={bodyStyle}>{bodyContent}</Card.Body>
   );
 
-  const modal = (
+  const notesModal = (
     <Modal show={!!notesItem} onHide={handleCloseNotes} size="sm">
       <Modal.Header closeButton>
         <Modal.Title>{notesItem?.displayName || notesItem?.name}</Modal.Title>
@@ -392,11 +882,34 @@ function ItemList({
     </Modal>
   );
 
+  const deleteItemName = deleteTarget?.item?.displayName || deleteTarget?.item?.name;
+  const deleteModal = (
+    <Modal show={!!deleteTarget} onHide={handleCancelDelete} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Delete Item</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {`Are you sure you want to remove ${
+          deleteItemName ? `${deleteItemName}` : 'this item'
+        } from your inventory?`}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" className="action-btn close-btn" onClick={handleCancelDelete}>
+          Cancel
+        </Button>
+        <Button variant="danger" className="action-btn" onClick={handleConfirmDelete}>
+          Delete
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+
   if (embedded) {
     return (
       <>
         {body}
-        {modal}
+        {notesModal}
+        {deleteModal}
       </>
     );
   }
@@ -407,7 +920,8 @@ function ItemList({
         <Card.Title className="modal-title">Items</Card.Title>
       </Card.Header>
       {body}
-      {modal}
+      {notesModal}
+      {deleteModal}
     </Card>
   );
 }

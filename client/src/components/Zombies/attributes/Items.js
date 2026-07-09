@@ -65,6 +65,7 @@ export default function Items({ form, showItems, handleCloseItems }) {
           characterId={characterId}
           show={showItems}
           onClose={handleCloseItems}
+          diceColor={form?.diceColor}
         />
       </div>
     </Modal>

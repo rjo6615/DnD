@@ -52,6 +52,7 @@ const races = {
         description:
           "You know the Dancing Lights cantrip. Starting at 3rd level, you can also cast Faerie Fire once per long rest, and starting at 5th level, you can cast Darkness once per long rest.",
         spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        abilities: { cha: 1 },
         darkvisionRange: 120,
         level1Feature:
           "You know the Dancing Lights cantrip. You can cast it without expending a spell slot.",
@@ -65,6 +66,7 @@ const races = {
         description:
           "You know the Prestidigitation cantrip. Starting at 3rd level, you can also cast Detect Magic once per long rest, and starting at 5th level, you can cast Misty Step once per long rest.",
         spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        abilities: { int: 1 },
         level1Feature:
           "You know the Prestidigitation cantrip. You can cast it without expending a spell slot.",
         level3Feature:
@@ -77,6 +79,7 @@ const races = {
         description:
           "You know the Druidcraft cantrip. Starting at 3rd level, you can also cast Longstrider once per long rest, and starting at 5th level, you can cast Pass without Trace once per long rest.",
         spellcastingAbilities: ["Intelligence", "Wisdom", "Charisma"],
+        abilities: { wis: 1 },
         speed: 35,
         level1Feature:
           "You know the Druidcraft cantrip. You can cast it without expending a spell slot.",

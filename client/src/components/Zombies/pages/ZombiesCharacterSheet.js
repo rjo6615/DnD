@@ -3,9 +3,8 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { io } from "socket.io-client";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
-import { Nav, Navbar, Container, Button } from 'react-bootstrap';
+import { Navbar, Container } from 'react-bootstrap';
 import '../../../App.scss';
-import loginbg from "../../../images/loginbg.png";
 import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
 import Skills from "../attributes/Skills";
@@ -14,6 +13,17 @@ import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import PlayerTurnActions, {
   calculateDamage,
 } from "../attributes/PlayerTurnActions";
+import {
+  rollDiceWithBox,
+  subscribeToDiceBoxAvailability,
+  isDiceBoxReady as checkDiceBoxReady,
+  hasDiceBoxFailed as checkDiceBoxFailed,
+} from '../../../utils/diceBoxManager';
+import {
+  collectRollValues,
+  normalizeRollValue,
+  sanitizeRollGroup,
+} from '../../../utils/diceResults';
 import Help from "../attributes/Help";
 import { SKILLS } from "../skillSchema";
 import {
@@ -22,14 +32,20 @@ import {
   collectFeatAbilityBonuses,
   collectFeatNumericBonuses,
 } from "../utils/derivedStats";
-import { calculateCharacterHitPoints } from "../utils/characterMetrics";
-import HealthDefense from "../attributes/HealthDefense";
+import {
+  calculateCharacterArmorClass,
+  calculateCharacterHitPoints,
+} from "../utils/characterMetrics";
 import SpellSelector from "../attributes/SpellSelector";
 import StatusEffectBar from "../attributes/StatusEffectBar";
 import BackgroundModal from "../attributes/BackgroundModal";
 import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
+import { getMonkFocusPoints } from '../../../utils/monk';
+import { FaDiceD20 } from "react-icons/fa";
+import { Backpack, BookOpen, CircleHelp, Dice5, Dumbbell, Gem, HeartPulse, Package, Settings, Shield, Sparkles, Swords, UserRound } from "lucide-react";
+import { Button as HudButton, Dock, IconButton, Panel, Toolbar } from "../common/HudPrimitives";
 import hasteIcon from "../../../images/spell-haste-icon.png";
 import largeFormIcon from "../../../images/large-form-icon.png";
 import dragonWingsIcon from "../../../images/dragon-wings-icon.png";
@@ -44,14 +60,16 @@ import {
   normalizeAccessories as normalizeInventoryAccessories,
 } from "../attributes/inventoryNormalization";
 import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
+import { sanitizeInventoryItemsForUpdate } from "../attributes/inventorySanitization";
 import MapModal from "../attributes/MapModal";
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import TokenPickerModal from '../components/TokenPickerModal';
-import buildRaceTokenScopeData from '../utils/raceTokenFilters';
+import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
+import FooterCharacterSlot from './components/FooterCharacterSlot';
+import CombatTurnHeader, { HEADER_PADDING } from "../components/CombatTurnHeader";
 
-const HEADER_PADDING = 16;
 const MIN_DOCKED_MODAL_WIDTH = 320;
 const DOCKED_MODAL_VIEWPORT_PADDING = 32;
 const DOCKABLE_MODAL_DEFINITIONS = {
@@ -64,19 +82,9 @@ const DOCKABLE_MODAL_DEFINITIONS = {
   equipment: { label: 'Equipment', component: EquipmentModal },
   inventory: { label: 'Inventory', component: InventoryModal },
   shop: { label: 'Shop', component: ShopModal },
-  map: { label: 'Campaign Map', component: MapModal },
   help: { label: 'Help', component: Help },
 };
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
-
-const toFiniteNumberOrNull = (value) => {
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-};
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
 
@@ -108,6 +116,27 @@ const normalizeCreatureSize = (value) => {
 
   return null;
 };
+
+const toFiniteNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+const resolveCharacterTokenSize = (form) =>
+  normalizeCreatureSize(
+    form?.temporarySize ??
+      form?.size ??
+      form?.characterSize ??
+      form?.character?.size ??
+      form?.creature?.size ??
+      form?.profile?.size ??
+      form?.race?.size ??
+      form?.attributes?.size ??
+      form?.displayType
+  );
 
 const normalizeCombatState = (state) => {
   if (!state || typeof state !== "object") {
@@ -216,6 +245,21 @@ const clamp01 = (value) => {
   return parsed;
 };
 
+const normalizeRotation = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  const normalized = parsed % 360;
+  const resolved = normalized < 0 ? normalized + 360 : normalized;
+  return Math.round(resolved * 1000) / 1000;
+};
+
 const createCircleState = () => ({
   0: 'active',
   1: 'active',
@@ -226,6 +270,7 @@ const createCircleState = () => ({
 const createDefaultUsedSlots = () => ({
   action: createCircleState(),
   bonus: createCircleState(),
+  focus: 0,
 });
 
 const mergeUsedSlotsWithDefaults = (stored) => {
@@ -259,6 +304,20 @@ const mergeUsedSlotsWithDefaults = (stored) => {
       });
 
       result[key] = baseEntry;
+      return;
+    }
+
+    if (key === 'focus') {
+      const parsed =
+        typeof value === 'number'
+          ? value
+          : typeof value === 'string'
+          ? Number.parseFloat(value)
+          : Number(value?.spent ?? value);
+
+      if (Number.isFinite(parsed) && parsed > 0) {
+        result.focus = Math.max(0, Math.floor(parsed));
+      }
       return;
     }
 
@@ -312,6 +371,14 @@ const serializeUsedSlotsForStorage = (slots) => {
       return;
     }
 
+    if (key === 'focus') {
+      const numericValue = Number(value);
+      if (Number.isFinite(numericValue) && numericValue > 0) {
+        payload.focus = Math.floor(numericValue);
+      }
+      return;
+    }
+
     const usedEntries = {};
     Object.entries(value).forEach(([slotKey, slotValue]) => {
       if (slotValue === true || slotValue === 'used') {
@@ -349,7 +416,25 @@ const sanitizeToken = (tokenValue, fallbackId) => {
     return null;
   }
 
-  return { ...candidate, characterId: candidateId, x, y };
+  const sanitized = { ...candidate, characterId: candidateId, x, y };
+
+  if (Object.prototype.hasOwnProperty.call(candidate, 'rotation')) {
+    const normalizedRotation = normalizeRotation(candidate.rotation);
+    if (normalizedRotation === null) {
+      delete sanitized.rotation;
+    } else {
+      sanitized.rotation = normalizedRotation;
+    }
+  }
+
+  const normalizedSize = normalizeCreatureSize(candidate.size);
+  if (normalizedSize) {
+    sanitized.size = normalizedSize;
+  } else if (Object.prototype.hasOwnProperty.call(candidate, 'size')) {
+    delete sanitized.size;
+  }
+
+  return sanitized;
 };
 
 const sanitizeTokenDictionary = (tokens) => {
@@ -443,502 +528,6 @@ const parseErrorMessage = async (response, fallbackMessage) => {
   return fallbackMessage;
 };
 
-const HEX_COLOR_REGEX = /^[0-9a-fA-F]{3,8}$/;
-
-const parseHexColor = (value) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  const normalized = trimmed.startsWith('#') ? trimmed.slice(1) : trimmed;
-  if (!HEX_COLOR_REGEX.test(normalized)) {
-    return null;
-  }
-
-  if (normalized.length === 3) {
-    const r = parseInt(normalized[0] + normalized[0], 16);
-    const g = parseInt(normalized[1] + normalized[1], 16);
-    const b = parseInt(normalized[2] + normalized[2], 16);
-    return { r, g, b };
-  }
-
-  if (normalized.length === 6) {
-    const r = parseInt(normalized.slice(0, 2), 16);
-    const g = parseInt(normalized.slice(2, 4), 16);
-    const b = parseInt(normalized.slice(4, 6), 16);
-    return { r, g, b };
-  }
-
-  if (normalized.length === 8) {
-    const r = parseInt(normalized.slice(0, 2), 16);
-    const g = parseInt(normalized.slice(2, 4), 16);
-    const b = parseInt(normalized.slice(4, 6), 16);
-    return { r, g, b };
-  }
-
-  return null;
-};
-
-const lightenComponent = (component) =>
-  Math.min(255, Math.round(component + (255 - component) * 0.32));
-
-const getTokenColorStyles = (colorValue) => {
-  const parsed = parseHexColor(colorValue);
-
-  if (!parsed) {
-    return {
-      background: 'linear-gradient(140deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08))',
-      borderColor: 'rgba(255, 255, 255, 0.28)',
-      textColor: '#fdf8ef',
-    };
-  }
-
-  const { r, g, b } = parsed;
-  const lr = lightenComponent(r);
-  const lg = lightenComponent(g);
-  const lb = lightenComponent(b);
-  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-
-  return {
-    background: `linear-gradient(140deg, rgba(${lr}, ${lg}, ${lb}, 0.9), rgba(${r}, ${g}, ${b}, 0.95))`,
-    borderColor: `rgba(${lr}, ${lg}, ${lb}, 0.9)`,
-    textColor: brightness > 155 ? '#1c140b' : '#fdf8ef',
-  };
-};
-
-function CombatTurnHeader({ participants, tokenLookup = {} }) {
-  const headerRef = useRef(null);
-  const isDraggingRef = useRef(false);
-  const startXRef = useRef(0);
-  const startScrollLeftRef = useRef(0);
-  const lastAutoScrollTargetRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const participantsCount = Array.isArray(participants) ? participants.length : 0;
-  const activeIndex = useMemo(() => {
-    if (!Array.isArray(participants)) {
-      return -1;
-    }
-
-    return participants.findIndex((participant) => participant?.isActive);
-  }, [participants]);
-  const activeParticipant = useMemo(() => {
-    if (activeIndex < 0 || !Array.isArray(participants)) {
-      return null;
-    }
-
-    return participants[activeIndex] ?? null;
-  }, [activeIndex, participants]);
-
-  const updateOverflowHints = useCallback(() => {
-    const container = headerRef.current;
-
-    if (!container) {
-      setCanScrollLeft(false);
-      setCanScrollRight(false);
-      return;
-    }
-
-    const { scrollWidth, clientWidth } = container;
-    const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
-    let { scrollLeft } = container;
-
-    if (scrollLeft < 1 && scrollLeft !== 0) {
-      container.scrollLeft = 0;
-      scrollLeft = 0;
-    } else if (maxScrollLeft - scrollLeft < 1 && scrollLeft !== maxScrollLeft) {
-      container.scrollLeft = maxScrollLeft;
-      scrollLeft = maxScrollLeft;
-    }
-
-    const nextCanScrollLeft = scrollLeft > 0;
-    const nextCanScrollRight = maxScrollLeft - scrollLeft > 0;
-
-    setCanScrollLeft((prev) => (prev !== nextCanScrollLeft ? nextCanScrollLeft : prev));
-    setCanScrollRight((prev) => (prev !== nextCanScrollRight ? nextCanScrollRight : prev));
-  }, []);
-
-  useEffect(() => {
-    updateOverflowHints();
-
-    const handleResize = () => {
-      updateOverflowHints();
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [updateOverflowHints, participantsCount]);
-
-  const isScrollable = canScrollLeft || canScrollRight;
-
-  const headerClassName = useMemo(() => {
-    const classes = ['combat-turn-header'];
-
-    if (isDragging) {
-      classes.push('combat-turn-header--dragging');
-    }
-    if (isScrollable) {
-      classes.push('combat-turn-header--scrollable');
-    }
-    if (canScrollLeft) {
-      classes.push('combat-turn-header--fade-left');
-    }
-    if (canScrollRight) {
-      classes.push('combat-turn-header--fade-right');
-    }
-    if (!participantsCount) {
-      classes.push('combat-turn-header--empty');
-    }
-
-    return classes.join(' ');
-  }, [isDragging, isScrollable, canScrollLeft, canScrollRight, participantsCount]);
-
-  const finishDrag = useCallback((event) => {
-    if (!isDraggingRef.current) {
-      const container = headerRef.current;
-      if (container && typeof event?.pointerId === 'number' && container.hasPointerCapture?.(event.pointerId)) {
-        container.releasePointerCapture(event.pointerId);
-      }
-      return;
-    }
-
-    isDraggingRef.current = false;
-    setIsDragging(false);
-
-    const container = headerRef.current;
-    if (container && typeof event?.pointerId === 'number' && container.hasPointerCapture?.(event.pointerId)) {
-      container.releasePointerCapture(event.pointerId);
-    }
-
-    updateOverflowHints();
-  }, [updateOverflowHints]);
-
-  const handlePointerDown = useCallback((event) => {
-    const container = headerRef.current;
-    if (!container) {
-      return;
-    }
-
-    isDraggingRef.current = true;
-    startXRef.current = event.clientX ?? 0;
-    startScrollLeftRef.current = container.scrollLeft;
-    setIsDragging(true);
-
-    if (typeof event.pointerId === 'number' && container.setPointerCapture) {
-      try {
-        container.setPointerCapture(event.pointerId);
-      } catch (error) {
-        // Ignore capture errors (e.g., unsupported browsers).
-      }
-    }
-  }, []);
-
-  const handlePointerMove = useCallback((event) => {
-    if (!isDraggingRef.current) {
-      return;
-    }
-
-    const container = headerRef.current;
-    if (!container) {
-      return;
-    }
-
-    event.preventDefault();
-
-    const pointerX = event.clientX ?? 0;
-    const deltaX = pointerX - startXRef.current;
-    const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
-    const nextScrollLeft = Math.max(
-      0,
-      Math.min(maxScrollLeft, startScrollLeftRef.current - deltaX),
-    );
-
-    container.scrollLeft = nextScrollLeft;
-
-    updateOverflowHints();
-  }, [updateOverflowHints]);
-
-  const handlePointerUp = useCallback((event) => {
-    finishDrag(event);
-  }, [finishDrag]);
-
-  const handlePointerLeave = useCallback((event) => {
-    finishDrag(event);
-  }, [finishDrag]);
-
-  const handlePointerCancel = useCallback((event) => {
-    finishDrag(event);
-  }, [finishDrag]);
-
-  const handleScroll = useCallback(() => {
-    updateOverflowHints();
-  }, [updateOverflowHints]);
-
-  useEffect(() => {
-    if (isDragging) {
-      return;
-    }
-
-    const container = headerRef.current;
-    const participantsList = Array.isArray(participants) ? participants : null;
-    const activeParticipant =
-      activeIndex >= 0 && participantsList ? participantsList[activeIndex] : null;
-
-    if (activeIndex < 0 || !activeParticipant) {
-      if (lastAutoScrollTargetRef.current !== null) {
-        lastAutoScrollTargetRef.current = null;
-      }
-      return;
-    }
-
-    if (!container) {
-      return;
-    }
-
-    const identifier = activeParticipant.characterId ?? activeIndex;
-
-    if (lastAutoScrollTargetRef.current === identifier) {
-      return;
-    }
-
-    const card = container.querySelector(
-      `.combat-turn-header__card[data-participant-index="${activeIndex}"]`
-    );
-    if (!card) {
-      return;
-    }
-
-    const adjustScrollManually = () => {
-      const containerRect = container.getBoundingClientRect();
-      const cardRect = card.getBoundingClientRect();
-
-      const leftOverflow = cardRect.left - containerRect.left - HEADER_PADDING;
-      const rightOverflow = cardRect.right - containerRect.right + HEADER_PADDING;
-
-      if (leftOverflow < 0) {
-        container.scrollLeft += leftOverflow;
-      } else if (rightOverflow > 0) {
-        container.scrollLeft += rightOverflow;
-      }
-    };
-
-    if (typeof card.scrollIntoView === 'function') {
-      try {
-        card.scrollIntoView({
-          behavior: 'smooth',
-          inline: 'center',
-          block: 'nearest',
-        });
-      } catch (error) {
-        // Ignore scrollIntoView errors and fall back to manual scrolling.
-      }
-    }
-
-    const schedule = typeof requestAnimationFrame === 'function'
-      ? (callback) => requestAnimationFrame(callback)
-      : (callback) => callback();
-
-    schedule(() => {
-      adjustScrollManually();
-      updateOverflowHints();
-    });
-
-    lastAutoScrollTargetRef.current = identifier;
-  }, [activeIndex, participants, isDragging, updateOverflowHints]);
-
-  return (
-    <>
-      <div
-        className={
-          activeParticipant
-            ? 'combat-turn-header__active-indicator'
-            : 'combat-turn-header__active-indicator combat-turn-header__active-indicator--inactive'
-        }
-        role="status"
-        aria-live="polite"
-      >
-        <span className="combat-turn-header__active-label">Current Turn:</span>
-        <span className="combat-turn-header__active-name">
-          {activeParticipant ? activeParticipant.name : 'No active combatant'}
-        </span>
-      </div>
-      <div
-        ref={headerRef}
-        className={headerClassName}
-        role="group"
-        aria-label="Combat turn order"
-        touchAction={participantsCount ? 'pan-x' : 'auto'}
-        onPointerDown={participantsCount ? handlePointerDown : undefined}
-        onPointerMove={participantsCount ? handlePointerMove : undefined}
-        onPointerUp={participantsCount ? handlePointerUp : undefined}
-        onPointerLeave={participantsCount ? handlePointerLeave : undefined}
-        onPointerCancel={participantsCount ? handlePointerCancel : undefined}
-        onScroll={participantsCount ? handleScroll : undefined}
-      >
-        <div className="combat-turn-header__track">
-          {participantsCount ? (
-            participants.map((participant, index) => {
-              const { characterId, name, hpDisplay, hpCurrent, hpMax, isActive } = participant;
-              const trimmedId =
-                typeof characterId === 'string' && characterId.trim() !== ''
-                  ? characterId.trim()
-                  : null;
-              const tokenMeta = trimmedId ? tokenLookup[trimmedId] : null;
-              const tokenLabel =
-                (typeof tokenMeta?.label === 'string' && tokenMeta.label.trim() !== ''
-                  ? tokenMeta.label.trim()
-                  : null) ||
-                (typeof name === 'string' && name.trim() !== '' ? name.trim() : null);
-              const figurineInitial = tokenLabel ? tokenLabel.charAt(0).toUpperCase() : '?';
-              const { background, borderColor, textColor } = getTokenColorStyles(tokenMeta?.color);
-              const figurineImageUrl =
-                typeof tokenMeta?.figurineImageUrl === 'string' &&
-                tokenMeta.figurineImageUrl.trim() !== ''
-                  ? tokenMeta.figurineImageUrl.trim()
-                  : null;
-              const figurineClassName = [
-                'combat-turn-header__figurine',
-                figurineImageUrl ? 'combat-turn-header__figurine--has-image' : null,
-                isActive ? 'combat-turn-header__figurine--active' : null,
-              ]
-                .filter(Boolean)
-                .join(' ');
-
-              const hasHpData = hpCurrent !== null || hpMax !== null;
-              const computedPercentage =
-                hpCurrent !== null && hpMax !== null && hpMax > 0
-                  ? Math.max(0, Math.min(100, (hpCurrent / hpMax) * 100))
-                  : null;
-              const hpPercentage = computedPercentage !== null ? computedPercentage : 0;
-              const hpColorHue = computedPercentage !== null ? (hpPercentage / 100) * 120 : 0;
-              const hpFillColor =
-                computedPercentage !== null
-                  ? `hsl(${Math.round(hpColorHue)}, 70%, 45%)`
-                  : "rgba(220, 220, 220, 0.35)";
-
-              return (
-                <div
-                  key={characterId ?? `combat-participant-${index}`}
-                  className="combat-turn-header__card"
-                  data-participant-id={characterId}
-                  data-participant-index={index}
-                  style={{
-                    background: isActive
-                      ? "linear-gradient(135deg, rgba(37, 31, 26, 0.96), rgba(18, 15, 12, 0.94))"
-                      : "rgba(28, 25, 22, 0.82)",
-                    color: "#FFFFFF",
-                    borderRadius: "12px",
-                    padding: "10px 16px",
-                    boxShadow: isActive
-                      ? "0 0 18px rgba(214, 178, 86, 0.7), 0 0 8px rgba(214, 178, 86, 0.4) inset"
-                      : "0 0 8px rgba(0, 0, 0, 0.45)",
-                    border: isActive
-                      ? "1px solid rgba(214, 178, 86, 0.85)"
-                      : "1px solid rgba(255, 255, 255, 0.18)",
-                    transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                    transform: isActive ? "scale(1.03)" : "scale(1)",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      fontSize: "14px",
-                      letterSpacing: "0.5px",
-                    }}
-                  >
-                    {name}
-                  </div>
-                  <div style={{ marginTop: "6px" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: "12px",
-                        opacity: 0.9,
-                        marginBottom: "4px",
-                      }}
-                    >
-                      <span>HP</span>
-                      <span>{hasHpData ? hpDisplay : "—"}</span>
-                    </div>
-                    <div
-                      style={{
-                        position: "relative",
-                        width: "100%",
-                        height: "8px",
-                        borderRadius: "6px",
-                        background: "rgba(0, 0, 0, 0.45)",
-                        overflow: "hidden",
-                        border: "1px solid rgba(255, 255, 255, 0.12)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          height: "100%",
-                          width: `${hpPercentage}%`,
-                          background: computedPercentage !== null
-                            ? `linear-gradient(90deg, ${hpFillColor} 0%, ${hpFillColor} 100%)`
-                            : "transparent",
-                          transition: "width 0.3s ease, background-color 0.3s ease",
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div className="combat-turn-header__figurine-area">
-                    <div
-                      className={figurineClassName}
-                      style={
-                        figurineImageUrl
-                          ? {
-                              borderColor,
-                            }
-                          : {
-                              background,
-                              borderColor,
-                              color: textColor,
-                            }
-                      }
-                      aria-hidden="true"
-                      title={tokenLabel || undefined}
-                    >
-                      {figurineImageUrl ? (
-                        <img
-                          src={figurineImageUrl}
-                          alt=""
-                          className="combat-turn-header__figurine-image"
-                          draggable={false}
-                        />
-                      ) : (
-                        <span className="combat-turn-header__figurine-initial">
-                          {figurineInitial}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="combat-turn-header__placeholder" aria-hidden="true" />
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
-
 const SPELLCASTING_CLASSES = {
   bard: 'full',
   cleric: 'full',
@@ -953,6 +542,8 @@ const SPELLCASTING_CLASSES = {
 export default function ZombiesCharacterSheet() {
   const params = useParams();
   const characterId = params.id;
+  const isTestEnvironment =
+    typeof process !== 'undefined' && process?.env?.NODE_ENV === 'test';
   const [form, setForm] = useState(null);
   const [campaignId, setCampaignId] = useState(null);
   const [combatState, setCombatState] = useState(createEmptyCombatState());
@@ -963,7 +554,6 @@ export default function ZombiesCharacterSheet() {
   const [campaignMap, setCampaignMap] = useState(null);
   const [campaignMapTokens, setCampaignMapTokens] = useState({});
   const [activeMapTokens, setActiveMapTokens] = useState({});
-  const [showMapModal, setShowMapModal] = useState(false);
   const [showCharacterInfo, setShowCharacterInfo] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
@@ -983,6 +573,32 @@ export default function ZombiesCharacterSheet() {
   const [showTokenPicker, setShowTokenPicker] = useState(false);
   const [tokenPickerSaving, setTokenPickerSaving] = useState(false);
   const [tokenPickerError, setTokenPickerError] = useState(null);
+  const [diceBoxStatus, setDiceBoxStatus] = useState(() => ({
+    ready: isTestEnvironment ? true : checkDiceBoxReady(),
+    failed: isTestEnvironment ? false : checkDiceBoxFailed(),
+  }));
+
+  useEffect(() => {
+    if (isTestEnvironment) {
+      return undefined;
+    }
+
+    const unsubscribe = subscribeToDiceBoxAvailability((ready) => {
+      setDiceBoxStatus({
+        ready: Boolean(ready),
+        failed: !ready && checkDiceBoxFailed(),
+      });
+    });
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [
+    setDiceBoxStatus,
+    checkDiceBoxFailed,
+    subscribeToDiceBoxAvailability,
+    isTestEnvironment,
+  ]);
 
   const getStoredActiveEffects = useCallback((id) => {
     if (typeof window === 'undefined' || !id) {
@@ -1110,6 +726,7 @@ export default function ZombiesCharacterSheet() {
       return total + (Number.isFinite(level) ? level : 0);
     }, 0);
   }, [occupations]);
+  const monkFocusPoints = useMemo(() => getMonkFocusPoints(form), [form]);
   const baseActionCount = form?.features?.actionCount ?? 1;
   const [actionCount, setActionCount] = useState(baseActionCount);
   const [usedSlots, setUsedSlots] = useState(() =>
@@ -1128,6 +745,36 @@ export default function ZombiesCharacterSheet() {
   const campaignMapRef = useRef(null);
   const campaignMapsRef = useRef([]);
   const campaignActiveMapIdRef = useRef(null);
+  const appliedLargeFormMapsRef = useRef(new Set());
+  const largeFormActive = useMemo(
+    () => activeEffects.some((effect) => effect?.name === 'Large Form'),
+    [activeEffects]
+  );
+  const adrenalineRushActive = useMemo(
+    () => activeEffects.some((effect) => effect?.name === 'Adrenaline Rush'),
+    [activeEffects]
+  );
+  const temporarySize = form?.temporarySize;
+  const temporarySpeedBonus = form?.temporarySpeedBonus;
+  const desiredTokenSize = useMemo(() => resolveCharacterTokenSize(form), [form]);
+  const resolvedCharacterId = useMemo(() => {
+    const candidates = [];
+    if (typeof form?._id === 'string' && form._id.trim() !== '') {
+      candidates.push(form._id.trim());
+    }
+    if (typeof form?.characterId === 'string' && form.characterId.trim() !== '') {
+      candidates.push(form.characterId.trim());
+    }
+    if (typeof characterId === 'string' && characterId.trim() !== '') {
+      candidates.push(characterId.trim());
+    }
+    return candidates.find(Boolean) || null;
+  }, [characterId, form]);
+  const resolvedCharacterIdRef = useRef(resolvedCharacterId);
+
+  useEffect(() => {
+    resolvedCharacterIdRef.current = resolvedCharacterId;
+  }, [resolvedCharacterId]);
   const [dockedModals, setDockedModals] = useState({ left: null, right: null });
   const [dockedModalWidths, setDockedModalWidths] = useState({ left: null, right: null });
 
@@ -1246,6 +893,253 @@ export default function ZombiesCharacterSheet() {
         ? campaignActiveMapId.trim()
         : null;
   }, [campaignActiveMapId]);
+
+  useEffect(() => {
+    const normalizedCampaign =
+      typeof campaignId === 'string' && campaignId.trim() !== '' ? campaignId.trim() : null;
+    const normalizedCharacterId =
+      typeof resolvedCharacterId === 'string' && resolvedCharacterId.trim() !== ''
+        ? resolvedCharacterId.trim()
+        : null;
+
+    if (!normalizedCampaign || !normalizedCharacterId) {
+      return;
+    }
+
+    const tokensByMap = campaignMapTokensRef.current || {};
+    const updates = Object.entries(tokensByMap).reduce((acc, [mapId, tokens]) => {
+      if (typeof mapId !== 'string') {
+        return acc;
+      }
+
+      const trimmedMapId = mapId.trim();
+      if (!trimmedMapId) {
+        return acc;
+      }
+
+      if (!tokens || typeof tokens !== 'object') {
+        return acc;
+      }
+
+      const token = tokens[normalizedCharacterId];
+      if (!token || typeof token !== 'object') {
+        return acc;
+      }
+
+      const clampedX = clamp01(token.x);
+      const clampedY = clamp01(token.y);
+      if (clampedX === null || clampedY === null) {
+        return acc;
+      }
+
+      const currentSize = normalizeCreatureSize(token.size);
+      if (largeFormActive) {
+        if (currentSize === 'large') {
+          return acc;
+        }
+
+        acc.push({ mapId: trimmedMapId, token, x: clampedX, y: clampedY, nextSize: 'large' });
+        return acc;
+      }
+
+      if (currentSize === 'large' && desiredTokenSize !== 'large') {
+        const appliedMaps = appliedLargeFormMapsRef.current;
+        if (!(appliedMaps instanceof Set) || !appliedMaps.has(trimmedMapId)) {
+          return acc;
+        }
+
+        acc.push({ mapId: trimmedMapId, token, x: clampedX, y: clampedY, nextSize: null });
+      }
+
+      return acc;
+    }, []);
+
+    if (updates.length === 0) {
+      return;
+    }
+
+    const previousAppliedLargeMaps =
+      appliedLargeFormMapsRef.current instanceof Set
+        ? new Set(appliedLargeFormMapsRef.current)
+        : new Set();
+    const nextAppliedLargeMaps = new Set(previousAppliedLargeMaps);
+    updates.forEach(({ mapId, nextSize }) => {
+      if (nextSize === 'large') {
+        nextAppliedLargeMaps.add(mapId);
+      } else {
+        nextAppliedLargeMaps.delete(mapId);
+      }
+    });
+    appliedLargeFormMapsRef.current = nextAppliedLargeMaps;
+
+    const encodedCampaign = encodeURIComponent(normalizedCampaign);
+    const encodedCharacterId = encodeURIComponent(normalizedCharacterId);
+    const previousCampaignTokens = campaignMapTokensRef.current || {};
+    const previousActiveTokens = activeMapTokensRef.current || {};
+    const previousCampaignMap = campaignMapRef.current || null;
+    const timestamp = new Date().toISOString();
+
+    const applySizeToToken = (baseToken = {}, nextSize) => {
+      const nextToken = {
+        ...baseToken,
+        characterId: normalizedCharacterId,
+        updatedAt: timestamp,
+      };
+
+      if (nextSize) {
+        nextToken.size = nextSize;
+      } else if (Object.prototype.hasOwnProperty.call(nextToken, 'size')) {
+        delete nextToken.size;
+      }
+
+      return nextToken;
+    };
+
+    setCampaignMapTokens((prev) => {
+      const next = { ...(prev || {}) };
+      updates.forEach(({ mapId, token, nextSize }) => {
+        const existing = { ...(next[mapId] || {}) };
+        const baseToken = {
+          ...(existing[normalizedCharacterId] || {}),
+          ...(token || {}),
+        };
+        existing[normalizedCharacterId] = applySizeToToken(baseToken, nextSize);
+        next[mapId] = existing;
+      });
+      return next;
+    });
+
+    const activeMapId = campaignActiveMapIdRef.current;
+    const activeUpdate = activeMapId
+      ? updates.find((update) => update.mapId === activeMapId) || null
+      : null;
+    const shouldUpdateActiveTokens =
+      !activeMapId ||
+      Boolean(activeUpdate) ||
+      Boolean(activeMapTokensRef.current?.[normalizedCharacterId]);
+
+    if (shouldUpdateActiveTokens) {
+      const fallbackToken =
+        (activeUpdate && activeUpdate.token) ||
+        activeMapTokensRef.current?.[normalizedCharacterId] ||
+        updates[0]?.token ||
+        {};
+      const fallbackSize =
+        (activeUpdate && activeUpdate.nextSize) ||
+        (updates[0] && updates[0].nextSize) ||
+        null;
+
+      setActiveMapTokens((prev) => ({
+        ...(prev || {}),
+        [normalizedCharacterId]: applySizeToToken({
+          ...(prev?.[normalizedCharacterId] || {}),
+          ...fallbackToken,
+        }, fallbackSize),
+      }));
+    }
+
+    setCampaignMap((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const prevMapId =
+        typeof prev.mapId === 'string' && prev.mapId.trim() !== '' ? prev.mapId.trim() : null;
+      if (!prevMapId) {
+        return prev;
+      }
+
+      const update = updates.find((entry) => entry.mapId === prevMapId);
+      if (!update) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        tokens: {
+          ...(prev.tokens || {}),
+          [normalizedCharacterId]: applySizeToToken({
+            ...(prev.tokens?.[normalizedCharacterId] || {}),
+            ...(update.token || {}),
+          }, update.nextSize),
+        },
+      };
+    });
+
+    let isCancelled = false;
+    let didPersist = false;
+
+    const persist = async () => {
+      try {
+        for (const update of updates) {
+          if (isCancelled) {
+            return;
+          }
+
+          const encodedMapId = encodeURIComponent(update.mapId);
+          const payload = {
+            x: update.x,
+            y: update.y,
+            size: update.nextSize || '',
+          };
+
+          if (Object.prototype.hasOwnProperty.call(update.token, 'rotation')) {
+            const normalizedRotation = normalizeRotation(update.token.rotation);
+            if (normalizedRotation !== null) {
+              payload.rotation = normalizedRotation;
+            }
+          }
+
+          const response = await apiFetch(
+            `/campaigns/${encodedCampaign}/maps/${encodedMapId}/tokens/${encodedCharacterId}`,
+            {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            }
+          );
+
+          if (!response.ok) {
+            const message = await parseErrorMessage(
+              response,
+              'Failed to update figurine size.'
+            );
+            throw new Error(message);
+          }
+        }
+
+        didPersist = true;
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error(error);
+        setCampaignMapTokens(previousCampaignTokens || {});
+        setActiveMapTokens(previousActiveTokens || {});
+        setCampaignMap(previousCampaignMap || null);
+        appliedLargeFormMapsRef.current = previousAppliedLargeMaps;
+      }
+    };
+
+    persist();
+
+    return () => {
+      isCancelled = true;
+      if (!didPersist) {
+        appliedLargeFormMapsRef.current = previousAppliedLargeMaps;
+      }
+    };
+  }, [
+    campaignId,
+    campaignMapTokens,
+    desiredTokenSize,
+    largeFormActive,
+    resolvedCharacterId,
+    setActiveMapTokens,
+    setCampaignMap,
+    setCampaignMapTokens,
+  ]);
 
   const applyMapPayload = useCallback(
     (payload = {}) => {
@@ -1596,8 +1490,15 @@ export default function ZombiesCharacterSheet() {
 
     // Clear effects on rest
     setActiveEffects([]);
+    if (didLongRestIncrement) {
+      const { maxHp } = calculateCharacterHitPoints(form);
+      const nextHealth = Number.isFinite(maxHp) ? maxHp : 0;
+      handleHealthChange(nextHealth);
+      return;
+    }
+
     handleHealthChange(0);
-  }, [handleHealthChange, longRestCount, shortRestCount]);
+  }, [form, handleHealthChange, longRestCount, shortRestCount]);
 
   useEffect(() => {
     const hasteActive = activeEffects.some((e) => e.name === 'Haste');
@@ -1615,29 +1516,12 @@ export default function ZombiesCharacterSheet() {
     });
   }, [baseActionCount, activeEffects]);
 
-  const adrenalineRushActive = useMemo(
-    () => activeEffects.some((effect) => effect?.name === 'Adrenaline Rush'),
-    [activeEffects]
-  );
-
-  const speedMultiplier = useMemo(
-    () => (adrenalineRushActive ? 2 : 1),
-    [adrenalineRushActive]
-  );
-
-  const temporarySize = form?.temporarySize;
-  const temporarySpeedBonus = form?.temporarySpeedBonus;
-
   useEffect(() => {
     if (!form) {
       return;
     }
 
-    const hasLargeForm = activeEffects.some(
-      (effect) => effect && effect.name === 'Large Form'
-    );
-
-    if (hasLargeForm) {
+    if (largeFormActive) {
       const desiredSize = 'Large';
       const desiredSpeedBonus = 10;
       const nextSize = form.temporarySize;
@@ -1705,7 +1589,7 @@ export default function ZombiesCharacterSheet() {
       } = prev;
       return rest;
     });
-  }, [activeEffects, form]);
+  }, [form, largeFormActive]);
 
   const consumeCircle = useCallback(
     (type, index) => {
@@ -1724,6 +1608,57 @@ export default function ZombiesCharacterSheet() {
     },
     []
   );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handler = (event) => {
+      if (event?.detail?.type !== 'potion') {
+        return;
+      }
+
+      const potionLabel = `${
+        event?.detail?.item?.displayName || event?.detail?.item?.name || ''
+      }`
+        .trim()
+        .toLowerCase();
+
+      if (potionLabel === 'potion of speed') {
+        setActiveEffects((prev = []) => {
+          const existingIndex = prev.findIndex((effect) => effect?.name === 'Haste');
+
+          if (existingIndex === -1) {
+            return [...prev, { name: 'Haste', icon: hasteIcon, remaining: 10 }];
+          }
+
+          const existing = prev[existingIndex] || {};
+          const next = [...prev];
+          next[existingIndex] = {
+            ...existing,
+            name: 'Haste',
+            icon: hasteIcon,
+            remaining: 10,
+          };
+          return next;
+        });
+      } else if (potionLabel === 'potion of growth') {
+        setActiveEffects((prev = []) => {
+          if (prev.some((effect) => effect?.name === 'Large Form')) {
+            return prev;
+          }
+
+          return [...prev, { name: 'Large Form', icon: largeFormIcon }];
+        });
+      }
+
+      consumeCircle('bonus');
+    };
+
+    window.addEventListener('inventory:consumable-used', handler);
+    return () => window.removeEventListener('inventory:consumable-used', handler);
+  }, [consumeCircle]);
 
   const handleActionSurge = useCallback(() => {
     setActionCount((prev) => {
@@ -1907,7 +1842,12 @@ export default function ZombiesCharacterSheet() {
     }
 
     setUsedSlots((prev) => {
-      const updated = { ...prev, action: createCircleState(), bonus: createCircleState() };
+      const updated = {
+        ...prev,
+        action: createCircleState(),
+        bonus: createCircleState(),
+        focus: 0,
+      };
       Object.keys(updated).forEach((key) => {
         if (key.startsWith('warlock-')) delete updated[key];
       });
@@ -1915,6 +1855,33 @@ export default function ZombiesCharacterSheet() {
     });
     setActionCount(baseActionCount);
   }, [shortRestCount, baseActionCount]);
+
+  useEffect(() => {
+    setUsedSlots((prev) => {
+      const maxFocus = Math.max(0, monkFocusPoints);
+      const rawCurrent = prev?.focus;
+      const numericCurrent = Number(rawCurrent);
+      const normalizedCurrent =
+        Number.isFinite(numericCurrent) && numericCurrent > 0
+          ? Math.floor(numericCurrent)
+          : 0;
+      const clamped = Math.min(normalizedCurrent, maxFocus);
+
+      if (rawCurrent === clamped) {
+        return prev;
+      }
+
+      if (rawCurrent === undefined && clamped === 0) {
+        return prev;
+      }
+
+      if (clamped === normalizedCurrent && normalizedCurrent === 0 && rawCurrent === 0) {
+        return prev;
+      }
+
+      return { ...prev, focus: clamped };
+    });
+  }, [monkFocusPoints]);
 
   useEffect(() => {
     const handler = () => {
@@ -2713,9 +2680,6 @@ export default function ZombiesCharacterSheet() {
           case 'help':
             setShowHelpModal(false);
             break;
-          case 'map':
-            setShowMapModal(false);
-            break;
           default:
             break;
         }
@@ -2732,9 +2696,41 @@ export default function ZombiesCharacterSheet() {
       setShowInventory,
       setShowShop,
       setShowHelpModal,
-      setShowMapModal,
     ]
   );
+
+  const resolvedCampaignMap = useMemo(() => {
+    if (campaignMap) {
+      return campaignMap;
+    }
+
+    if (!Array.isArray(campaignMaps) || campaignMaps.length === 0) {
+      return null;
+    }
+
+    if (typeof campaignActiveMapId === 'string' && campaignActiveMapId.trim() !== '') {
+      const normalizedTarget = campaignActiveMapId.trim();
+
+      const match = campaignMaps.find((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return false;
+        }
+
+        const entryId =
+          typeof entry.mapId === 'string' && entry.mapId.trim() !== ''
+            ? entry.mapId.trim()
+            : null;
+
+        return entryId === normalizedTarget;
+      });
+
+      if (match) {
+        return match;
+      }
+    }
+
+    return campaignMaps[0] || null;
+  }, [campaignActiveMapId, campaignMap, campaignMaps]);
 
   const handleShowSkill = useCallback(() => setShowSkill(true), []);
   const handleCloseSkill = useCallback(() => {
@@ -2762,12 +2758,6 @@ export default function ZombiesCharacterSheet() {
   const handleCloseHelpModal = useCallback(() => setShowHelpModal(false), []);
   const handleShowBackground = useCallback(() => setShowBackground(true), []);
   const handleCloseBackground = useCallback(() => setShowBackground(false), []);
-  const handleShowMapModal = useCallback(() => setShowMapModal(true), []);
-  const handleCloseMapModal = useCallback(() => {
-    setShowMapModal(false);
-    handleDockClose('map');
-  }, [handleDockClose]);
-
   const getDockedSide = useCallback(
     (modalKey) => {
       if (!modalKey) {
@@ -2788,8 +2778,6 @@ export default function ZombiesCharacterSheet() {
   );
 
   const shouldShowSkillsModal = showSkill;
-  const shouldShowMapModal = showMapModal;
-
   const handleRollResult = (result, breakdown, source) => {
     playerTurnActionsRef.current?.updateDamageValueWithAnimation(
       result,
@@ -2814,8 +2802,107 @@ export default function ZombiesCharacterSheet() {
     setShortRestCount((c) => c + 1);
   }, []);
 
+  const rollSpellDamage = useCallback(
+    async (damageString, extraDice, levelsAbove = 0) => {
+      if (typeof damageString !== 'string') {
+        return null;
+      }
+
+      const trimmed = damageString.trim();
+      if (!trimmed) {
+        return null;
+      }
+
+      const requests = [];
+      const validation = calculateDamage(
+        trimmed,
+        0,
+        false,
+        (count, sides) => {
+          requests.push({ count, sides });
+          return Array(count).fill(1);
+        },
+        extraDice,
+        levelsAbove,
+      );
+
+      if (!validation) {
+        return null;
+      }
+
+      if (requests.length === 0) {
+        const staticResult = calculateDamage(
+          trimmed,
+          0,
+          false,
+          undefined,
+          extraDice,
+          levelsAbove,
+        );
+        return staticResult ? { ...staticResult, rollValues: undefined } : null;
+      }
+
+      try {
+        const { rolls } = await rollDiceWithBox(requests);
+        let requestIndex = 0;
+        const appliedRollGroups = [];
+        const applyRolls = (count, sides) => {
+          const current = Array.isArray(rolls) ? rolls[requestIndex] : undefined;
+          requestIndex += 1;
+          const normalizedGroup = sanitizeRollGroup(current, count, sides);
+          if (normalizedGroup) {
+            appliedRollGroups.push(normalizedGroup);
+            return normalizedGroup;
+          }
+          const resolvedSides =
+            Number.isFinite(sides) && sides > 1 ? Math.floor(sides) : 6;
+          const fallbackRolls = Array.from({ length: count }, () =>
+            Math.max(1, Math.floor(Math.random() * resolvedSides) + 1)
+          );
+          const normalizedFallback = fallbackRolls
+            .map((value) => normalizeRollValue(value))
+            .filter((value) => value !== null);
+          while (normalizedFallback.length < count) {
+            normalizedFallback.push(
+              Math.max(1, Math.floor(Math.random() * resolvedSides) + 1),
+            );
+          }
+          appliedRollGroups.push(normalizedFallback);
+          return normalizedFallback;
+        };
+
+        const finalResult = calculateDamage(
+          trimmed,
+          0,
+          false,
+          applyRolls,
+          extraDice,
+          levelsAbove,
+        );
+
+        const appliedValues = collectRollValues(appliedRollGroups);
+        const rollValues = appliedValues.length > 0 ? appliedValues : undefined;
+
+        return finalResult ? { ...finalResult, rollValues } : null;
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Spell damage roll failed', error);
+        const fallbackResult = calculateDamage(
+          trimmed,
+          0,
+          false,
+          undefined,
+          extraDice,
+          levelsAbove,
+        );
+        return fallbackResult ? { ...fallbackResult, rollValues: undefined } : null;
+      }
+    },
+    [rollDiceWithBox],
+  );
+
   const handleCastSpell = useCallback(
-    (arg, lvl, idx) => {
+    async (arg, lvl, idx) => {
       if (arg === 'action' || arg === 'bonus') {
         consumeCircle(arg, lvl);
         if (arg === 'action' && speakWithAnimalsPendingRef.current) {
@@ -2832,6 +2919,40 @@ export default function ZombiesCharacterSheet() {
         if (arg === 'action') {
           speakWithAnimalsPendingRef.current = false;
         }
+        return;
+      }
+      if (arg === 'focus') {
+        const operation = typeof lvl === 'string' ? lvl : 'spend';
+        const providedMax = Number(idx);
+        const maxFocus = Number.isFinite(providedMax)
+          ? Math.max(0, Math.floor(providedMax))
+          : getMonkFocusPoints(form);
+
+        setUsedSlots((prev) => {
+          const numericCurrent = Number(prev?.focus);
+          const current =
+            Number.isFinite(numericCurrent) && numericCurrent > 0
+              ? Math.floor(numericCurrent)
+              : 0;
+          let next = current;
+
+          if (operation === 'restore') {
+            next = Math.max(0, current - 1);
+          } else if (operation === 'reset') {
+            next = 0;
+          } else if (operation === 'spend') {
+            if (current >= maxFocus) {
+              return prev;
+            }
+            next = Math.min(maxFocus, current + 1);
+          }
+
+          if (next === current) {
+            return prev;
+          }
+
+          return { ...prev, focus: next };
+        });
         return;
       }
       const consumeSlot = (level, preferredType) => {
@@ -2897,6 +3018,8 @@ export default function ZombiesCharacterSheet() {
           name,
           spellName: altName,
           pendingEffectOnly,
+          diceRolls: providedDiceRolls,
+          rollValues: providedRollValues,
         } = arg;
         const spellLabel = name || altName;
         if (pendingEffectOnly) {
@@ -2910,21 +3033,46 @@ export default function ZombiesCharacterSheet() {
         if (castingTime?.includes('1 action')) consumeCircle('action');
         else if (castingTime?.includes('1 bonus action')) consumeCircle('bonus');
         let result;
+        let diceRollDetails = Array.isArray(providedDiceRolls)
+          ? providedDiceRolls
+          : undefined;
+        let rollValueDetails = Array.isArray(providedRollValues)
+          ? providedRollValues
+          : undefined;
         if (typeof damage === 'number') {
           result = { total: damage, breakdown };
         } else if (damage) {
-          const calc = calculateDamage(
-            damage,
-            0,
-            false,
-            undefined,
-            extraDice,
-            levelsAbove
-          );
-          result =
-            calc && typeof calc === 'object'
-              ? calc
-              : { total: calc };
+          if (!diceRollDetails && !rollValueDetails) {
+            const rolled = await rollSpellDamage(
+              damage,
+              extraDice,
+              levelsAbove,
+            );
+            if (rolled) {
+              result = rolled;
+              diceRollDetails = Array.isArray(rolled.diceRolls)
+                ? rolled.diceRolls
+                : undefined;
+              rollValueDetails = Array.isArray(rolled.rollValues)
+                ? rolled.rollValues
+                : undefined;
+            }
+          }
+
+          if (!result) {
+            const calc = calculateDamage(
+              damage,
+              0,
+              false,
+              undefined,
+              extraDice,
+              levelsAbove,
+            );
+            result =
+              calc && typeof calc === 'object'
+                ? calc
+                : { total: calc };
+          }
           if (!result?.breakdown && breakdown) {
             result = { ...result, breakdown };
           }
@@ -2932,11 +3080,33 @@ export default function ZombiesCharacterSheet() {
           const spellLabel = name || altName;
           result = { total: spellLabel || 'Spell Cast' };
         }
-        playerTurnActionsRef.current?.updateDamageValueWithAnimation(
-          result?.total,
-          result?.breakdown,
-          typeof result?.total === 'number' ? spellLabel : undefined
-        );
+        const hasDiceDetails =
+          (Array.isArray(diceRollDetails) && diceRollDetails.length > 0) ||
+          (Array.isArray(rollValueDetails) && rollValueDetails.length > 0);
+        const extraDetails = hasDiceDetails
+          ? {
+              ...(Array.isArray(diceRollDetails) && diceRollDetails.length > 0
+                ? { diceRolls: diceRollDetails }
+                : {}),
+              ...(Array.isArray(rollValueDetails) && rollValueDetails.length > 0
+                ? { rollValues: rollValueDetails }
+                : {}),
+            }
+          : undefined;
+        if (extraDetails) {
+          playerTurnActionsRef.current?.updateDamageValueWithAnimation(
+            result?.total,
+            result?.breakdown,
+            typeof result?.total === 'number' ? spellLabel : undefined,
+            extraDetails,
+          );
+        } else {
+          playerTurnActionsRef.current?.updateDamageValueWithAnimation(
+            result?.total,
+            result?.breakdown,
+            typeof result?.total === 'number' ? spellLabel : undefined,
+          );
+        }
         if (name === 'Haste') {
           setActiveEffects((prev) => [
             ...prev,
@@ -2975,7 +3145,7 @@ export default function ZombiesCharacterSheet() {
         return { ...prev, [key]: levelState };
       });
     },
-    [form, consumeCircle]
+    [consumeCircle, form, rollSpellDamage]
   );
 
   const availableSlots = useMemo(() => {
@@ -3055,12 +3225,13 @@ export default function ZombiesCharacterSheet() {
 
   const handleItemsChange = useCallback(
     async (items) => {
-      setForm((prev) => ({ ...prev, item: items }));
+      const sanitizedItems = sanitizeInventoryItemsForUpdate(items);
+      setForm((prev) => ({ ...prev, item: sanitizedItems }));
       try {
         await apiFetch(`/equipment/update-item/${characterId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ item: items }),
+          body: JSON.stringify({ item: sanitizedItems }),
         });
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -3286,124 +3457,146 @@ export default function ZombiesCharacterSheet() {
 
   const raceBonus = form?.race?.abilities || {};
 
-  const resolvedCharacterId = useMemo(() => {
-    const candidates = [];
-    if (typeof form?._id === 'string' && form._id.trim() !== '') {
-      candidates.push(form._id.trim());
-    }
-    if (typeof form?.characterId === 'string' && form.characterId.trim() !== '') {
-      candidates.push(form.characterId.trim());
-    }
-    if (typeof characterId === 'string' && characterId.trim() !== '') {
-      candidates.push(characterId.trim());
-    }
-    return candidates.find(Boolean) || null;
-  }, [characterId, form]);
-
-  const resolvedCharacterIdRef = useRef(resolvedCharacterId);
-
-  useEffect(() => {
-    resolvedCharacterIdRef.current = resolvedCharacterId;
-  }, [resolvedCharacterId]);
-
   const characterFigurine = useMemo(() => resolveFigurineImageData(form), [form]);
 
-  const tokenPickerFilterScope = useMemo(() => {
-    const scopeSet = new Set();
+  const footerCharacterName = useMemo(() => {
+    if (!form || typeof form !== 'object') {
+      return null;
+    }
 
-    const addScopeVariants = (rawValue, prefixes = [], options = {}) => {
-      if (typeof rawValue !== 'string') {
-        return;
-      }
+    const candidateValues = [
+      form?.characterName,
+      form?.name,
+      form?.displayName,
+      form?.alias,
+    ];
 
-      const normalizedValue = rawValue.replace(/\s+/g, ' ').trim();
-      if (!normalizedValue) {
-        return;
-      }
-
-      const lowerValue = normalizedValue.toLowerCase();
-      const compactValue = lowerValue.replace(/[^a-z0-9]/g, '');
-
-      const normalizedPrefixes = Array.isArray(prefixes)
-        ? prefixes.map((prefix) => (typeof prefix === 'string' ? prefix.replace(/\s+/g, ' ').trim() : ''))
-        : [];
-
-      const includeStandalone =
-        options.includeStandalone ?? normalizedPrefixes.filter(Boolean).length === 0;
-
-      if (includeStandalone) {
-        [normalizedValue, lowerValue, compactValue]
-          .filter(Boolean)
-          .forEach((entry) => scopeSet.add(entry));
-      }
-
-      normalizedPrefixes
-        .filter(Boolean)
-        .forEach((prefix) => {
-          scopeSet.add(`${prefix}/${normalizedValue}`);
-          scopeSet.add(`${prefix}/${lowerValue}`);
-          if (compactValue) {
-            scopeSet.add(`${prefix}/${compactValue}`);
-          }
-        });
-    };
-
-    const { nameVariants: raceNameVariants, prefixes: racePrefixList } =
-      buildRaceTokenScopeData(form?.race?.name);
-
-    const occupations = Array.isArray(form?.occupation) ? form.occupation : [];
-    const seenClasses = new Set();
-    occupations.forEach((occupation) => {
-      if (!occupation || typeof occupation !== 'object') {
-        return;
-      }
-
-      const rawClassName =
-        typeof occupation.Occupation === 'string' ? occupation.Occupation.replace(/\s+/g, ' ').trim() : '';
-      if (!rawClassName) {
-        return;
-      }
-
-      const classKey = rawClassName.toLowerCase();
-      if (seenClasses.has(classKey)) {
-        return;
-      }
-      seenClasses.add(classKey);
-
-      addScopeVariants(rawClassName, [
-        'Core_Class_Tokens',
-        'Adventurers/Core_Class_Tokens',
-        'Tokens/Adventurers/Core_Class_Tokens',
-      ]);
-
-      if (racePrefixList.length > 0) {
-        addScopeVariants(rawClassName, racePrefixList);
-      }
-    });
-
-    if (scopeSet.size === 0 && raceNameVariants.length > 0) {
-      const fallbackRace = raceNameVariants.find((variant) => typeof variant === 'string' && variant.trim() !== '');
-      if (fallbackRace) {
-        addScopeVariants(fallbackRace, [
-          'Adventurers',
-          'Tokens/Adventurers',
-        ]);
+    for (const value of candidateValues) {
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed) {
+          return trimmed;
+        }
       }
     }
 
-    return Array.from(scopeSet);
-  }, [form?.occupation, form?.race?.name]);
+    return null;
+  }, [form]);
+
+  const [mobileHudPanel, setMobileHudPanel] = useState(null);
+  const [isDamagePopupDismissed, setIsDamagePopupDismissed] = useState(false);
+  const [footerDamageSummary, setFooterDamageSummary] = useState({
+    value: null,
+    label: 'Damage',
+    isCritical: false,
+    isFumble: false,
+    timestamp: null,
+  });
+
+  const handleDamageSummaryChange = useCallback((summary) => {
+    setFooterDamageSummary((prev) => {
+      if (!summary || typeof summary !== 'object') {
+        if (
+          prev.value === null &&
+          (prev.label === 'Damage' || !prev.label) &&
+          !prev.isCritical &&
+          !prev.isFumble
+        ) {
+          return prev;
+        }
+        return { value: null, label: 'Damage', isCritical: false, isFumble: false, timestamp: null };
+      }
+
+      const next = {
+        value:
+          Object.prototype.hasOwnProperty.call(summary, 'value') &&
+          summary.value !== undefined
+            ? summary.value
+            : null,
+        label:
+          typeof summary.label === 'string' && summary.label.trim()
+            ? summary.label.trim()
+            : 'Damage',
+        isCritical: Boolean(summary.isCritical),
+        isFumble: Boolean(summary.isFumble),
+        timestamp:
+          typeof summary.timestamp === 'number' && Number.isFinite(summary.timestamp)
+            ? summary.timestamp
+            : null,
+      };
+
+      if (
+        prev.value === next.value &&
+        prev.label === next.label &&
+        prev.isCritical === next.isCritical &&
+        prev.isFumble === next.isFumble &&
+        prev.timestamp === next.timestamp
+      ) {
+        return prev;
+      }
+
+      return next;
+    });
+  }, []);
+
+
+  useEffect(() => {
+    if (footerDamageSummary.value !== null && footerDamageSummary.value !== undefined) {
+      setIsDamagePopupDismissed(false);
+    }
+  }, [footerDamageSummary.timestamp, footerDamageSummary.value]);
+
+  const shouldShowDamagePopup =
+    footerDamageSummary.value !== null &&
+    footerDamageSummary.value !== undefined &&
+    !isDamagePopupDismissed;
+
+  const footerHealth = useMemo(() => {
+    if (!form || typeof form !== 'object') {
+      return { current: null, max: null };
+    }
+
+    const { currentHp, maxHp } = calculateCharacterHitPoints(form);
+
+    let resolvedMax = toFiniteNumberOrNull(maxHp);
+    if (resolvedMax === null) {
+      resolvedMax = toFiniteNumberOrNull(
+        form?.hpMax ?? form?.hitPoints ?? form?.health
+      );
+    }
+
+    let resolvedCurrent = toFiniteNumberOrNull(currentHp);
+    if (resolvedCurrent === null && resolvedMax !== null) {
+      resolvedCurrent = resolvedMax;
+    }
+
+    return {
+      current: resolvedCurrent,
+      max: resolvedMax,
+    };
+  }, [form]);
+
+  const tokenPickerFilterScope = useMemo(() => {
+    const raceValue =
+      form?.race !== undefined && form?.race !== null && form?.race !== ''
+        ? form.race
+        : form?.raceName ?? form?.Race ?? null;
+
+    return buildPlayerTokenFolderScope(raceValue, form?.occupation);
+  }, [form?.occupation, form?.race, form?.raceName, form?.Race, form?.race?.name]);
 
   const updateLocalDiceColor = useCallback(
-    (incomingCharacterId, nextColor) => {
+    (incomingCharacterId, nextColor, nextTheme = null) => {
       const normalizedCharacterId =
         typeof incomingCharacterId === 'string' && incomingCharacterId.trim() !== ''
           ? incomingCharacterId.trim()
           : null;
       const normalizedColor =
         typeof nextColor === 'string' && nextColor.trim() !== '' ? nextColor.trim() : null;
+      const normalizedTheme =
+        typeof nextTheme === 'string' && nextTheme.trim() !== '' ? nextTheme.trim() : null;
 
-      if (!normalizedCharacterId || !normalizedColor) {
+      if (!normalizedCharacterId || (!normalizedColor && !normalizedTheme)) {
         return;
       }
 
@@ -3439,12 +3632,27 @@ export default function ZombiesCharacterSheet() {
             typeof value.diceColor === 'string' && value.diceColor.trim() !== ''
               ? value.diceColor.trim()
               : null;
+          const existingTheme =
+            typeof value.diceTheme === 'string' && value.diceTheme.trim() !== ''
+              ? value.diceTheme.trim()
+              : null;
 
-          if (existingColor === normalizedColor) {
+          const colorChanged = Boolean(normalizedColor) && existingColor !== normalizedColor;
+          const themeChanged = Boolean(normalizedTheme) && existingTheme !== normalizedTheme;
+
+          if (!colorChanged && !themeChanged) {
             return;
           }
 
-          next[key] = { ...value, diceColor: normalizedColor };
+          const nextEntry = { ...value };
+          if (colorChanged && normalizedColor) {
+            nextEntry.diceColor = normalizedColor;
+          }
+          if (themeChanged && normalizedTheme) {
+            nextEntry.diceTheme = normalizedTheme;
+          }
+
+          next[key] = nextEntry;
           didUpdate = true;
         });
 
@@ -3472,11 +3680,26 @@ export default function ZombiesCharacterSheet() {
           return prev;
         }
 
-        if (typeof prev.diceColor === 'string' && prev.diceColor.trim() === normalizedColor) {
+        const colorMatches =
+          !normalizedColor ||
+          (typeof prev.diceColor === 'string' && prev.diceColor.trim() === normalizedColor);
+        const themeMatches =
+          !normalizedTheme ||
+          (typeof prev.diceTheme === 'string' && prev.diceTheme.trim() === normalizedTheme);
+
+        if (colorMatches && themeMatches) {
           return prev;
         }
 
-        return { ...prev, diceColor: normalizedColor };
+        const nextForm = { ...prev };
+        if (!colorMatches && normalizedColor) {
+          nextForm.diceColor = normalizedColor;
+        }
+        if (!themeMatches && normalizedTheme) {
+          nextForm.diceTheme = normalizedTheme;
+        }
+
+        return nextForm;
       });
     },
     [setCampaignCharacters, setForm]
@@ -3616,7 +3839,6 @@ export default function ZombiesCharacterSheet() {
         socketRef.current = null;
       }
       applyMapPayload({ maps: [], activeMapId: null, map: null });
-      setShowMapModal(false);
       return undefined;
     }
 
@@ -3928,6 +4150,7 @@ export default function ZombiesCharacterSheet() {
       }
 
       const hasDiceColorUpdate = Object.prototype.hasOwnProperty.call(update, 'diceColor');
+      const hasDiceThemeUpdate = Object.prototype.hasOwnProperty.call(update, 'diceTheme');
       const hasFigurineUrlUpdate = Object.prototype.hasOwnProperty.call(
         update,
         'figurineImageUrl'
@@ -3937,18 +4160,33 @@ export default function ZombiesCharacterSheet() {
         'figurineImagePublicId'
       );
 
-      if (!hasDiceColorUpdate && !hasFigurineUrlUpdate && !hasFigurineIdUpdate) {
+      if (
+        !hasDiceColorUpdate &&
+        !hasDiceThemeUpdate &&
+        !hasFigurineUrlUpdate &&
+        !hasFigurineIdUpdate
+      ) {
         return;
       }
 
+      let normalizedDiceColor = null;
       if (hasDiceColorUpdate) {
-        const normalizedDiceColor =
+        normalizedDiceColor =
           typeof update.diceColor === 'string' && update.diceColor.trim() !== ''
             ? update.diceColor.trim()
             : null;
-        if (normalizedDiceColor) {
-          updateLocalDiceColor(normalizedCharacterId, normalizedDiceColor);
-        }
+      }
+
+      let normalizedDiceTheme = null;
+      if (hasDiceThemeUpdate) {
+        normalizedDiceTheme =
+          typeof update.diceTheme === 'string' && update.diceTheme.trim() !== ''
+            ? update.diceTheme.trim()
+            : null;
+      }
+
+      if (normalizedDiceColor || normalizedDiceTheme) {
+        updateLocalDiceColor(normalizedCharacterId, normalizedDiceColor, normalizedDiceTheme);
       }
 
       if (hasFigurineUrlUpdate || hasFigurineIdUpdate) {
@@ -3985,12 +4223,12 @@ export default function ZombiesCharacterSheet() {
   }, [campaignId, applyMapPayload, updateLocalDiceColor, updateLocalFigurineImage]);
 
   const handleDiceColorChange = useCallback(
-    (nextColor) => {
+    (nextColor, nextTheme = null) => {
       const currentId = resolvedCharacterIdRef.current;
       if (!currentId) {
         return;
       }
-      updateLocalDiceColor(currentId, nextColor);
+      updateLocalDiceColor(currentId, nextColor, nextTheme);
     },
     [updateLocalDiceColor]
   );
@@ -4276,15 +4514,64 @@ export default function ZombiesCharacterSheet() {
     return lookup;
   }, [campaignCharacters, enemies, form, resolvedCharacterId]);
 
+  const collectMapIdentifiers = useCallback((map) => {
+    const identifiers = new Set();
+
+    const addIdentifier = (candidate) => {
+      if (typeof candidate !== 'string') {
+        return;
+      }
+
+      const trimmed = candidate.trim();
+      if (trimmed) {
+        identifiers.add(trimmed);
+      }
+    };
+
+    if (map && typeof map === 'object') {
+      ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'].forEach((key) =>
+        addIdentifier(map[key])
+      );
+
+      [map.meta, map.metadata, map.details, map.settings].forEach((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return;
+        }
+
+        ['mapId', '_id', 'id', 'uuid', 'guid', 'slug', 'identifier'].forEach((key) =>
+          addIdentifier(entry[key])
+        );
+      });
+    }
+
+    if (typeof campaignActiveMapId === 'string' && campaignActiveMapId.trim() !== '') {
+      addIdentifier(campaignActiveMapId);
+    }
+
+    return Array.from(identifiers);
+  }, [campaignActiveMapId]);
+
   const modalTokensByMapId = useMemo(() => {
     const base = { ...(campaignMapTokens || {}) };
-    const mapId =
-      typeof campaignMap?.mapId === 'string' && campaignMap.mapId.trim() !== ''
-        ? campaignMap.mapId.trim()
-        : null;
+    const identifiers = collectMapIdentifiers(campaignMap);
 
-    if (mapId) {
-      const existing = { ...(base[mapId] || {}) };
+    if (identifiers.length > 0) {
+      const mergedTokens = identifiers.reduce((acc, identifier) => {
+        const entry = base[identifier];
+        if (!entry || typeof entry !== 'object') {
+          return acc;
+        }
+
+        const sanitizedEntry = sanitizeTokenDictionary(entry);
+        Object.values(sanitizedEntry).forEach((token) => {
+          acc[token.characterId] = {
+            ...(acc[token.characterId] || {}),
+            ...token,
+          };
+        });
+
+        return acc;
+      }, {});
 
       if (activeMapTokens && typeof activeMapTokens === 'object') {
         Object.entries(activeMapTokens).forEach(([key, value]) => {
@@ -4292,21 +4579,24 @@ export default function ZombiesCharacterSheet() {
           if (!sanitized) {
             return;
           }
-          existing[sanitized.characterId] = {
-            ...(existing[sanitized.characterId] || {}),
+
+          mergedTokens[sanitized.characterId] = {
+            ...(mergedTokens[sanitized.characterId] || {}),
             ...sanitized,
           };
         });
       }
 
-      base[mapId] = existing;
+      identifiers.forEach((identifier) => {
+        base[identifier] = mergedTokens;
+      });
     }
 
     return base;
-  }, [activeMapTokens, campaignMap, campaignMapTokens]);
+  }, [activeMapTokens, campaignMap, campaignMapTokens, collectMapIdentifiers]);
 
   const handleTokenMove = useCallback(
-    async ({ mapId, characterId: tokenCharacterId, x, y }) => {
+    async ({ mapId, characterId: tokenCharacterId, x, y, rotation }) => {
       const normalizedCampaign =
         typeof campaignId === 'string' && campaignId.trim() !== '' ? campaignId.trim() : null;
       const normalizedMapId =
@@ -4340,6 +4630,7 @@ export default function ZombiesCharacterSheet() {
       const previousCampaignTokens = campaignMapTokensRef.current || {};
       const previousActiveTokens = activeMapTokensRef.current || {};
       const previousCampaignMap = campaignMapRef.current || null;
+      const normalizedRotation = normalizeRotation(rotation);
 
       const nextToken = {
         ...(previousCampaignTokens?.[normalizedMapId]?.[normalizedCharacterId] || {}),
@@ -4347,6 +4638,7 @@ export default function ZombiesCharacterSheet() {
         x: clampedX,
         y: clampedY,
         updatedAt: new Date().toISOString(),
+        ...(normalizedRotation !== null ? { rotation: normalizedRotation } : {}),
       };
 
       setCampaignMapTokens((prev) => {
@@ -4407,7 +4699,11 @@ export default function ZombiesCharacterSheet() {
           {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ x: clampedX, y: clampedY }),
+            body: JSON.stringify({
+              x: clampedX,
+              y: clampedY,
+              ...(normalizedRotation !== null ? { rotation: normalizedRotation } : {}),
+            }),
           }
         );
 
@@ -4581,6 +4877,15 @@ export default function ZombiesCharacterSheet() {
     cha: Math.floor((computedStats.cha - 10) / 2),
   };
 
+  const footerArmorClass = useMemo(
+    () =>
+      calculateCharacterArmorClass(form, {
+        dexMod: statMods.dex,
+        wisMod: statMods.wis,
+      }),
+    [form, statMods.dex, statMods.wis]
+  );
+
   const SPELLCASTING_ABILITIES = {
     cleric: 'wis',
     druid: 'wis',
@@ -4683,6 +4988,226 @@ export default function ZombiesCharacterSheet() {
     hasSpellcasting && spellPointsLeft > 0 ? 'gold' : '#6C757D';
 
   const isFormReady = Boolean(form);
+  const diceBoxReady = diceBoxStatus.ready;
+  const diceBoxFailed = diceBoxStatus.failed;
+  const shouldShowDiceLoadingOverlay =
+    isFormReady && !isTestEnvironment && !diceBoxReady && !diceBoxFailed;
+
+  const handleFooterQuickAction = useCallback(
+    (action) => {
+      if (typeof action === 'function') {
+        action();
+      }
+    },
+    []
+  );
+
+  const openAttackModal = useCallback(() => {
+    playerTurnActionsRef.current?.openAttackModal?.();
+  }, []);
+
+  const openDiceRoller = useCallback(() => {
+    playerTurnActionsRef.current?.openDiceRoller?.();
+  }, []);
+  const openDamageLog = useCallback(() => {
+    playerTurnActionsRef.current?.openDamageLog?.();
+  }, []);
+  const clearDamageDice = useCallback(() => {
+    playerTurnActionsRef.current?.clearDamageDice?.();
+  }, [playerTurnActionsRef]);
+  const toggleCriticalFromFooter = useCallback(() => {
+    playerTurnActionsRef.current?.toggleCritical?.();
+  }, []);
+  const passDisabled = !canPassTurn || isPassingTurn;
+  const footerMenuButtons = [
+    {
+      key: 'characterInfo',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open character info',
+      title: 'Character info',
+      content: <i className="fas fa-image-portrait" aria-hidden="true"></i>,
+      onClick: handleShowCharacterInfo,
+    },
+    {
+      key: 'stats',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: {
+        color: 'black',
+        backgroundColor: statPointsLeft > 0 ? 'gold' : '#6C757D',
+      },
+      ariaLabel: 'Open stats',
+      title: 'Stats',
+      content: <i className="fas fa-scroll" aria-hidden="true"></i>,
+      onClick: handleShowStats,
+    },
+    {
+      key: 'skills',
+      className: `footer-btn ${
+        skillPointsLeft > 0 || expertisePointsLeft > 0 ? 'points-glow' : ''
+      }`,
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: skillsGold },
+      ariaLabel: 'Open skills',
+      title: 'Skills',
+      content: <i className="fas fa-book-open" aria-hidden="true"></i>,
+      onClick: handleShowSkill,
+    },
+    {
+      key: 'feats',
+      className: `footer-btn ${featPointsLeft > 0 ? 'points-glow' : ''}`,
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: featsGold },
+      ariaLabel: 'Open feats',
+      title: 'Feats',
+      content: <i className="fas fa-hand-fist" aria-hidden="true"></i>,
+      onClick: handleShowFeats,
+    },
+    {
+      key: 'features',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open features',
+      title: 'Features',
+      content: <i className="fas fa-star" aria-hidden="true"></i>,
+      onClick: handleShowFeatures,
+    },
+  ];
+
+  if (hasSpellcasting) {
+    footerMenuButtons.push({
+      key: 'spells',
+      className: `footer-btn ${spellPointsLeft > 0 ? 'points-glow' : ''}`,
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: spellsGold },
+      ariaLabel: 'Open spells',
+      title: 'Spells',
+      content: <i className="fas fa-hat-wizard" aria-hidden="true"></i>,
+      onClick: handleShowSpells,
+    });
+  }
+
+  footerMenuButtons.push(
+    {
+      key: 'equipment',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open equipment',
+      title: 'Equipment',
+      content: <i className="fas fa-toolbox" aria-hidden="true"></i>,
+      onClick: handleShowEquipment,
+    },
+    {
+      key: 'inventory',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open inventory',
+      title: 'Inventory',
+      content: <i className="fas fa-box-open" aria-hidden="true"></i>,
+      onClick: () => handleShowInventory(),
+    },
+    {
+      key: 'shop',
+      className: 'footer-btn',
+      variant: 'secondary',
+      style: { color: 'black', backgroundColor: '#6C757D' },
+      ariaLabel: 'Open shop',
+      title: 'Shop',
+      content: <i className="fas fa-store" aria-hidden="true"></i>,
+      onClick: () => handleShowShop(),
+    },
+    {
+      key: 'help',
+      className: 'footer-btn',
+      variant: 'primary',
+      style: { color: 'white' },
+      ariaLabel: 'Open help',
+      title: 'Help',
+      content: <i className="fas fa-info" aria-hidden="true"></i>,
+      onClick: handleShowHelpModal,
+    },
+  );
+
+
+  const normalizeFooterCollection = useCallback((value) => {
+    if (!value) return [];
+    const source = Array.isArray(value) ? value : Object.values(value);
+    return source
+      .filter(Boolean)
+      .map((entry, index) => {
+        if (typeof entry === 'string') {
+          return { id: `${entry}-${index}`, name: entry };
+        }
+        return {
+          id: entry.id || entry.key || entry.name || entry.label || index,
+          icon: entry.icon || entry.symbol || '✦',
+          name: entry.name || entry.label || entry.type || 'Resource',
+          current: entry.current ?? entry.remaining ?? entry.value ?? entry.count,
+          max: entry.max ?? entry.total,
+          duration: entry.duration ?? entry.remainingDuration,
+          color: entry.color,
+        };
+      })
+      .filter((entry) => entry.name);
+  }, []);
+
+  const footerClassResources = useMemo(() => {
+    const existingResources = normalizeFooterCollection(form?.classResources || form?.resources);
+    const classLevels = (form?.occupation || []).reduce((acc, occupationEntry) => {
+      const name = String(
+        occupationEntry?.Name ?? occupationEntry?.Occupation ?? occupationEntry?.name ?? ''
+      ).toLowerCase();
+      const level = Number(occupationEntry?.Level ?? occupationEntry?.level ?? 0) || 0;
+      if (name && level > 0) {
+        acc[name] = (acc[name] || 0) + level;
+      }
+      return acc;
+    }, {});
+    const abilityModifier = (score) => Math.max(1, Math.floor(((Number(score) || 10) - 10) / 2));
+    const derivedResources = [];
+    const pushResource = (resource) => {
+      if (!resource || (resource.max !== '∞' && (!Number.isFinite(Number(resource.max)) || Number(resource.max) <= 0))) return;
+      const duplicate = existingResources.some((entry) =>
+        String(entry.name || '').toLowerCase() === String(resource.name || '').toLowerCase()
+      );
+      if (!duplicate) derivedResources.push(resource);
+    };
+
+    const monkFocusMax = getMonkFocusPoints(form);
+    pushResource({ id: 'monk-focus', icon: '✋', name: 'Ki / Focus', current: Math.max(monkFocusMax - (Number(usedSlots?.focus) || 0), 0), max: monkFocusMax, color: '#38e8ff' });
+    pushResource({ id: 'rage', icon: '🔥', name: 'Rage', current: classLevels.barbarian >= 20 ? '∞' : (classLevels.barbarian >= 17 ? 6 : classLevels.barbarian >= 12 ? 5 : classLevels.barbarian >= 6 ? 4 : classLevels.barbarian >= 3 ? 3 : classLevels.barbarian >= 1 ? 2 : 0), max: classLevels.barbarian >= 20 ? '∞' : (classLevels.barbarian >= 17 ? 6 : classLevels.barbarian >= 12 ? 5 : classLevels.barbarian >= 6 ? 4 : classLevels.barbarian >= 3 ? 3 : classLevels.barbarian >= 1 ? 2 : 0), color: '#f0733f' });
+    if (classLevels.bard) pushResource({ id: 'bardic-inspiration', icon: '🎵', name: 'Bardic Inspiration', current: abilityModifier(form?.cha), max: abilityModifier(form?.cha), color: '#d7b46a' });
+    if (classLevels.sorcerer) pushResource({ id: 'sorcery-points', icon: '✦', name: 'Sorcery Points', current: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, max: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, color: '#b85cff' });
+    if (classLevels.cleric) pushResource({ id: 'channel-divinity', icon: '☀', name: 'Channel Divinity', current: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, max: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, color: '#f3d98a' });
+    if (classLevels.druid) pushResource({ id: 'wild-shape', icon: '🐾', name: 'Wild Shape', current: classLevels.druid >= 20 ? '∞' : classLevels.druid >= 2 ? 2 : 0, max: classLevels.druid >= 20 ? '∞' : classLevels.druid >= 2 ? 2 : 0, color: '#49d98a' });
+    if (classLevels.fighter) pushResource({ id: 'second-wind', icon: '❤', name: 'Second Wind', current: classLevels.fighter >= 1 ? 1 : 0, max: classLevels.fighter >= 1 ? 1 : 0, color: '#ff5c72' });
+    if (classLevels.fighter) pushResource({ id: 'action-surge', icon: '⚡', name: 'Action Surge', current: classLevels.fighter >= 17 ? 2 : classLevels.fighter >= 2 ? 1 : 0, max: classLevels.fighter >= 17 ? 2 : classLevels.fighter >= 2 ? 1 : 0, color: '#f3b35f' });
+    if (classLevels.paladin) pushResource({ id: 'lay-on-hands', icon: '✚', name: 'Lay on Hands', current: classLevels.paladin ? classLevels.paladin * 5 : 0, max: classLevels.paladin ? classLevels.paladin * 5 : 0, color: '#f5d27b' });
+
+    return [...derivedResources, ...existingResources];
+  }, [form, normalizeFooterCollection, usedSlots?.focus]);
+  const footerActiveBonuses = useMemo(
+    () => normalizeFooterCollection(form?.activeBonuses || form?.bonuses || form?.activeEffects),
+    [form?.activeBonuses, form?.bonuses, form?.activeEffects, normalizeFooterCollection]
+  );
+  const footerConditions = useMemo(
+    () => normalizeFooterCollection(form?.conditions || form?.statusConditions),
+    [form?.conditions, form?.statusConditions, normalizeFooterCollection]
+  );
+
+  const hasFooterSpellSlots = hasSpellcasting || (form?.occupation || []).some((cls) => {
+    const name = (cls.Name || cls.Occupation || '').toLowerCase();
+    return name === 'warlock' && (Number(cls.Level) || 0) > 0;
+  });
+
+  const footerHiddenResourceCount =
+    footerClassResources.length + footerActiveBonuses.length + footerConditions.length +
+    (hasFooterSpellSlots ? 1 : 0);
 
   const DOCKABLE_MODAL_CONFIG = useMemo(
     () => ({
@@ -4786,6 +5311,10 @@ export default function ZombiesCharacterSheet() {
           onHide: handleCloseInventory,
           onTabChange: setInventoryTab,
           characterId,
+          onItemsChange: handleItemsChange,
+          onWeaponsChange: handleWeaponsChange,
+          onArmorChange: handleArmorChange,
+          onAccessoriesChange: handleAccessoriesChange,
           onDockChange: (side) => handleDockChange('inventory', side),
         }),
       },
@@ -4812,23 +5341,6 @@ export default function ZombiesCharacterSheet() {
           },
           onPurchase: handleShopPurchase,
           onDockChange: (side) => handleDockChange('shop', side),
-        }),
-      },
-      map: {
-        ...DOCKABLE_MODAL_DEFINITIONS.map,
-        showProp: 'show',
-        isEnabled: true,
-        getBaseProps: () => ({
-          map: campaignMap,
-          maps: campaignMaps,
-          activeMapId: campaignActiveMapId,
-          tokensByMapId: modalTokensByMapId,
-          currentCharacterId: resolvedCharacterId,
-          activeCharacterId: activeTurnParticipantId,
-          characterLookup: tokenMetaById,
-          onTokenMove: handleTokenMove,
-          onHide: handleCloseMapModal,
-          onDockChange: (side) => handleDockChange('map', side),
         }),
       },
       help: {
@@ -4862,7 +5374,6 @@ export default function ZombiesCharacterSheet() {
       handleCloseFeats,
       handleCloseHelpModal,
       handleCloseInventory,
-      handleCloseMapModal,
       handleCloseShop,
       handleCloseSkill,
       handleCloseSpells,
@@ -4948,22 +5459,124 @@ export default function ZombiesCharacterSheet() {
       .filter(Boolean);
   }, [DOCKABLE_MODAL_CONFIG, getDockedSide, handleDockChange, handleDockClose]);
 
+  const mapDockedSide = useMemo(() => getDockedSide('map'), [getDockedSide]);
+  const hasResolvedCampaignMap = useMemo(
+    () => Boolean(resolvedCampaignMap),
+    [resolvedCampaignMap]
+  );
+  const lastAutoDockedMapIdRef = useRef(null);
+
+  useEffect(() => {
+    const activeMapId =
+      typeof resolvedCampaignMap?.mapId === 'string' &&
+      resolvedCampaignMap.mapId.trim() !== ''
+        ? resolvedCampaignMap.mapId.trim()
+        : null;
+
+    setDockedModals((prev) => {
+      const hasDockedMap = prev.left === 'map' || prev.right === 'map';
+
+      if (!activeMapId) {
+        if (!hasDockedMap) {
+          lastAutoDockedMapIdRef.current = null;
+          return prev;
+        }
+
+        const next = { ...prev };
+        if (next.left === 'map') {
+          next.left = null;
+        }
+        if (next.right === 'map') {
+          next.right = null;
+        }
+        lastAutoDockedMapIdRef.current = null;
+        return next;
+      }
+
+      if (hasDockedMap) {
+        lastAutoDockedMapIdRef.current = activeMapId;
+        return prev;
+      }
+
+      if (lastAutoDockedMapIdRef.current === activeMapId) {
+        return prev;
+      }
+
+      const next = { ...prev };
+      if (next.left === null) {
+        next.left = 'map';
+      } else if (next.right === null) {
+        next.right = 'map';
+      } else {
+        return prev;
+      }
+
+      lastAutoDockedMapIdRef.current = activeMapId;
+      return next;
+    });
+  }, [resolvedCampaignMap, setDockedModals]);
+
+  const isMapInteractionActive = hasResolvedCampaignMap;
+
+  const overlaySurfaceClassName = useMemo(
+    () =>
+      isMapInteractionActive
+        ? 'zombies-character-sheet-layout__overlay-surface'
+        : '',
+    [isMapInteractionActive]
+  );
+
+  const layoutClassName = useMemo(() => {
+    const classes = ['zombies-character-sheet-layout'];
+    if (isMapInteractionActive) {
+      classes.push('zombies-character-sheet-layout--map-interaction-active');
+    }
+    return classes.join(' ');
+  }, [isMapInteractionActive]);
+
+  const mapContainerClassName = useMemo(() => {
+    const classes = ['zombies-character-sheet-layout__map'];
+    if (isMapInteractionActive) {
+      classes.push('zombies-character-sheet-layout__map--overlay-visible');
+    }
+    return classes.join(' ');
+  }, [isMapInteractionActive]);
+
   return (
-    <div
-      ref={rootContainerRef}
-      className="text-center"
-      style={{
-        fontFamily: 'Raleway, sans-serif',
-        backgroundImage: `url(${loginbg})`,
-        height: "100vh",
-        overflow: "hidden",
-        backgroundSize: "cover",
-        backgroundRepeat: "no-repeat",
-        paddingTop: navHeight + HEADER_PADDING,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
+    <div className={layoutClassName}>
+      <div className={mapContainerClassName}>
+        <MapModal
+          show={isMapInteractionActive}
+          map={resolvedCampaignMap}
+          maps={campaignMaps}
+          activeMapId={campaignActiveMapId}
+          tokensByMapId={modalTokensByMapId}
+          currentCharacterId={resolvedCharacterId}
+          activeCharacterId={activeTurnParticipantId}
+          characterLookup={tokenMetaById}
+          onTokenMove={handleTokenMove}
+          onTokenRemove={handleTokenRemove}
+          displayMode="background"
+          isDocked={Boolean(mapDockedSide)}
+          dockedSide={mapDockedSide}
+          onDockChange={(side) => handleDockChange('map', side)}
+          onDockClose={() => handleDockClose('map')}
+        />
+      </div>
+      <div
+        ref={rootContainerRef}
+        className="text-center zombies-character-sheet-layout__content"
+        style={{
+          fontFamily: 'Raleway, sans-serif',
+          backgroundColor: 'transparent',
+          height: '100vh',
+          overflow: 'hidden',
+          paddingTop: navHeight + HEADER_PADDING,
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+        }}
+      >
       <div
         ref={contentColumnRef}
         className="zombies-character-sheet__content"
@@ -4972,50 +5585,38 @@ export default function ZombiesCharacterSheet() {
           flexDirection: 'column',
           flex: '1 1 auto',
           minHeight: 0,
+          position: 'relative',
         }}
       >
-      {isFormReady ? (
+        {shouldShowDiceLoadingOverlay && (
+          <div
+            className="zombies-character-sheet__dice-overlay"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="zombies-character-sheet__dice-overlay-content">
+              Preparing the dice roller...
+            </div>
+          </div>
+        )}
+        {isFormReady ? (
         <>
-          <div ref={headerRef}>
+          {diceBoxFailed && (
+            <div className="zombies-character-sheet__dice-warning" role="alert">
+              The 3D dice roller failed to load. Rolls will use fallback values until it
+              reconnects.
+            </div>
+          )}
+          <div
+            ref={headerRef}
+            className={overlaySurfaceClassName || undefined}
+          >
             <div ref={combatHeaderRef}>
               <CombatTurnHeader
                 participants={participantsWithDetails}
                 tokenLookup={tokenMetaById}
               />
             </div>
-            <h1
-              style={{
-                fontSize: "28px",
-                fontWeight: 600,
-                color: "#FFFFFF",
-                padding: "8px 0",
-                textAlign: "center",
-                letterSpacing: "1px",
-                textShadow: "1px 1px 2px rgba(0, 0, 0, 0.4)",
-                fontFamily: "'Merriweather', serif",
-                textTransform: "capitalize",
-                borderBottom: "2px solid #555", // Subtle underline for structure
-                display: "inline-block",
-              }}
-              className="mx-auto"
-            >
-              {form?.characterName || 'Loading Character'}
-            </h1>
-
-            <HealthDefense
-              form={form}
-              totalLevel={totalLevel}
-              dexMod={statMods.dex}
-              conMod={statMods.con}
-              initiative={featBonuses.initiative}
-              speed={featBonuses.speed}
-              ac={featBonuses.ac}
-              hpMaxBonus={featBonuses.hpMaxBonus}
-              hpMaxBonusPerLevel={featBonuses.hpMaxBonusPerLevel}
-              onTempHealthChange={handleHealthChange}
-              speedMultiplier={speedMultiplier}
-              {...(spellAbilityMod !== null && { spellAbilityMod })}
-            />
           </div>
           <div
             style={{
@@ -5026,6 +5627,7 @@ export default function ZombiesCharacterSheet() {
             }}
           >
             <div
+              className={overlaySurfaceClassName || undefined}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -5038,174 +5640,200 @@ export default function ZombiesCharacterSheet() {
                 onRemoveEffect={handleRemoveEffect}
               />
             </div>
-            <PlayerTurnActions
-              form={form}
-              dexMod={statMods.dex}
-              strMod={statMods.str}
-              conMod={statMods.con}
-              ref={playerTurnActionsRef}
-              onCastSpell={handleCastSpell}
-              availableSlots={availableSlots}
-              longRestCount={longRestCount}
-              shortRestCount={shortRestCount}
-              onPassTurn={handlePassTurn}
-              canPassTurn={canPassTurn}
-              isPassTurnInProgress={isPassingTurn}
-            />
+            <div
+              className={overlaySurfaceClassName || undefined}
+              style={{ width: '100%' }}
+            >
+              <PlayerTurnActions
+                form={form}
+                dexMod={statMods.dex}
+                strMod={statMods.str}
+                conMod={statMods.con}
+                spellAbilityMod={spellAbilityMod}
+                spellAbilityKey={spellAbilityKey}
+                characterId={characterId}
+                ref={playerTurnActionsRef}
+                onCastSpell={handleCastSpell}
+                onDamageSummaryChange={handleDamageSummaryChange}
+                availableSlots={availableSlots}
+                longRestCount={longRestCount}
+                shortRestCount={shortRestCount}
+              />
+            </div>
           </div>
-          {form && (
-            <SpellSlots
-              form={form}
-              used={usedSlots}
-              onToggleSlot={handleCastSpell}
-              actionCount={actionCount}
-              longRestCount={longRestCount}
-              shortRestCount={shortRestCount}
-              onActionSurge={handleActionSurge}
-            />
+          {shouldShowDamagePopup && (
+            <div className="combat-hud-damage-popup" role="status" aria-live="polite">
+              <button
+                type="button"
+                className="combat-hud-damage-popup__close"
+                onClick={() => setIsDamagePopupDismissed(true)}
+                aria-label="Close damage popup"
+              >
+                ×
+              </button>
+              <span className="combat-hud-damage-popup__label">{footerDamageSummary.label || 'Damage'}</span>
+              <strong className="combat-hud-damage-popup__value">{footerDamageSummary.value}</strong>
+              <button
+                type="button"
+                className="combat-hud-damage-popup__log"
+                onClick={() => handleFooterQuickAction(openDamageLog)}
+              >
+                Log
+              </button>
+            </div>
           )}
           <Navbar
             fixed="bottom"
             data-bs-theme="dark"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+            style={{ backgroundColor: 'transparent' }}
+            className={[overlaySurfaceClassName, 'footer-navbar hud-footer-navbar']
+              .filter(Boolean)
+              .join(' ')}
+            aria-label="Combat HUD dock"
           >
-            <Container style={{ backgroundColor: 'transparent' }}>
-              <Nav
-                className="w-100 align-items-center"
-                style={{ backgroundColor: 'transparent' }}
-              >
-                <div
-                  className="d-flex justify-content-center flex-wrap flex-grow-1"
-                  style={{ backgroundColor: 'transparent' }}
-                >
-                  <Button
-                    onClick={handleShowCharacterInfo}
-                    style={{ color: "black" }}
-                    className="footer-btn"
-                    variant="secondary"
+            <Container fluid className="footer-container hud-footer-container">
+              <Dock className="combat-hud-dock" aria-label="Combat HUD dock">
+                <div className="combat-hud-mobile-tabs" aria-label="Mobile HUD sections">
+                  <button
+                    type="button"
+                    className={`combat-hud-mobile-tab ${mobileHudPanel === 'resources' ? 'is-active' : ''}`}
+                    onClick={() => setMobileHudPanel((panel) => (panel === 'resources' ? null : 'resources'))}
                   >
-                    <i className="fas fa-image-portrait" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowStats}
-                    style={{
-                      color: "black",
-                      backgroundColor: statPointsLeft > 0 ? "gold" : "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
+                    Resources
+                  </button>
+                  <button
+                    type="button"
+                    className={`combat-hud-mobile-tab ${mobileHudPanel === 'menu' ? 'is-active' : ''}`}
+                    onClick={() => setMobileHudPanel((panel) => (panel === 'menu' ? null : 'menu'))}
                   >
-                    <i className="fas fa-scroll" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowSkill}
-                    style={{
-                      color: "black",
-                      backgroundColor: skillsGold,
-                    }}
-                    className={`footer-btn ${
-                      skillPointsLeft > 0 || expertisePointsLeft > 0
-                        ? 'points-glow'
-                        : ''
-                    }`}
-                    variant="secondary"
-                  >
-                    <i className="fas fa-book-open" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowFeats}
-                    style={{
-                      color: "black",
-                      backgroundColor: featsGold,
-                    }}
-                    className={`footer-btn ${
-                      featPointsLeft > 0 ? 'points-glow' : ''
-                    }`}
-                    variant="secondary"
-                  >
-                    <i className="fas fa-hand-fist" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowFeatures}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-star" aria-hidden="true"></i>
-                  </Button>
-                  {hasSpellcasting && (
-                    <Button
-                      onClick={handleShowSpells}
-                      style={{
-                        color: 'black',
-                        backgroundColor: spellsGold,
-                      }}
-                      className={`footer-btn ${
-                        spellPointsLeft > 0 ? 'points-glow' : ''
-                      }`}
-                      variant="secondary"
-                    >
-                      <i className="fas fa-hat-wizard" aria-hidden="true"></i>
-                    </Button>
-                  )}
-                  <Button
-                    onClick={handleShowEquipment}
-                    style={{
-                      color: 'black',
-                      backgroundColor: '#6C757D',
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-toolbox" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={() => handleShowInventory()}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-box-open" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={() => handleShowShop()}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                  >
-                    <i className="fas fa-store" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowMapModal}
-                    style={{
-                      color: "black",
-                      backgroundColor: "#6C757D",
-                    }}
-                    className="footer-btn"
-                    variant="secondary"
-                    aria-label="Show campaign map"
-                  >
-                    <i className="fas fa-map" aria-hidden="true"></i>
-                  </Button>
-                  <Button
-                    onClick={handleShowHelpModal}
-                    style={{ color: "white" }}
-                    className="footer-btn"
-                    variant="primary"
-                  >
-                    <i className="fas fa-info" aria-hidden="true"></i>
-                  </Button>
+                    Menu
+                  </button>
                 </div>
-              </Nav>
+                <Panel className="combat-hud-dock__status" aria-label="Character status">
+                  <FooterCharacterSlot
+                    characterFigurine={characterFigurine}
+                    characterId={characterId}
+                    characterName={footerCharacterName}
+                    currentHealth={footerHealth.current}
+                    maxHealth={footerHealth.max}
+                    armorClass={footerArmorClass}
+                    onHealthChange={handleHealthChange}
+                    damageSummary={footerDamageSummary}
+                    onOpenDamageLog={() => handleFooterQuickAction(openDamageLog)}
+                    spellSlots={null}
+                    resourcesDrawer={null}
+                    hiddenResourceCount={footerHiddenResourceCount}
+                    actions={null}
+                    onToggleCritical={toggleCriticalFromFooter}
+                  />
+                  <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
+                    <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
+                    <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
+                    <span className="combat-hud-pill"><Sparkles size={16} /> {footerConditions.length || 'No'} conditions</span>
+                  </div>
+                </Panel>
+
+                <Panel className={`combat-hud-dock__resources ${mobileHudPanel === 'resources' ? 'is-mobile-open' : ''}`} aria-label="Combat resources">
+                  {form && (
+                    <div className="combat-hud-dock__turn-slots" aria-label="Turn action tracking">
+                      <SpellSlots
+                        form={form}
+                        used={usedSlots}
+                        onToggleSlot={handleCastSpell}
+                        actionCount={actionCount}
+                        longRestCount={longRestCount}
+                        shortRestCount={shortRestCount}
+                        onActionSurge={handleActionSurge}
+                        showTurnSlots
+                        showSpellSlots={false}
+                        showFocusSlot={false}
+                      />
+                    </div>
+                  )}
+                  {footerClassResources.length > 0 && (
+                    <div className="combat-hud-dock__resource-rail" aria-label="Class resources">
+                      {footerClassResources.map((resource) => {
+                        const isFocusResource = resource.id === 'monk-focus';
+                        const resourceMax = Number(resource.max);
+                        const handleResourceActivate = (event, action = 'spend') => {
+                          if (!isFocusResource || !Number.isFinite(resourceMax) || resourceMax <= 0) {
+                            return;
+                          }
+                          event.preventDefault();
+                          handleCastSpell('focus', action, resourceMax);
+                        };
+
+                        return (
+                          <button
+                            key={resource.id}
+                            type="button"
+                            className="combat-hud-resource-tile"
+                            style={{ '--hud-resource-accent': resource.color }}
+                            title={isFocusResource ? `${resource.name}: click to spend, right-click to restore, double-click to reset` : `${resource.name}: ${resource.current ?? '—'}/${resource.max ?? '—'}`}
+                            aria-label={`${resource.name}: ${resource.current ?? '—'} of ${resource.max ?? '—'}`}
+                            onClick={(event) => handleResourceActivate(event, event.shiftKey ? 'restore' : 'spend')}
+                            onContextMenu={(event) => handleResourceActivate(event, 'restore')}
+                            onDoubleClick={(event) => handleResourceActivate(event, 'reset')}
+                            disabled={!isFocusResource}
+                          >
+                            <span className="combat-hud-resource-tile__icon" aria-hidden="true">{resource.icon}</span>
+                            <span className="combat-hud-resource-tile__name">{resource.name}</span>
+                            <span className="combat-hud-resource-tile__value">{resource.current ?? '—'}/{resource.max ?? '—'}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {form && (
+                    <SpellSlots
+                      form={form}
+                      used={usedSlots}
+                      onToggleSlot={handleCastSpell}
+                      actionCount={actionCount}
+                      longRestCount={longRestCount}
+                      shortRestCount={shortRestCount}
+                      onActionSurge={handleActionSurge}
+                      showTurnSlots={false}
+                      showFocusSlot={false}
+                    />
+                  )}
+                </Panel>
+
+                <Toolbar className="combat-hud-dock__primary" aria-label="Primary combat actions">
+                  <IconButton label="Clear rolled dice" className="hud-action-button hud-action-button--clear-dice" onClick={() => handleFooterQuickAction(clearDamageDice)}><span className="hud-clear-dice-button__icon" aria-hidden="true"><FaDiceD20 /></span></IconButton>
+                  <IconButton label="Open dice roller" className="hud-action-button" onClick={() => handleFooterQuickAction(openDiceRoller)}><Dice5 size={24} /></IconButton>
+                  <IconButton label="Open attack actions" className="hud-action-button hud-action-button--attack" onClick={() => handleFooterQuickAction(openAttackModal)}><Swords size={28} /></IconButton>
+                  <HudButton
+                    type="button"
+                    variant="primary"
+                    className="hud-pass-turn-button"
+                    disabled={passDisabled}
+                    onClick={() => handleFooterQuickAction(handlePassTurn)}
+                    aria-label="Pass turn"
+                    title="Pass turn"
+                  >
+                    Pass Turn
+                  </HudButton>
+                </Toolbar>
+
+                <Toolbar className={`combat-hud-dock__secondary ${mobileHudPanel === 'menu' ? 'is-mobile-open' : ''}`} aria-label="Secondary actions">
+                  {footerMenuButtons.map((action) => {
+                    const icons = { characterInfo: UserRound, stats: Dumbbell, skills: Gem, feats: Sparkles, inventory: Backpack, equipment: Shield, shop: Package, spells: BookOpen, help: CircleHelp, map: Settings };
+                    const Icon = icons[action.key] || Settings;
+                    return (
+                      <IconButton
+                        key={action.key}
+                        label={action.ariaLabel || action.title}
+                        className={action.className}
+                        style={action.style}
+                        onClick={() => handleFooterQuickAction(action.onClick)}
+                      >
+                        <Icon size={20} />
+                      </IconButton>
+                    );
+                  })}
+                </Toolbar>
+              </Dock>
             </Container>
           </Navbar>
         </>
@@ -5301,6 +5929,10 @@ export default function ZombiesCharacterSheet() {
           characterId={characterId}
           dockedSide={getDockedSide('inventory')}
           onDockChange={(side) => handleDockChange('inventory', side)}
+          onItemsChange={handleItemsChange}
+          onWeaponsChange={handleWeaponsChange}
+          onArmorChange={handleArmorChange}
+          onAccessoriesChange={handleAccessoriesChange}
         />
         <EquipmentModal
           show={showEquipment}
@@ -5367,22 +5999,8 @@ export default function ZombiesCharacterSheet() {
       errorMessage={tokenPickerError}
       filterScope={tokenPickerFilterScope}
     />
-    <MapModal
-      show={shouldShowMapModal}
-      onHide={handleCloseMapModal}
-      map={campaignMap}
-      maps={campaignMaps}
-      activeMapId={campaignActiveMapId}
-      tokensByMapId={modalTokensByMapId}
-      currentCharacterId={resolvedCharacterId}
-      activeCharacterId={activeTurnParticipantId}
-      characterLookup={tokenMetaById}
-      onTokenMove={handleTokenMove}
-      onTokenRemove={handleTokenRemove}
-      dockedSide={getDockedSide('map')}
-      onDockChange={(side) => handleDockChange('map', side)}
-    />
     {dockedModalElements}
-  </div>
-);
+      </div>
+    </div>
+  );
 }

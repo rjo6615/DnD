@@ -14,6 +14,7 @@ const {
   buildCampaignMapPayload,
   normalizeMapTokens,
   normalizeTokenRotation,
+  normalizeTokenSize,
 } = require('../utils/campaignMaps');
 const {
   uploadMapImage,
@@ -207,6 +208,91 @@ const parseFolderFilters = (input) => {
     .filter(Boolean);
 
   return Array.from(new Set(sanitized));
+};
+
+const SHOP_VISIBILITY_CATEGORIES = ['weapons', 'armor', 'items', 'accessories'];
+
+const normalizeShopVisibilityValue = (value) => {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    const normalizedSet = new Set();
+    value.forEach((entry) => {
+      if (typeof entry !== 'string') {
+        return;
+      }
+      const normalized = entry.trim().toLowerCase();
+      if (normalized) {
+        normalizedSet.add(normalized);
+      }
+    });
+    return Array.from(normalizedSet);
+  }
+
+  if (typeof value === 'object') {
+    const normalizedSet = new Set();
+    Object.entries(value).forEach(([key, hidden]) => {
+      if (typeof key !== 'string') {
+        return;
+      }
+      const normalized = key.trim().toLowerCase();
+      if (!normalized) {
+        return;
+      }
+      if (hidden === true) {
+        normalizedSet.add(normalized);
+      }
+    });
+    return Array.from(normalizedSet);
+  }
+
+  return [];
+};
+
+const normalizeShopVisibility = (input) => {
+  const visibility = {};
+  SHOP_VISIBILITY_CATEGORIES.forEach((category) => {
+    visibility[category] = normalizeShopVisibilityValue(input?.[category]);
+  });
+  return visibility;
+};
+
+const validateShopVisibilityPayload = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('visibility must be an object');
+  }
+
+  for (const [category, entries] of Object.entries(value)) {
+    if (!SHOP_VISIBILITY_CATEGORIES.includes(category)) {
+      throw new Error(`invalid category: ${category}`);
+    }
+
+    if (Array.isArray(entries)) {
+      for (const entry of entries) {
+        if (typeof entry !== 'string') {
+          throw new Error(`category ${category} must be an array of strings`);
+        }
+      }
+      continue;
+    }
+
+    if (entries && typeof entries === 'object') {
+      for (const hidden of Object.values(entries)) {
+        if (typeof hidden !== 'boolean') {
+          throw new Error(`category ${category} must map keys to boolean values`);
+        }
+      }
+      continue;
+    }
+
+    if (entries !== undefined && entries !== null) {
+      throw new Error(`category ${category} must be an array or object`);
+    }
+  }
+
+  return true;
 };
 
 const sanitizeSingleFolder = (folder) => {
@@ -1107,6 +1193,7 @@ module.exports = (router) => {
           .isFloat()
           .withMessage('rotation must be a number')
           .toFloat(),
+        body('size').optional().isString().withMessage('size must be a string').trim(),
       ],
       handleValidationErrors,
       async (req, res, next) => {
@@ -1187,6 +1274,15 @@ module.exports = (router) => {
               delete nextTokens[mapId][trimmedCharacterId].rotation;
             } else {
               nextTokens[mapId][trimmedCharacterId].rotation = normalizedRotation;
+            }
+          }
+
+          if (Object.prototype.hasOwnProperty.call(req.body, 'size')) {
+            const normalizedSize = normalizeTokenSize(req.body.size);
+            if (normalizedSize) {
+              nextTokens[mapId][trimmedCharacterId].size = normalizedSize;
+            } else {
+              delete nextTokens[mapId][trimmedCharacterId].size;
             }
           }
 
@@ -1366,6 +1462,81 @@ module.exports = (router) => {
           emitMapUpdate(campaignName, tokenPayload);
 
           return res.json(tokenPayload);
+        } catch (err) {
+          next(err);
+        }
+      }
+    );
+
+  campaignRouter
+    .route('/:campaign/shop-visibility')
+    .get(
+      [param('campaign').trim().notEmpty().withMessage('campaign is required')],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const db_connect = req.db;
+          const campaign = await db_connect.collection('Campaigns').findOne(
+            { campaignName },
+            { projection: { dm: 1, players: 1, shopVisibility: 1 } }
+          );
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          const username = typeof req.user?.username === 'string' ? req.user.username : null;
+          const isDm = username && campaign.dm === username;
+          const isPlayer =
+            username &&
+            Array.isArray(campaign.players) &&
+            campaign.players.includes(username);
+
+          if (!isDm && !isPlayer) {
+            return res.status(403).json({ message: 'Forbidden' });
+          }
+
+          const visibility = normalizeShopVisibility(campaign.shopVisibility || {});
+          return res.json(visibility);
+        } catch (err) {
+          next(err);
+        }
+      }
+    )
+    .put(
+      [
+        param('campaign').trim().notEmpty().withMessage('campaign is required'),
+        body().custom(validateShopVisibilityPayload),
+      ],
+      handleValidationErrors,
+      async (req, res, next) => {
+        try {
+          const campaignName = req.params.campaign;
+          const db_connect = req.db;
+          const collection = db_connect.collection('Campaigns');
+          const campaign = await collection.findOne(
+            { campaignName },
+            { projection: { dm: 1 } }
+          );
+
+          if (!campaign) {
+            return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          if (!req.user || campaign.dm !== req.user.username) {
+            return res.status(403).json({ message: 'Forbidden' });
+          }
+
+          const visibility = normalizeShopVisibility(req.body || {});
+
+          await collection.updateOne(
+            { campaignName },
+            { $set: { shopVisibility: visibility } },
+            { upsert: false }
+          );
+
+          return res.json(visibility);
         } catch (err) {
           next(err);
         }
@@ -1747,8 +1918,38 @@ module.exports = (router) => {
             return res.status(404).json({ message: 'Campaign not found' });
           }
 
-          if (!req.user || campaign.dm !== req.user.username) {
-            return res.status(403).json({ message: 'Forbidden' });
+          const normalizedCampaign = withDefaultCombat(campaign);
+          const isDm = req.user && campaign.dm === req.user.username;
+          const username =
+            typeof req.user?.username === 'string'
+              ? req.user.username.trim()
+              : null;
+          const normalizedPlayers = Array.isArray(campaign.players)
+            ? campaign.players
+                .map((player) => {
+                  if (typeof player === 'string') {
+                    const trimmed = player.trim();
+                    return trimmed || null;
+                  }
+
+                  if (
+                    player &&
+                    typeof player === 'object' &&
+                    typeof player.username === 'string'
+                  ) {
+                    const trimmed = player.username.trim();
+                    return trimmed || null;
+                  }
+
+                  return null;
+                })
+                .filter(Boolean)
+            : [];
+
+          if (!isDm) {
+            if (!username || !normalizedPlayers.includes(username)) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
           }
 
           const enemyLookup = createEnemyLookup(campaign.enemies);
@@ -1767,6 +1968,84 @@ module.exports = (router) => {
             req.body.activeTurn === null || req.body.activeTurn === undefined
               ? null
               : req.body.activeTurn;
+
+          if (!isDm) {
+            const currentParticipants = Array.isArray(
+              normalizedCampaign?.combat?.participants
+            )
+              ? normalizedCampaign.combat.participants
+              : [];
+
+            const currentTurnIndex = Number.isInteger(
+              normalizedCampaign?.combat?.activeTurn
+            )
+              ? normalizedCampaign.combat.activeTurn
+              : null;
+
+            const participantsMatch =
+              participants.length === currentParticipants.length &&
+              participants.every((participant, index) => {
+                const current = currentParticipants[index];
+                return (
+                  current &&
+                  current.characterId === participant.characterId &&
+                  current.initiative === participant.initiative
+                );
+              });
+
+            if (!participantsMatch) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            if (
+              currentTurnIndex === null ||
+              currentTurnIndex < 0 ||
+              currentTurnIndex >= currentParticipants.length ||
+              currentParticipants.length === 0
+            ) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            const activeParticipant = currentParticipants[currentTurnIndex];
+            if (!activeParticipant) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            const characterFilters = [
+              { characterId: activeParticipant.characterId },
+            ];
+
+            if (ObjectId.isValid(activeParticipant.characterId)) {
+              characterFilters.push({ _id: new ObjectId(activeParticipant.characterId) });
+            }
+
+            const charactersCollection = db_connect.collection('Characters');
+            const activeCharacter = await charactersCollection.findOne({
+              campaign: campaign.campaignName,
+              $or: characterFilters,
+            });
+
+            const ownerCandidates = [
+              activeCharacter?.token,
+              activeCharacter?.player,
+              activeCharacter?.owner,
+              activeCharacter?.username,
+            ]
+              .filter((value) => typeof value === 'string')
+              .map((value) => value.trim())
+              .filter(Boolean);
+
+            if (!ownerCandidates.includes(username)) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+
+            const expectedNextTurn =
+              (currentTurnIndex + 1) % currentParticipants.length;
+
+            if (activeTurn !== expectedNextTurn) {
+              return res.status(403).json({ message: 'Forbidden' });
+            }
+          }
 
           if (
             activeTurn !== null &&

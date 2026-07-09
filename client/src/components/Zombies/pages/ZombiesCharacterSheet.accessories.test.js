@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, act } from '@testing-library/react';
+import { render, screen, within, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 jest.mock('../../../utils/apiFetch');
 import apiFetch from '../../../utils/apiFetch';
@@ -119,5 +120,109 @@ describe('AccessoryList request handling', () => {
     ownedAccessory = accessories.find((entry) => entry?.name === 'amulet of swiftness');
     expect(ownedAccessory).toBeTruthy();
     expect(ownedAccessory.owned).toBe(true);
+  });
+
+  test('delete button removes an accessory after confirmation', async () => {
+    apiFetch.mockImplementation((url) => {
+      if (url === '/accessories') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            'amulet of swiftness': {
+              name: 'amulet of swiftness',
+              displayName: 'Amulet of Swiftness',
+              category: 'amulet',
+              targetSlots: ['neck'],
+              weight: 1,
+              cost: '50 gp',
+              statBonuses: {},
+              skillBonuses: {},
+            },
+          }),
+        });
+      }
+      if (url === '/equipment/accessories/Camp1') {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+      throw new Error(`Unexpected apiFetch call: ${url}`);
+    });
+
+    const onChange = jest.fn();
+    const initialAccessories = [
+      { name: 'amulet of swiftness', displayName: 'Amulet of Swiftness', owned: true },
+      { name: 'amulet of swiftness', displayName: 'Amulet of Swiftness', owned: true },
+      { name: 'ring of protection', displayName: 'Ring of Protection', owned: true },
+    ];
+
+    render(
+      <AccessoryList
+        campaign="Camp1"
+        initialAccessories={initialAccessories}
+        ownedOnly
+        embedded
+        onChange={onChange}
+        show
+      />
+    );
+
+    const amuletHeadings = await screen.findAllByText('Amulet of Swiftness');
+    const amuletCard = amuletHeadings[0]?.closest('.card');
+    expect(amuletCard).not.toBeNull();
+
+    const deleteButton = within(amuletCard).getByRole('button', {
+      name: /delete amulet of swiftness/i,
+    });
+
+    await act(async () => {
+      await userEvent.click(deleteButton);
+    });
+
+    const confirmationMessage = await screen.findByText(
+      /are you sure you want to remove amulet of swiftness from your inventory/i
+    );
+    const confirmationModal = confirmationMessage.closest('.modal');
+    expect(confirmationModal).not.toBeNull();
+
+    const confirmButton = within(confirmationModal).getByRole('button', {
+      name: /delete/i,
+    });
+
+    await act(async () => {
+      await userEvent.click(confirmButton);
+    });
+
+    await waitFor(() =>
+      expect(
+        onChange.mock.calls.some(([entries]) => {
+          if (!Array.isArray(entries)) {
+            return false;
+          }
+          const amuletCopies = entries.filter(
+            (entry) => entry?.name === 'amulet of swiftness'
+          ).length;
+          return entries.length === 2 && amuletCopies === 1;
+        })
+      ).toBe(true)
+    );
+    const deletionCall = onChange.mock.calls.find(([entries]) => {
+      if (!Array.isArray(entries)) {
+        return false;
+      }
+      const amuletCopies = entries.filter(
+        (entry) => entry?.name === 'amulet of swiftness'
+      ).length;
+      return entries.length === 2 && amuletCopies === 1;
+    });
+    const [updatedAccessories] = deletionCall || [];
+    expect(Array.isArray(updatedAccessories)).toBe(true);
+    expect(updatedAccessories).toHaveLength(2);
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText(
+          /are you sure you want to remove amulet of swiftness from your inventory/i
+        )
+      ).not.toBeInTheDocument()
+    );
   });
 });

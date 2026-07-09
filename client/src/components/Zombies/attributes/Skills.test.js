@@ -1,5 +1,6 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import Skills from './Skills';
 
 let capturedModalProps;
@@ -20,8 +21,18 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ id: 'test-id' }),
 }));
 
+jest.mock('../../../utils/diceBoxManager', () => ({
+  rollDiceWithBox: jest.fn().mockResolvedValue({ rolls: [[12]] }),
+  setDiceBoxThemeColor: jest.fn(),
+}));
+
+const { rollDiceWithBox, setDiceBoxThemeColor } = require(
+  '../../../utils/diceBoxManager'
+);
+
 const createProps = (overrides = {}) => ({
   form: {
+    diceColor: '#123456',
     skills: {},
     race: {},
     background: {},
@@ -50,6 +61,8 @@ const createProps = (overrides = {}) => ({
 describe('Skills modal docking props', () => {
   beforeEach(() => {
     capturedModalProps = null;
+    rollDiceWithBox.mockClear();
+    setDiceBoxThemeColor.mockClear();
   });
 
   it('applies docked layout when docked', () => {
@@ -71,5 +84,76 @@ describe('Skills modal docking props', () => {
     expect(capturedModalProps.centered).toBe(true);
     expect(capturedModalProps.backdrop).toBe(true);
     expect(capturedModalProps.enforceFocus).toBe(true);
+  });
+});
+
+describe('skill rolling behavior', () => {
+  beforeEach(() => {
+    rollDiceWithBox.mockClear();
+    setDiceBoxThemeColor.mockClear();
+  });
+
+  it('closes the modal after rolling when undocked', async () => {
+    const handleCloseSkill = jest.fn();
+    const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+    rollDiceWithBox.mockResolvedValueOnce({ rolls: [[17]] });
+
+    render(<Skills {...createProps({ handleCloseSkill })} />);
+
+    try {
+      const rollButton = await screen.findByRole('button', { name: /roll acrobatics/i });
+      await userEvent.click(rollButton);
+
+      expect(handleCloseSkill).toHaveBeenCalledTimes(1);
+
+      await waitFor(() => {
+        const rollEventCall = dispatchSpy.mock.calls.find(
+          ([event]) => event?.type === 'damage-roll'
+        );
+        expect(rollEventCall).toBeDefined();
+      });
+    } finally {
+      dispatchSpy.mockRestore();
+    }
+  });
+
+  it('keeps the modal open after rolling when docked', async () => {
+    const handleCloseSkill = jest.fn();
+    const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+    rollDiceWithBox.mockResolvedValueOnce({ rolls: [[9]] });
+
+    render(
+      <Skills
+        {...createProps({ handleCloseSkill, isDocked: true, dockedSide: 'left' })}
+      />
+    );
+
+    try {
+      const rollButton = await screen.findByRole('button', { name: /roll acrobatics/i });
+      await userEvent.click(rollButton);
+
+      expect(handleCloseSkill).not.toHaveBeenCalled();
+
+      await waitFor(() => {
+        const rollEventCall = dispatchSpy.mock.calls.find(
+          ([event]) => event?.type === 'damage-roll'
+        );
+        expect(rollEventCall).toBeDefined();
+      });
+    } finally {
+      dispatchSpy.mockRestore();
+    }
+  });
+  it('applies the player dice color before rolling', async () => {
+    rollDiceWithBox.mockResolvedValueOnce({ rolls: [[8]] });
+
+    render(<Skills {...createProps()} />);
+
+    const rollButton = await screen.findByRole('button', { name: /roll acrobatics/i });
+    await userEvent.click(rollButton);
+
+    await waitFor(() => {
+      expect(setDiceBoxThemeColor).toHaveBeenCalledWith('#123456');
+    });
   });
 });

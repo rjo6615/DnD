@@ -189,6 +189,9 @@ describe('ZombiesDM AI generation', () => {
     const modal = await screen.findByTestId('map-editor-modal');
     const modalQueries = within(modal);
 
+    const gridSelect = modalQueries.getByLabelText('Grid Size');
+    expect(gridSelect).toHaveValue('24');
+
     const folderInput = modalQueries.getByLabelText(/^Folder/);
     expect(folderInput).not.toBeRequired();
 
@@ -278,11 +281,23 @@ describe('ZombiesDM AI generation', () => {
       expect(modalQueries.queryByText('Alt text is required.')).not.toBeInTheDocument()
     );
 
+    await userEvent.selectOptions(gridSelect, '120');
+    expect(gridSelect).toHaveValue('120');
+
     await userEvent.click(submitButton);
 
     await waitFor(() => {
       expect(getMapPostCalls()).toHaveLength(1);
     });
+
+    const [, firstRequestOptions] = getMapPostCalls()[0];
+    const parsedRequestBody = JSON.parse(firstRequestOptions?.body || '{}');
+    expect(parsedRequestBody.map?.gridColumns).toBe(120);
+    expect(parsedRequestBody.map?.gridRows).toBe(120);
+    expect(parsedRequestBody.map?.gridDimensions).toBe('120x120');
+    expect(parsedRequestBody.map?.gridSize).toBe('120x120');
+    expect(parsedRequestBody.map?.grid?.columns).toBe(120);
+    expect(parsedRequestBody.map?.grid?.rows).toBe(120);
   });
 
   test('map folder selection persists and manager groups maps by folder', async () => {
@@ -330,12 +345,24 @@ describe('ZombiesDM AI generation', () => {
             mapPostBodies.push(parsedBody);
             const createdIndex = mapPostBodies.length;
             const createdMapId = createdIndex === 1 ? 'forest-map' : `forest-map-${createdIndex}`;
+            const createdGridColumns = parsedBody.map?.gridColumns ?? 24;
+            const createdGridRows = parsedBody.map?.gridRows ?? createdGridColumns;
+            const createdGridDimensions =
+              parsedBody.map?.gridDimensions ||
+              parsedBody.map?.gridSize ||
+              `${createdGridColumns}x${createdGridRows}`;
+
             const createdMap = {
               mapId: createdMapId,
               title: parsedBody.map?.title || 'Forest Map',
               folder: parsedBody.map?.folder,
               imageUrl: parsedBody.map?.imageUrl || 'https://example.com/forest.png',
               altText: parsedBody.map?.altText || 'Forest map',
+              gridColumns: createdGridColumns,
+              gridRows: createdGridRows,
+              gridDimensions: createdGridDimensions,
+              gridSize: createdGridDimensions,
+              grid: parsedBody.map?.grid,
               createdAt: now,
               updatedAt: now,
             };
@@ -390,6 +417,9 @@ describe('ZombiesDM AI generation', () => {
       'https://example.com/forest.png'
     );
     await userEvent.type(modalQueries.getByLabelText(/^Alt Text/), 'Forest clearing');
+    const gridSelect = modalQueries.getByLabelText('Grid Size');
+    expect(gridSelect).toHaveValue('24');
+    await userEvent.selectOptions(gridSelect, '64');
 
     await userEvent.click(modalQueries.getByTestId('map-editor-submit-button'));
 
@@ -398,6 +428,9 @@ describe('ZombiesDM AI generation', () => {
     });
 
     expect(mapPostBodies[0].map.folder).toBe('Forest Encounters');
+    expect(mapPostBodies[0].map.gridColumns).toBe(64);
+    expect(mapPostBodies[0].map.gridRows).toBe(64);
+    expect(mapPostBodies[0].map.gridDimensions).toBe('64x64');
 
     await waitFor(() =>
       expect(screen.queryByTestId('map-editor-modal')).not.toBeInTheDocument()
@@ -1625,6 +1658,7 @@ describe('ZombiesDM AI generation', () => {
       .find((props) => props && props.map && props.map.mapId === 'map-1');
 
     expect(initialBoardCall).toBeDefined();
+    expect(initialBoardCall.allowWheelZoom).toBe(true);
     expect(initialBoardCall.disabled).toBe(false);
     expect(initialBoardCall.tokens).toEqual(
       expect.arrayContaining([
@@ -1680,6 +1714,7 @@ describe('ZombiesDM AI generation', () => {
 
     const latestBoardProps = CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
     expect(typeof latestBoardProps.onTokenRemove).toBe('function');
+    expect(latestBoardProps.allowWheelZoom).toBe(true);
 
     await act(async () => {
       const result = await latestBoardProps.onTokenRemove({
@@ -1702,6 +1737,7 @@ describe('ZombiesDM AI generation', () => {
         (token) => token.characterId === 'hero-1'
       );
       expect(hasHeroToken).toBe(false);
+      expect(updatedProps.allowWheelZoom).toBe(true);
     });
   });
 
@@ -1829,6 +1865,10 @@ describe('ZombiesDM AI generation', () => {
 
     await screen.findByRole('heading', { name: /Combat Tracker/i });
 
+    const combatTurnOrder = await screen.findByRole('group', {
+      name: /Combat turn order/i,
+    });
+
     const combatHeader = await screen.findByRole('columnheader', { name: /In Combat/i });
     const combatTable = combatHeader.closest('table');
     if (!combatTable) {
@@ -1857,6 +1897,10 @@ describe('ZombiesDM AI generation', () => {
       activeTurn: null,
     });
 
+    await waitFor(() => {
+      expect(within(combatTurnOrder).getByText('Hero')).toBeInTheDocument();
+    });
+
     const heroSetTurnButton = within(heroRow).getByRole('button', {
       name: /Set Turn/i,
     });
@@ -1864,6 +1908,12 @@ describe('ZombiesDM AI generation', () => {
 
     await waitFor(() => expect(combatUpdates).toHaveLength(2));
     expect(combatUpdates[1].activeTurn).toBe(0);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('status', { name: /Current Turn: Hero/i })
+      ).toBeInTheDocument(),
+    );
 
     const nextTurnButton = screen.getByRole('button', { name: /Next Turn/i });
     await userEvent.click(nextTurnButton);
@@ -1876,7 +1926,7 @@ describe('ZombiesDM AI generation', () => {
     ).toContain('Hero');
   });
 
-  test('opens map placement modal for enemies and persists placement moves', async () => {
+  test('allows the DM to place enemies directly on the campaign map surface', async () => {
     const enemies = [
       {
         enemyId: 'enemy-1',
@@ -1939,32 +1989,27 @@ describe('ZombiesDM AI generation', () => {
     await waitFor(() => expect(within(enemiesCard).getByText('Goblin')).toBeInTheDocument());
 
     const placeButton = within(enemiesCard).getByRole('button', { name: 'Place on Map' });
-
-    MapModal.mockClear();
-
+    CampaignMapBoard.mockClear();
     await userEvent.click(placeButton);
 
-    let placementProps;
-    await waitFor(() => {
-      const placementCalls = MapModal.mock.calls
-        .map(([props]) => props)
-        .filter((props) => props && props.readOnly === false && typeof props.onTokenMove === 'function');
-      expect(placementCalls.length).toBeGreaterThan(0);
-      placementProps = placementCalls[placementCalls.length - 1];
-      expect(placementProps.show).toBe(true);
-      expect(placementProps.currentCharacterId).toBe('enemy-1');
-    });
+    await waitFor(() =>
+      expect(screen.queryByTestId('resource-enemies-card')).not.toBeInTheDocument()
+    );
+
+    const overlay = await screen.findByTestId('map-placement-overlay');
+    expect(overlay).toHaveTextContent('Click the map to place Goblin.');
+
+    const boardCalls = CampaignMapBoard.mock.calls;
+    expect(boardCalls.length).toBeGreaterThan(0);
+    const placementBoardProps = boardCalls[boardCalls.length - 1][0];
+    expect(typeof placementBoardProps.onBackgroundClick).toBe('function');
+    expect(typeof placementBoardProps.onTokenRemove).toBe('function');
 
     apiFetch.mockClear();
 
-    await expect(
-      placementProps.onTokenMove({
-        mapId: 'map-123',
-        characterId: 'enemy-1',
-        x: 1.7,
-        y: -0.3,
-      })
-    ).resolves.toBe(true);
+    await act(async () => {
+      await placementBoardProps.onBackgroundClick({ x: 1.7, y: -0.3 });
+    });
 
     await waitFor(() => {
       expect(apiFetch).toHaveBeenCalledWith(
@@ -1977,10 +2022,16 @@ describe('ZombiesDM AI generation', () => {
       );
     });
 
+    await waitFor(() =>
+      expect(screen.queryByTestId('map-placement-overlay')).not.toBeInTheDocument()
+    );
+
     apiFetch.mockClear();
 
+    const latestBoardProps = CampaignMapBoard.mock.calls[CampaignMapBoard.mock.calls.length - 1][0];
+
     await expect(
-      placementProps.onTokenRemove({
+      latestBoardProps.onTokenRemove({
         mapId: 'map-123',
         characterId: 'enemy-1',
       })
@@ -2049,6 +2100,83 @@ describe('ZombiesDM AI generation', () => {
     expect(
       within(modal).getByRole('button', { name: /roll a d20/i })
     ).toBeInTheDocument();
+  });
+
+  test('filters monsters by challenge rating range', async () => {
+    const characters = [];
+    const monsters = [
+      { index: 'goblin', name: 'Goblin', challengeRating: 0.25 },
+      { index: 'ogre', name: 'Ogre', challengeRating: 2 },
+      { index: 'adult-red-dragon', name: 'Adult Red Dragon', challengeRating: 17 },
+    ];
+
+    apiFetch.mockImplementation((url, options = {}) => {
+      switch (url) {
+        case '/campaigns/Camp1/characters':
+          return Promise.resolve({ ok: true, json: async () => characters });
+        case '/campaigns/dm/dm/Camp1':
+          return Promise.resolve({ ok: true, json: async () => ({ players: [] }) });
+        case '/users':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/combat':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ participants: [], activeTurn: null }),
+          });
+        case '/campaigns/Camp1/enemies':
+          return Promise.resolve({ ok: true, json: async () => [] });
+        case '/campaigns/Camp1/maps':
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              maps: [],
+              activeMapId: null,
+              map: null,
+              tokensByMapId: {},
+              activeMapTokens: {},
+            }),
+          });
+        case '/monsters':
+          return Promise.resolve({ ok: true, json: async () => monsters });
+        default:
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+    });
+
+    render(<ZombiesDM />);
+
+    const enemiesTab = await screen.findByRole('tab', { name: 'Enemies' });
+    await userEvent.click(enemiesTab);
+
+    const monsterSelect = await screen.findByLabelText('Select Monster');
+    await waitFor(() => {
+      expect(within(monsterSelect).getByRole('option', { name: 'Goblin' })).toBeInTheDocument();
+      expect(within(monsterSelect).getByRole('option', { name: 'Ogre' })).toBeInTheDocument();
+      expect(
+        within(monsterSelect).getByRole('option', { name: 'Adult Red Dragon' })
+      ).toBeInTheDocument();
+    });
+
+    const minSelect = await screen.findByLabelText('Minimum challenge rating');
+    const maxSelect = await screen.findByLabelText('Maximum challenge rating');
+
+    await userEvent.selectOptions(minSelect, '2');
+    await waitFor(() => {
+      expect(
+        within(monsterSelect).queryByRole('option', { name: 'Goblin' })
+      ).not.toBeInTheDocument();
+      expect(
+        within(monsterSelect).getByRole('option', { name: 'Adult Red Dragon' })
+      ).toBeInTheDocument();
+    });
+
+    await userEvent.selectOptions(maxSelect, '2');
+    await waitFor(() => {
+      expect(within(monsterSelect).getByRole('option', { name: 'Ogre' })).toBeInTheDocument();
+      expect(
+        within(monsterSelect).queryByRole('option', { name: 'Adult Red Dragon' })
+      ).not.toBeInTheDocument();
+    });
   });
 
 

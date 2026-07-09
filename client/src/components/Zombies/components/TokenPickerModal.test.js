@@ -396,6 +396,59 @@ describe('TokenPickerModal', () => {
     });
   });
 
+  test('filters manifest assets based on provided scope', async () => {
+    const folderTree = { folders: [], flatFolders: [] };
+
+    const manifestPayload = {
+      assets: [
+        {
+          publicId: 'Tokens/Adventurers/Dragonborn/Fighter/token-1',
+          filename: 'Dragonborn Fighter',
+          relativeFolder: 'Adventurers/Dragonborn/Fighter',
+        },
+        {
+          publicId: 'Tokens/Adventurers/Elf/Wizard/token-2',
+          filename: 'Elf Wizard',
+          relativeFolder: 'Adventurers/Elf/Wizard',
+        },
+      ],
+      nextCursor: null,
+      appliedFolders: ['Tokens/Adventurers'],
+    };
+
+    apiFetch.mockImplementation((url) => {
+      if (url === '/campaigns/Camp1/token-folders') {
+        return Promise.resolve({ ok: true, json: async () => folderTree });
+      }
+
+      if (url.startsWith('/campaigns/Camp1/token-manifest')) {
+        return Promise.resolve({ ok: true, json: async () => manifestPayload });
+      }
+
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <TokenPickerModal
+        show
+        campaignId="Camp1"
+        onHide={jest.fn()}
+        onSelect={jest.fn()}
+        filterScope={[
+          'Dragonborn/Fighter',
+          'Adventurers/Dragonborn/Fighter',
+          'folder:Tokens/Adventurers/Dragonborn/Fighter',
+        ]}
+      />
+    );
+
+    await screen.findByText('Dragonborn Fighter');
+
+    await waitFor(() => {
+      expect(screen.queryByText('Elf Wizard')).not.toBeInTheDocument();
+    });
+  });
+
   test('player token picker limits folders to scoped race and class combinations', async () => {
     const folderTree = {
       rootFolder: 'Tokens',

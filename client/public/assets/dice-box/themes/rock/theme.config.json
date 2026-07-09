@@ -1,0 +1,12 @@
+{
+  "name": "Rock",
+  "systemName": "rock",
+  "author": "DnD Dice Roller",
+  "version": 0.1,
+  "material": {
+    "type": "standard",
+    "diffuseLevel": 1,
+    "specularPower": 0.6
+  },
+  "themeColor": "#5e6466"
+}

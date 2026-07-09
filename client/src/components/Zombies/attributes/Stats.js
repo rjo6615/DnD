@@ -4,8 +4,19 @@ import DockControls from '../components/DockControls';
 import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
 import { normalizeEquipmentMap } from './equipmentNormalization';
+import { rollSkillWithDiceBox } from './Skills';
+import {
+  DEFAULT_DICE_COLOR,
+  normalizeDiceColor,
+} from '../../../utils/diceColors';
 
 const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
+const formatAdjustmentSegment = (value, label) => {
+  if (!value) return null;
+  const sign = value >= 0 ? '+' : '-';
+  return `${sign} ${Math.abs(value)} ${label}`;
+};
 
 const createEmptyStatMap = () => ({
   str: 0,
@@ -33,6 +44,11 @@ export default function Stats({
     wis: form.wis || 0,
     cha: form.cha || 0,
   });
+
+  const diceFaceColor = useMemo(
+    () => normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR,
+    [form?.diceColor],
+  );
 
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [selectedStat, setSelectedStat] = useState(null);
@@ -136,6 +152,55 @@ export default function Stats({
     setShowBreakdown(false);
   };
 
+  const handleRoll = useCallback(
+    async (statKey) => {
+      const statMod = statMods[statKey] ?? 0;
+      const statInfo = STATS.find((stat) => stat.key === statKey);
+      const statLabel = statInfo?.label || statKey.toUpperCase();
+
+      if (!isDocked) {
+        handleCloseStats?.();
+      }
+
+      const { result, d20 } = await rollSkillWithDiceBox(statMod, {
+        diceColor: diceFaceColor,
+      });
+      const breakdownParts = [`${d20} (d20)`];
+      const modifierSegment = formatAdjustmentSegment(
+        statMod,
+        `${statLabel} Modifier`
+      );
+      if (modifierSegment) {
+        breakdownParts.push(modifierSegment);
+      }
+
+      const diceRolls = [
+        {
+          sides: 20,
+          value: d20,
+          type: `${statLabel} Check`,
+          category: 'base',
+        },
+      ];
+
+      window.dispatchEvent(
+        new CustomEvent('damage-roll', {
+          detail: {
+            value: result,
+            breakdown: breakdownParts.join(' '),
+            source: statLabel,
+            rollLabel: 'Stat Roll',
+            critical: d20 === 20,
+            fumble: d20 === 1,
+            diceRolls,
+          },
+        })
+      );
+
+    },
+    [diceFaceColor, handleCloseStats, isDocked, statMods]
+  );
+
   const dialogClassName = useMemo(() => {
     if (!isDocked) {
       return undefined;
@@ -199,14 +264,24 @@ export default function Stats({
                     <span className="stat-card-key">{key.toUpperCase()}</span>
                     {label && <span className="stat-card-label">{label}</span>}
                   </div>
-                  <Button
-                    onClick={() => handleView(key)}
-                    variant="link"
-                    aria-label={`View ${label || key} details`}
-                    className="stat-card-view"
-                  >
-                    <i className="fa-solid fa-eye"></i>
-                  </Button>
+                  <div className="stat-card-actions">
+                    <Button
+                      onClick={() => handleView(key)}
+                      variant="link"
+                      aria-label={`View ${label || key} details`}
+                      className="stat-card-view"
+                    >
+                      <i className="fa-solid fa-eye"></i>
+                    </Button>
+                    <Button
+                      onClick={() => handleRoll(key)}
+                      variant="link"
+                      aria-label={`Roll ${label || key} check`}
+                      className="stat-card-roll"
+                    >
+                      <i className="fa-solid fa-dice-d20"></i>
+                    </Button>
+                  </div>
                 </div>
                 <div className="stat-card-body">
                   <div className="stat-card-metric">

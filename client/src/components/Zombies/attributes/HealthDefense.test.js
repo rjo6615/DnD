@@ -18,66 +18,13 @@ const baseForm = {
   speed: 30,
 };
 
-test('renders only proficiency bonus when no spellcasting', () => {
-  render(
-    <HealthDefense
-      form={baseForm}
-      conMod={0}
-      dexMod={0}
-      ac={0}
-      hpMaxBonus={0}
-      hpMaxBonusPerLevel={0}
-      initiative={0}
-      speed={0}
-    />
-  );
-  expect(screen.queryByText('Spell Save DC:')).toBeNull();
-  expect(screen.getByText('Proficiency Bonus:').parentElement).toHaveTextContent('3');
-});
-
-test('renders spell save dc and proficiency bonus when spellAbilityMod provided', () => {
-  render(
-    <HealthDefense
-      form={baseForm}
-      conMod={0}
-      dexMod={0}
-      ac={0}
-      hpMaxBonus={0}
-      hpMaxBonusPerLevel={0}
-      initiative={0}
-      speed={0}
-      spellAbilityMod={2}
-    />
-  );
-  expect(screen.getByText('Spell Save DC:').parentElement).toHaveTextContent('13');
-  expect(screen.getByText('Proficiency Bonus:').parentElement).toHaveTextContent('3');
-});
-
-test('uses provided proficiency bonus when supplied', () => {
-  const formWithProf = { ...baseForm, proficiencyBonus: 4 };
-  render(
-    <HealthDefense
-      form={formWithProf}
-      conMod={0}
-      dexMod={0}
-      ac={0}
-      hpMaxBonus={0}
-      hpMaxBonusPerLevel={0}
-      initiative={0}
-      speed={0}
-      spellAbilityMod={2}
-    />
-  );
-  expect(screen.getByText('Spell Save DC:').parentElement).toHaveTextContent('14');
-  expect(screen.getByText('Proficiency Bonus:').parentElement).toHaveTextContent('4');
-});
-
 test('allows health adjustment by dragging the bar', () => {
   render(
     <HealthDefense
       form={baseForm}
       conMod={0}
       dexMod={0}
+      wisMod={0}
       ac={0}
       hpMaxBonus={0}
       hpMaxBonusPerLevel={0}
@@ -96,6 +43,7 @@ test('places range input above fill bar and label', () => {
       form={baseForm}
       conMod={0}
       dexMod={0}
+      wisMod={0}
       ac={0}
       hpMaxBonus={0}
       hpMaxBonusPerLevel={0}
@@ -117,6 +65,7 @@ test('updates health when slider is dragged', () => {
       form={baseForm}
       conMod={0}
       dexMod={0}
+      wisMod={0}
       ac={0}
       hpMaxBonus={0}
       hpMaxBonusPerLevel={0}
@@ -144,6 +93,7 @@ test('includes racial hp bonus when feat overrides are zero', () => {
       form={dwarfForm}
       conMod={2}
       dexMod={0}
+      wisMod={0}
       ac={0}
       hpMaxBonus={0}
       hpMaxBonusPerLevel={0}

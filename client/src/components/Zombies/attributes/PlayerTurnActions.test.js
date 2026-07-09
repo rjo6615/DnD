@@ -1,9 +1,60 @@
 import React from 'react';
-import { render, act, fireEvent, screen, within, waitFor } from '@testing-library/react';
+import { render as rtlRender, act, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import PlayerTurnActions, * as PlayerTurnActionsModule from './PlayerTurnActions';
+
+jest.mock('../../../utils/diceBoxManager', () => {
+  const actual = jest.requireActual('../../../utils/diceBoxManager');
+  return {
+    ...actual,
+    registerDiceBoxContainer: jest.fn(() => () => {}),
+    subscribeToDiceBoxAvailability: jest.fn(() => () => {}),
+    isDiceBoxReady: jest.fn(() => false),
+    rollDiceWithBox: jest.fn(),
+  };
+});
+const { rollDiceWithBox } = require('../../../utils/diceBoxManager');
 import damageTypeColors from '../../../utils/damageTypeColors';
 
 const { calculateDamage } = PlayerTurnActionsModule;
+
+const renderWithRef = (ui) => {
+  const actionsRef = React.createRef();
+  const result = rtlRender(
+    React.cloneElement(ui, { ref: actionsRef })
+  );
+  return { actionsRef, ...result };
+};
+
+const render = (ui) => renderWithRef(ui);
+
+const openAttackModal = (actionsRef) => {
+  act(() => {
+    actionsRef.current?.openAttackModal?.();
+  });
+};
+
+const openDiceRoller = (actionsRef) => {
+  act(() => {
+    actionsRef.current?.openDiceRoller?.();
+  });
+};
+
+const openDamageLog = (actionsRef) => {
+  act(() => {
+    actionsRef.current?.openDamageLog?.();
+  });
+};
+
+beforeEach(() => {
+  rollDiceWithBox.mockClear();
+  rollDiceWithBox.mockImplementation((requests = []) =>
+    Promise.resolve({
+      rolls: Array.isArray(requests)
+        ? requests.map(({ count }) => Array(count).fill(1))
+        : [],
+    })
+  );
+});
 
 describe('calculateDamage parser', () => {
   const fixedRoll = (count, sides) => Array(count).fill(1);
@@ -55,26 +106,98 @@ describe('calculateDamage parser', () => {
   test('handles multi-type damage and returns breakdown string', () => {
     expect(
       calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
-    ).toEqual({ total: 4, breakdown: '3 cold + 1 slashing' });
+    ).toMatchObject({
+      total: 4,
+      breakdown: '3 cold + 1 slashing',
+      diceRolls: [
+        { sides: 4, value: 1, type: 'cold', category: 'base' },
+        { sides: 6, value: 1, type: 'slashing', category: 'base' },
+      ],
+    });
   });
 });
 
 describe('PlayerTurnActions weapon damage display', () => {
-  test('pass button is disabled when canPassTurn is false', () => {
-    const onPassTurn = jest.fn();
-    render(
+  test('rolls custom dice from the modal and updates the total display', async () => {
+    const { actionsRef } = render(
       <PlayerTurnActions
-        form={{ diceColor: '#000000', equipment: {}, weapon: [], spells: [] }}
+        form={{ diceColor: '#112233', equipment: {}, weapon: [], spells: [] }}
         strMod={0}
         dexMod={0}
-        onPassTurn={onPassTurn}
-        canPassTurn={false}
       />
     );
-    const passButton = screen.getByRole('button', { name: /pass/i });
-    expect(passButton).toBeDisabled();
-    fireEvent.click(passButton);
-    expect(onPassTurn).not.toHaveBeenCalled();
+
+    openDiceRoller(actionsRef);
+
+    const modal = screen.getByRole('dialog', { name: /dice roller/i });
+    const countInput = within(modal).getByLabelText(/number of dice/i);
+    const typeSelect = within(modal).getByLabelText(/dice type/i);
+    fireEvent.change(countInput, { target: { value: '2' } });
+    fireEvent.change(typeSelect, { target: { value: '6' } });
+
+    await act(async () => {
+      fireEvent.click(within(modal).getByRole('button', { name: /^roll$/i }));
+    });
+
+    await waitFor(() => {
+      expect(rollDiceWithBox).toHaveBeenCalledWith([{ count: 2, sides: 6 }]);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /dice roller/i })).not.toBeInTheDocument();
+    });
+
+    const damageTotalButton = screen.getByRole('button', {
+      name: /click to enable a critical damage roll on your next roll/i,
+    });
+
+    await waitFor(() => {
+      expect(damageTotalButton).toHaveTextContent('2');
+    });
+  });
+
+  test('notifies damage summary changes through callback', async () => {
+    const handleDamageSummaryChange = jest.fn();
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{ diceColor: '#223344', equipment: {}, weapon: [], spells: [] }}
+        strMod={0}
+        dexMod={0}
+        onDamageSummaryChange={handleDamageSummaryChange}
+      />
+    );
+
+    expect(handleDamageSummaryChange).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 0, isCritical: false, isFumble: false })
+    );
+
+    handleDamageSummaryChange.mockClear();
+
+    act(() => {
+      actionsRef.current?.updateDamageValueWithAnimation?.(7, '', 'custom');
+    });
+
+    await waitFor(() => {
+      expect(handleDamageSummaryChange).toHaveBeenCalledWith(
+        expect.objectContaining({ value: 7, isCritical: false, isFumble: false })
+      );
+    });
+
+    handleDamageSummaryChange.mockClear();
+
+    const damageToggle = screen.getByRole('button', {
+      name: /click to enable a critical damage roll on your next roll/i,
+    });
+
+    await act(async () => {
+      fireEvent.click(damageToggle);
+    });
+
+    await waitFor(() => {
+      expect(handleDamageSummaryChange).toHaveBeenCalledWith(
+        expect.objectContaining({ value: 7, isCritical: true, isFumble: false })
+      );
+    });
   });
 
   test('weapon damage segments include ability and type classes', async () => {
@@ -86,7 +209,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       type: 'martial melee weapon',
       properties: ['Finesse', 'Versatile (1d10)'],
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{
           diceColor: '#000000',
@@ -98,9 +221,7 @@ describe('PlayerTurnActions weapon damage display', () => {
         dexMod={0}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
     const card = screen.getByText('Frost Brand').closest('.attack-card');
     expect(card).not.toBeNull();
     expect(within(card).getByText('Weapon Type:')).toBeInTheDocument();
@@ -146,6 +267,54 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
   });
 
+  test('infers weapon mastery from weapon type when not provided', async () => {
+    const weapon = {
+      name: 'Custom Warhammer',
+      damage: '1d8 bludgeoning',
+      category: 'martial melee weapon',
+      source: 'weapon',
+      type: 'warhammer',
+    };
+
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          spells: [],
+        }}
+        strMod={2}
+        dexMod={0}
+      />
+    );
+
+    openAttackModal(actionsRef);
+
+    const card = screen.getByText('Custom Warhammer').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('missing Custom Warhammer card');
+
+    const masteryButton = within(card).getByLabelText(
+      /View Push mastery description/i
+    );
+    expect(masteryButton).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(masteryButton);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Push')).toBeInTheDocument();
+      expect(
+        screen.getByText(/If you hit a creature with this weapon, you can push/i)
+      ).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(document.body);
+    });
+  });
+
   test('finesse ability selection updates attack bonus and damage modifier', async () => {
     const weapon = {
       name: 'Rapier',
@@ -154,7 +323,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       source: 'weapon',
       properties: ['Finesse'],
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{
           diceColor: '#000000',
@@ -166,9 +335,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       />
     );
 
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
 
     const card = screen.getByText('Rapier').closest('.attack-card');
     expect(card).not.toBeNull();
@@ -200,6 +367,121 @@ describe('PlayerTurnActions weapon damage display', () => {
     });
   });
 
+  test('monk uses dexterity for simple melee weapon attacks', () => {
+    const weapon = {
+      name: 'Quarterstaff',
+      damage: '1d6 bludgeoning',
+      category: 'Simple Melee Weapon',
+      source: 'weapon',
+      properties: [],
+    };
+
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          weapon: [],
+          spells: [],
+          occupation: [{ Name: 'Monk', Level: 2 }],
+        }}
+        strMod={5}
+        dexMod={1}
+      />
+    );
+
+    openAttackModal(actionsRef);
+
+    const card = screen.getByText('Quarterstaff').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('Quarterstaff card not found');
+
+    const attackRow = within(card).getByText('Attack Bonus').closest('.attack-card__row');
+    expect(attackRow).not.toBeNull();
+    const attackValue = attackRow?.querySelector('.attack-card__value');
+    expect(attackValue?.textContent).toBe(String(3));
+
+    const damageRow = within(card).getByText('Damage').closest('.attack-card__row');
+    expect(damageRow).not.toBeNull();
+    expect(
+      within(damageRow).getByText('1d6+1 Bludgeoning'),
+    ).toBeInTheDocument();
+  });
+
+  test('monk uses dexterity for unarmed strikes', () => {
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: {},
+          weapon: [],
+          spells: [],
+          occupation: [{ Name: 'Monk', Level: 2 }],
+        }}
+        strMod={5}
+        dexMod={1}
+      />
+    );
+
+    openAttackModal(actionsRef);
+
+    const card = screen.getByText('Unarmed Strike').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('Unarmed Strike card not found');
+
+    const attackRow = within(card).getByText('Attack Bonus').closest('.attack-card__row');
+    expect(attackRow).not.toBeNull();
+    const attackValue = attackRow?.querySelector('.attack-card__value');
+    expect(attackValue?.textContent).toBe(String(3));
+
+    const damageRow = within(card).getByText('Damage').closest('.attack-card__row');
+    expect(damageRow).not.toBeNull();
+    expect(
+      within(damageRow).getByText('1d4+1 Bludgeoning'),
+    ).toBeInTheDocument();
+  });
+
+  test('monk uses strength for non-light martial melee weapons', () => {
+    const weapon = {
+      name: 'Glaive',
+      damage: '1d10 slashing',
+      category: 'Martial Melee Weapon',
+      source: 'weapon',
+      properties: ['Heavy', 'Reach'],
+    };
+
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: weapon },
+          weapon: [],
+          spells: [],
+          occupation: [{ Name: 'Monk', Level: 2 }],
+        }}
+        strMod={5}
+        dexMod={1}
+      />
+    );
+
+    openAttackModal(actionsRef);
+
+    const card = screen.getByText('Glaive').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('Glaive card not found');
+
+    const attackRow = within(card).getByText('Attack Bonus').closest('.attack-card__row');
+    expect(attackRow).not.toBeNull();
+    const attackValue = attackRow?.querySelector('.attack-card__value');
+    expect(attackValue?.textContent).toBe(String(7));
+
+    const damageRow = within(card).getByText('Damage').closest('.attack-card__row');
+    expect(damageRow).not.toBeNull();
+    expect(
+      within(damageRow).getByText('1d10+5 Slashing'),
+    ).toBeInTheDocument();
+  });
+
   test('multi-part weapon damage applies ability modifier once', () => {
     const weapon = {
       name: 'Storm Blade',
@@ -208,7 +490,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       source: 'weapon',
       properties: ['Versatile'],
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{
           diceColor: '#000000',
@@ -220,9 +502,7 @@ describe('PlayerTurnActions weapon damage display', () => {
         dexMod={0}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
     const card = screen.getByText('Storm Blade').closest('.attack-card');
     expect(card).not.toBeNull();
     const slashing = within(card).getByText('2d8+3 Slashing');
@@ -233,7 +513,15 @@ describe('PlayerTurnActions weapon damage display', () => {
     const deterministicRoll = (count, sides) => Array(count).fill(1);
     expect(
       calculateDamage(weapon.damage, 3, false, deterministicRoll)
-    ).toEqual({ total: 6, breakdown: '5 slashing + 1 lightning' });
+    ).toMatchObject({
+      total: 6,
+      breakdown: '5 slashing + 1 lightning',
+      diceRolls: [
+        { sides: 8, value: 1, type: 'slashing', category: 'base' },
+        { sides: 8, value: 1, type: 'slashing', category: 'base' },
+        { sides: 6, value: 1, type: 'lightning', category: 'base' },
+      ],
+    });
   });
 
   test('spell damage segments include type classes', () => {
@@ -246,16 +534,14 @@ describe('PlayerTurnActions weapon damage display', () => {
       duration: 'Instantaneous',
       casterType: 'Wizard',
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
         strMod={0}
         dexMod={0}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
     const card = screen.getByText('Fire Bolt').closest('.attack-card');
     expect(card).not.toBeNull();
     const fire = within(card).getByText('1d10 Fire');
@@ -273,16 +559,14 @@ describe('PlayerTurnActions weapon damage display', () => {
       duration: 'Instantaneous',
       casterType: 'Wizard',
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
         strMod={0}
         dexMod={0}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
     const card = screen.getByText('Chill Touch').closest('.attack-card');
     expect(card).not.toBeNull();
     const necrotic = within(card).getByText('2d8 Necrotic');
@@ -316,13 +600,11 @@ describe('PlayerTurnActions weapon damage display', () => {
     Math.random = () => 0;
 
     try {
-      render(
+      const { actionsRef } = render(
         <PlayerTurnActions form={form} strMod={0} dexMod={0} conMod={0} />
       );
 
-      act(() => {
-        fireEvent.click(screen.getByTitle('Attack'));
-      });
+      openAttackModal(actionsRef);
 
       await screen.findByText('Fiendish Legacy');
 
@@ -334,7 +616,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       expect(fireBoltCard).not.toBeNull();
       if (!fireBoltCard) throw new Error('missing Fire Bolt card');
 
-      const rollButton = within(fireBoltCard).getByLabelText('roll');
+      const rollButton = within(fireBoltCard).getByLabelText(/Roll damage/i);
       await act(async () => {
         fireEvent.click(rollButton);
       });
@@ -352,6 +634,133 @@ describe('PlayerTurnActions weapon damage display', () => {
     }
   });
 
+  test('weapon attack roll adds attack bonus to d20 result', async () => {
+    const weapon = {
+      name: 'Longsword',
+      damage: '1d8 slashing',
+      category: 'martial melee weapon',
+      source: 'weapon',
+      attackBonus: 1,
+    };
+    const originalRandom = Math.random;
+    Math.random = () => 0.4;
+
+    try {
+      const { actionsRef } = render(
+        <PlayerTurnActions
+          form={{
+            diceColor: '#000000',
+            equipment: { mainHand: weapon },
+            spells: [],
+            proficiencyBonus: 3,
+          }}
+          strMod={2}
+          dexMod={0}
+        />
+      );
+
+      openAttackModal(actionsRef);
+
+      const card = screen.getByText('Longsword').closest('.attack-card');
+      expect(card).not.toBeNull();
+      if (!card) throw new Error('missing Longsword card');
+
+    const toHitButton = within(card).getByLabelText(/Roll to hit/i);
+
+    rollDiceWithBox.mockImplementationOnce(() =>
+      Promise.resolve({ rolls: [[9]] })
+    );
+
+    await act(async () => {
+      fireEvent.click(toHitButton);
+    });
+
+      await waitFor(() => {
+        const valueNode = document.getElementById('damageValue');
+        if (!valueNode) throw new Error('missing damage value node');
+        expect(valueNode.textContent).toBe('15');
+      });
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+
+  test('ranged spell attack roll uses spell ability and proficiency bonus', async () => {
+    const spell = {
+      name: 'Fire Bolt',
+      level: 0,
+      damage: '1d10 fire',
+      castingTime: '1 action',
+      range: '120 feet',
+      duration: 'Instantaneous',
+      casterType: 'Wizard',
+    };
+
+    const originalRandom = Math.random;
+    Math.random = () => 0.2;
+
+    rollDiceWithBox.mockImplementationOnce(() =>
+      Promise.resolve({ rolls: [[15]] })
+    );
+
+    const events = [];
+    const listener = (event) => {
+      events.push(event);
+    };
+    window.addEventListener('damage-roll', listener);
+
+    try {
+      const { actionsRef } = render(
+        <PlayerTurnActions
+          form={{
+            diceColor: '#000000',
+            weapon: [],
+            spells: [spell],
+            occupation: [{ Name: 'Wizard', Level: 5 }],
+          }}
+          strMod={0}
+          dexMod={0}
+          spellAbilityMod={3}
+          spellAbilityKey="int"
+        />
+      );
+
+      openAttackModal(actionsRef);
+
+      const card = screen.getByText('Fire Bolt').closest('.attack-card');
+      expect(card).not.toBeNull();
+      if (!card) throw new Error('missing Fire Bolt card');
+
+      expect(within(card).getByText('Attack Bonus')).toBeInTheDocument();
+      expect(within(card).getByText('+6')).toBeInTheDocument();
+
+      const attackButton = within(card).getByLabelText(/Roll spell attack/i);
+
+      await act(async () => {
+        fireEvent.click(attackButton);
+      });
+
+      await waitFor(() => {
+        const valueNode = document.getElementById('damageValue');
+        if (!valueNode) throw new Error('missing damage value node');
+        expect(valueNode.textContent).toBe('21');
+      });
+
+      const damageEventCall = events.find(
+        (evt) => evt instanceof CustomEvent && evt.type === 'damage-roll'
+      );
+      expect(damageEventCall).toBeTruthy();
+      if (damageEventCall instanceof CustomEvent) {
+        expect(damageEventCall.detail.breakdown).toBe(
+          '15 (d20) +3 Intelligence Modifier +3 Proficiency Bonus'
+        );
+      }
+    } finally {
+      window.removeEventListener('damage-roll', listener);
+      Math.random = originalRandom;
+    }
+  });
+
   test('healing spells roll for numeric totals', async () => {
     const spell = {
       name: 'Healing Word',
@@ -365,19 +774,17 @@ describe('PlayerTurnActions weapon damage display', () => {
     const originalRandom = Math.random;
     Math.random = () => 0;
     try {
-      render(
+      const { actionsRef } = render(
         <PlayerTurnActions
           form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
           strMod={0}
           dexMod={0}
         />
       );
-      act(() => {
-        fireEvent.click(screen.getByTitle('Attack'));
-      });
+      openAttackModal(actionsRef);
       const card = screen.getByText('Healing Word').closest('.attack-card');
       expect(card).not.toBeNull();
-      const rollButton = within(card).getByLabelText('roll');
+      const rollButton = within(card).getByLabelText(/Roll damage/i);
       await act(async () => {
         fireEvent.click(rollButton);
       });
@@ -409,7 +816,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       selectedAncestryKey: 'gold',
       selectedAncestry: ancestry,
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{
           diceColor: '#000000',
@@ -423,9 +830,7 @@ describe('PlayerTurnActions weapon damage display', () => {
         conMod={2}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
     const breathCard = screen.getByText('Gold (Fire)').closest('.attack-card');
     expect(breathCard).toBeInTheDocument();
     expect(within(breathCard).getByText('Save DC')).toBeInTheDocument();
@@ -454,7 +859,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       selectedAncestryKey: 'blue',
       selectedAncestry: ancestry,
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{
           diceColor: '#000000',
@@ -468,9 +873,7 @@ describe('PlayerTurnActions weapon damage display', () => {
         conMod={2}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
     const breathCard = screen.getByText('Blue (Lightning)').closest('.attack-card');
     expect(breathCard).toBeInTheDocument();
     const damage = within(breathCard).getByText((content, element) => {
@@ -483,7 +886,7 @@ describe('PlayerTurnActions weapon damage display', () => {
   });
 
   test('does not render breath attack card for non-dragonborn characters', () => {
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{
           diceColor: '#000000',
@@ -497,9 +900,7 @@ describe('PlayerTurnActions weapon damage display', () => {
         conMod={2}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
     expect(screen.queryByText('Breath Attack')).not.toBeInTheDocument();
   });
 });
@@ -514,7 +915,7 @@ describe('PlayerTurnActions damage log', () => {
     };
     const orig = Math.random;
     Math.random = () => 0; // deterministic rolls
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{
           diceColor: '#000000',
@@ -526,10 +927,8 @@ describe('PlayerTurnActions damage log', () => {
         dexMod={0}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
-    const rollButton = await screen.findByLabelText('roll');
+    openAttackModal(actionsRef);
+    const rollButton = (await screen.findAllByLabelText(/Roll damage/i))[0];
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -539,20 +938,25 @@ describe('PlayerTurnActions damage log', () => {
     });
     expect(document.getElementById('damageValue').textContent).toBe('4');
 
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
-    });
+    openDamageLog(actionsRef);
     const modal = await screen.findByRole('dialog');
     const items = within(modal)
       .getAllByRole('listitem')
       .filter((li) => !li.classList.contains('roll-separator'));
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
-    expect(totalLine).toHaveTextContent('Frost Brand (4)');
+    expect(totalLine).toHaveTextContent('Frost Brand - (4)');
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
-    expect(breakdownLines).toEqual(['- 3 cold', '- 1 slashing']);
+    expect(breakdownLines).toEqual([
+      'Damage - (1d4 cold + 1d6 slashing)',
+      '- 3 cold',
+      '- 1 slashing',
+      '- 1',
+      '- 1',
+      '- +2 STR modifier',
+    ]);
     Math.random = orig;
   });
 
@@ -564,7 +968,7 @@ describe('PlayerTurnActions damage log', () => {
     };
     const orig = Math.random;
     Math.random = () => 0;
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
         strMod={2}
@@ -572,10 +976,8 @@ describe('PlayerTurnActions damage log', () => {
         dexMod={0}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
-    const rollButton = await screen.findByLabelText('roll');
+    openAttackModal(actionsRef);
+    const rollButton = (await screen.findAllByLabelText(/Roll damage/i))[0];
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -584,9 +986,7 @@ describe('PlayerTurnActions damage log', () => {
       if (!el || el.textContent === '0') throw new Error('waiting');
     });
 
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
-    });
+    openDamageLog(actionsRef);
     const modal = await screen.findByRole('dialog');
 
     const cold = within(modal).getByText('3 cold');
@@ -617,7 +1017,7 @@ describe('PlayerTurnActions damage log', () => {
     };
     const orig = Math.random;
     Math.random = () => 0;
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [weapon], spells: [] }}
         strMod={2}
@@ -625,10 +1025,8 @@ describe('PlayerTurnActions damage log', () => {
         dexMod={0}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
-    const rollButton = await screen.findByLabelText('roll');
+    openAttackModal(actionsRef);
+    const rollButton = (await screen.findAllByLabelText(/Roll damage/i))[0];
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -636,16 +1034,14 @@ describe('PlayerTurnActions damage log', () => {
       const el = document.getElementById('damageValue');
       if (!el || el.textContent === '0') throw new Error('waiting');
     });
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
-    });
+    openDamageLog(actionsRef);
     const modal = await screen.findByRole('dialog');
     const items = within(modal)
       .getAllByRole('listitem')
       .filter((li) => !li.classList.contains('roll-separator'));
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
-    expect(totalLine).toHaveTextContent('Greatsword of Fire (3)');
+    expect(totalLine).toHaveTextContent('Greatsword of Fire - (3)');
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
@@ -665,17 +1061,15 @@ describe('PlayerTurnActions damage log', () => {
     };
     const orig = Math.random;
     Math.random = () => 0; // deterministic roll
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
         strMod={0}
         dexMod={0}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
-    const rollButton = await screen.findByLabelText('roll');
+    openAttackModal(actionsRef);
+    const rollButton = (await screen.findAllByLabelText(/Roll damage/i))[0];
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -683,16 +1077,14 @@ describe('PlayerTurnActions damage log', () => {
       const el = document.getElementById('damageValue');
       if (!el || el.textContent === '0') throw new Error('waiting');
     });
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: '⚔️ Log' }));
-    });
+    openDamageLog(actionsRef);
     const modal = await screen.findByRole('dialog');
     const items = within(modal)
       .getAllByRole('listitem')
       .filter((li) => !li.classList.contains('roll-separator'));
     const item = items[0];
     const [totalLine, breakdownDiv] = item.querySelectorAll('div');
-    expect(totalLine).toHaveTextContent('Fire Bolt (1)');
+    expect(totalLine).toHaveTextContent('Fire Bolt - (1)');
     const breakdownLines = Array.from(breakdownDiv.querySelectorAll('div')).map(
       (d) => d.textContent.trim()
     );
@@ -704,7 +1096,14 @@ describe('PlayerTurnActions damage log', () => {
     const fixedRoll = (count, sides) => Array(count).fill(1);
     expect(
       calculateDamage('1d4 cold + 1d6 slashing', 2, false, fixedRoll)
-    ).toEqual({ total: 4, breakdown: '3 cold + 1 slashing' });
+    ).toMatchObject({
+      total: 4,
+      breakdown: '3 cold + 1 slashing',
+      diceRolls: [
+        { sides: 4, value: 1, type: 'cold', category: 'base' },
+        { sides: 6, value: 1, type: 'slashing', category: 'base' },
+      ],
+    });
   });
 });
 
@@ -716,7 +1115,7 @@ describe('PlayerTurnActions weapon damage display', () => {
       category: 'melee',
       source: 'weapon',
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{
           diceColor: '#000000',
@@ -728,9 +1127,7 @@ describe('PlayerTurnActions weapon damage display', () => {
         dexMod={0}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
     const card = screen.getByText('Frost Brand').closest('.attack-card');
     expect(card).not.toBeNull();
     const cold = within(card).getByText('1d4+2 Cold');
@@ -750,21 +1147,62 @@ describe('PlayerTurnActions weapon damage display', () => {
       duration: 'Instantaneous',
       casterType: 'Wizard',
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', weapon: [], spells: [spell] }}
         strMod={0}
         dexMod={0}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
     const card = screen.getByText('Fire Bolt').closest('.attack-card');
     expect(card).not.toBeNull();
     const fire = within(card).getByText('1d10 Fire');
     expect(fire).toHaveClass('damage-fire');
     expect(fire.textContent).toBe('1d10 Fire');
+  });
+
+  test('includes an unarmed strike attack when no weapons are equipped', () => {
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', equipment: {}, spells: [] }}
+        strMod={3}
+        dexMod={0}
+      />
+    );
+
+    openAttackModal(actionsRef);
+
+    const card = screen.getByText('Unarmed Strike').closest('.attack-card');
+    expect(card).not.toBeNull();
+    expect(within(card).getByText('1d4+3 Bludgeoning')).toBeInTheDocument();
+  });
+
+  test('does not duplicate unarmed strike when other weapons are equipped', () => {
+    const rapier = {
+      name: 'Rapier',
+      damage: '1d8 piercing',
+      category: 'melee',
+      source: 'weapon',
+    };
+
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{
+          diceColor: '#000000',
+          equipment: { mainHand: rapier },
+          spells: [],
+        }}
+        strMod={2}
+        dexMod={0}
+      />
+    );
+
+    openAttackModal(actionsRef);
+
+    expect(screen.getByText('Rapier')).toBeInTheDocument();
+    const unarmedCards = screen.getAllByText('Unarmed Strike');
+    expect(unarmedCards).toHaveLength(1);
   });
 });
 
@@ -772,7 +1210,7 @@ describe('PlayerTurnActions critical events', () => {
   test('damage-roll event toggles classes on damageAmount', () => {
     jest.useFakeTimers();
 
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', equipment: {}, spells: [] }}
         strMod={0}
@@ -823,8 +1261,8 @@ describe('PlayerTurnActions critical events', () => {
     expect(damage.classList.contains('pulse')).toBe(true);
   });
 
-  test('clicking damageAmount toggles critical class', () => {
-    render(
+  test('critical toggle method toggles critical class', () => {
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', equipment: {}, spells: [] }}
         strMod={0}
@@ -837,16 +1275,49 @@ describe('PlayerTurnActions critical events', () => {
     expect(damage.classList.contains('critical-active')).toBe(false);
 
     act(() => {
-      fireEvent.click(damage);
+      actionsRef.current?.toggleCritical?.();
     });
 
     expect(damage.classList.contains('critical-active')).toBe(true);
 
     act(() => {
-      fireEvent.click(damage);
+      actionsRef.current?.toggleCritical?.();
     });
 
     expect(damage.classList.contains('critical-active')).toBe(false);
+  });
+
+  test('manual critical toggle persists after automatic reset timer', () => {
+    jest.useFakeTimers();
+
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', equipment: {}, spells: [] }}
+        strMod={0}
+        dexMod={0}
+      />
+    );
+
+    const damage = document.getElementById('damageAmount');
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent('damage-roll', { detail: { value: 7 } })
+      );
+    });
+
+    act(() => {
+      actionsRef.current?.toggleCritical?.();
+    });
+
+    expect(damage.classList.contains('critical-active')).toBe(true);
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    expect(damage.classList.contains('critical-active')).toBe(true);
+
+    jest.useRealTimers();
   });
 });
 
@@ -862,7 +1333,7 @@ describe('PlayerTurnActions spell casting', () => {
       duration: 'Instantaneous',
       casterType: 'Wizard',
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', equipment: {}, spells: [spell] }}
         strMod={0}
@@ -871,24 +1342,24 @@ describe('PlayerTurnActions spell casting', () => {
       />
     );
 
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
 
-    const rollButton = await screen.findByLabelText('roll');
-    act(() => {
+    const rollButton = (await screen.findAllByLabelText(/Roll damage/i))[0];
+    await act(async () => {
       fireEvent.click(rollButton);
     });
 
-    expect(onCastSpell).toHaveBeenCalledWith(
-      expect.objectContaining({
-        level: spell.level,
-        slotType: undefined,
-        damage: expect.any(Number),
-        breakdown: expect.any(String),
-        castingTime: spell.castingTime,
-        name: spell.name,
-      })
+    await waitFor(() =>
+      expect(onCastSpell).toHaveBeenCalledWith(
+        expect.objectContaining({
+          level: spell.level,
+          slotType: undefined,
+          damage: expect.any(Number),
+          breakdown: expect.any(String),
+          castingTime: spell.castingTime,
+          name: spell.name,
+        })
+      )
     );
   });
 
@@ -904,7 +1375,7 @@ describe('PlayerTurnActions spell casting', () => {
       duration: 'Instantaneous',
       casterType: 'Wizard',
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', equipment: {}, spells: [spell] }}
         strMod={0}
@@ -913,11 +1384,9 @@ describe('PlayerTurnActions spell casting', () => {
       />
     );
 
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
 
-    const rollButton = await screen.findByLabelText('roll');
+    const rollButton = (await screen.findAllByLabelText(/Roll damage/i))[0];
     act(() => {
       fireEvent.click(rollButton);
     });
@@ -954,7 +1423,7 @@ describe('PlayerTurnActions spell casting', () => {
       duration: 'Instantaneous',
       casterType: 'Wizard',
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', equipment: {}, spells: [spell] }}
         strMod={0}
@@ -962,14 +1431,12 @@ describe('PlayerTurnActions spell casting', () => {
         onCastSpell={onCastSpell}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
-    const rollButton = await screen.findByLabelText('roll');
-    act(() => {
+    openAttackModal(actionsRef);
+    const rollButton = (await screen.findAllByLabelText(/Roll damage/i))[0];
+    await act(async () => {
       fireEvent.click(rollButton);
     });
-    expect(state.action[0]).toBe('used');
+    await waitFor(() => expect(state.action[0]).toBe('used'));
     expect(state.bonus[0]).toBe('active');
   });
 
@@ -995,7 +1462,7 @@ describe('PlayerTurnActions spell casting', () => {
       duration: 'Concentration',
       casterType: 'Druid',
     };
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', equipment: {}, spells: [spell] }}
         strMod={0}
@@ -1003,14 +1470,12 @@ describe('PlayerTurnActions spell casting', () => {
         onCastSpell={onCastSpell}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
-    const rollButton = await screen.findByLabelText('roll');
-    act(() => {
+    openAttackModal(actionsRef);
+    const rollButton = (await screen.findAllByLabelText(/Roll damage/i))[0];
+    await act(async () => {
       fireEvent.click(rollButton);
     });
-    expect(state.bonus[0]).toBe('used');
+    await waitFor(() => expect(state.bonus[0]).toBe('used'));
     expect(state.action[0]).toBe('active');
   });
 
@@ -1044,7 +1509,7 @@ describe('PlayerTurnActions spell casting', () => {
         casterType: 'Wizard',
       },
     ];
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{ diceColor: '#000000', equipment: {}, spells }}
         strMod={0}
@@ -1052,9 +1517,7 @@ describe('PlayerTurnActions spell casting', () => {
       />
     );
 
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
+    openAttackModal(actionsRef);
 
     const titles = Array.from(
       document.querySelectorAll('.attack-card__title')
@@ -1080,7 +1543,7 @@ describe('cantrip scaling', () => {
   const renderAndCast = async (lvl) => {
     const orig = Math.random;
     Math.random = () => 0; // always roll minimum = 1
-    render(
+    const { actionsRef } = render(
       <PlayerTurnActions
         form={{
           diceColor: '#000000',
@@ -1092,10 +1555,8 @@ describe('cantrip scaling', () => {
         dexMod={0}
       />
     );
-    act(() => {
-      fireEvent.click(screen.getByTitle('Attack'));
-    });
-    const rollButton = await screen.findByLabelText('roll');
+    openAttackModal(actionsRef);
+    const rollButton = (await screen.findAllByLabelText(/Roll damage/i))[0];
     act(() => {
       fireEvent.click(rollButton);
     });

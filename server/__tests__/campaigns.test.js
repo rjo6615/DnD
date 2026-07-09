@@ -188,6 +188,70 @@ describe('Cloudinary caching helpers', () => {
 
     expect(mockSubFolders).toHaveBeenCalledTimes(2);
   });
+
+  test('listTokenFolderTree only fetches each folder path once with concurrency', async () => {
+    jest.resetModules();
+    process.env = {
+      ...originalEnv,
+      CLOUDINARY_CLOUD_NAME: 'demo',
+      CLOUDINARY_API_KEY: 'key',
+      CLOUDINARY_API_SECRET: 'secret',
+      CLOUDINARY_FOLDER_TREE_CONCURRENCY: '8',
+    };
+
+    const callOrder = [];
+    const mockSubFolders = jest.fn().mockImplementation(async (path) => {
+      callOrder.push(path);
+
+      if (path === 'Tokens') {
+        return {
+          folders: [
+            { path: 'Tokens/Creatures', name: 'Creatures' },
+            { path: 'Tokens/Items', name: 'Items' },
+          ],
+          next_cursor: null,
+        };
+      }
+
+      if (path === 'Tokens/Creatures') {
+        return {
+          folders: [{ path: 'Tokens/Creatures/Undead', name: 'Undead' }],
+          next_cursor: null,
+        };
+      }
+
+      if (path === 'Tokens/Items') {
+        return {
+          folders: [{ path: 'Tokens/Items/Potions', name: 'Potions' }],
+          next_cursor: null,
+        };
+      }
+
+      if (path === 'Tokens/Creatures/Undead' || path === 'Tokens/Items/Potions') {
+        return { folders: [], next_cursor: null };
+      }
+
+      throw new Error(`Unexpected folder path: ${path}`);
+    });
+
+    jest.doMock('cloudinary', () => ({
+      v2: {
+        config: jest.fn(),
+        api: {
+          sub_folders: mockSubFolders,
+        },
+      },
+    }));
+
+    const { listTokenFolderTree: actualListTokenFolderTree } = jest.requireActual(
+      '../utils/cloudinary'
+    );
+
+    await actualListTokenFolderTree({});
+
+    expect(mockSubFolders).toHaveBeenCalledTimes(3);
+    expect(new Set(callOrder).size).toBe(callOrder.length);
+  });
 });
 jest.mock('../utils/socket', () => ({
   emitCombatUpdate: jest.fn(),
@@ -1434,6 +1498,141 @@ describe('Campaign routes', () => {
 
     expect(res.status).toBe(403);
     expect(res.body.message).toBe('Forbidden');
+  });
+
+  test('player controlling active participant can pass turn', async () => {
+    mockUser = { username: 'PlayerOne' };
+    const campaignDoc = {
+      campaignName: 'Test',
+      dm: 'DM',
+      players: ['PlayerOne'],
+      enemies: [],
+      combat: {
+        participants: [
+          { characterId: 'char-1', initiative: 15 },
+          { characterId: 'char-2', initiative: 12 },
+        ],
+        activeTurn: 0,
+      },
+    };
+
+    const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    const campaignCollection = {
+      findOne: jest.fn().mockResolvedValue(campaignDoc),
+      updateOne,
+    };
+    const characterCollection = {
+      findOne: jest
+        .fn()
+        .mockResolvedValue({
+          campaign: 'Test',
+          characterId: 'char-1',
+          token: 'PlayerOne',
+        }),
+    };
+
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Campaigns') {
+          return campaignCollection;
+        }
+        if (name === 'Characters') {
+          return characterCollection;
+        }
+        return {};
+      },
+    });
+
+    const res = await request(app)
+      .put('/campaigns/Test/combat')
+      .send({
+        participants: [
+          { characterId: 'char-1', initiative: 15 },
+          { characterId: 'char-2', initiative: 12 },
+        ],
+        activeTurn: 1,
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      participants: [
+        { characterId: 'char-1', initiative: 15 },
+        { characterId: 'char-2', initiative: 12 },
+      ],
+      activeTurn: 1,
+    });
+    expect(updateOne).toHaveBeenCalledWith(
+      { campaignName: 'Test' },
+      {
+        $set: {
+          combat: {
+            participants: [
+              { characterId: 'char-1', initiative: 15 },
+              { characterId: 'char-2', initiative: 12 },
+            ],
+            activeTurn: 1,
+          },
+        },
+      }
+    );
+  });
+
+  test('player cannot skip ahead when passing turn', async () => {
+    mockUser = { username: 'PlayerOne' };
+    const campaignDoc = {
+      campaignName: 'Test',
+      dm: 'DM',
+      players: ['PlayerOne'],
+      enemies: [],
+      combat: {
+        participants: [
+          { characterId: 'char-1', initiative: 15 },
+          { characterId: 'char-2', initiative: 12 },
+        ],
+        activeTurn: 0,
+      },
+    };
+
+    const updateOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    const campaignCollection = {
+      findOne: jest.fn().mockResolvedValue(campaignDoc),
+      updateOne,
+    };
+    const characterCollection = {
+      findOne: jest
+        .fn()
+        .mockResolvedValue({
+          campaign: 'Test',
+          characterId: 'char-1',
+          token: 'PlayerOne',
+        }),
+    };
+
+    dbo.mockResolvedValue({
+      collection: (name) => {
+        if (name === 'Campaigns') {
+          return campaignCollection;
+        }
+        if (name === 'Characters') {
+          return characterCollection;
+        }
+        return {};
+      },
+    });
+
+    const res = await request(app)
+      .put('/campaigns/Test/combat')
+      .send({
+        participants: [
+          { characterId: 'char-1', initiative: 15 },
+          { characterId: 'char-2', initiative: 12 },
+        ],
+        activeTurn: 0,
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toBe('Forbidden');
+    expect(updateOne).not.toHaveBeenCalled();
   });
 
   test('update combat validation failure', async () => {

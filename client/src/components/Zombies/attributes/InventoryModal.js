@@ -25,6 +25,10 @@ export default function InventoryModal({
   dockedSide = null,
   onDockClose,
   onDockChange,
+  onItemsChange,
+  onWeaponsChange,
+  onArmorChange,
+  onAccessoriesChange,
 }) {
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
@@ -67,6 +71,25 @@ export default function InventoryModal({
     }
   };
 
+  const handleModalHide = useCallback(() => {
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
+    }
+
+    onHide?.();
+  }, [isDocked, onDockClose, onHide]);
+
+  const handleItemListClose = useCallback(() => {
+    if (isDocked) {
+      return;
+    }
+
+    handleModalHide();
+  }, [isDocked, handleModalHide]);
+
   const tabConfigs = useMemo(
     () => [
       {
@@ -85,6 +108,7 @@ export default function InventoryModal({
               show={isActive}
               embedded
               ownedOnly
+              onChange={onWeaponsChange}
             />
           ),
       },
@@ -104,6 +128,7 @@ export default function InventoryModal({
               show={isActive}
               embedded
               ownedOnly
+              onChange={onArmorChange}
             />
           ),
       },
@@ -123,6 +148,9 @@ export default function InventoryModal({
               show={isActive}
               embedded
               ownedOnly
+              onChange={onItemsChange}
+              onClose={handleItemListClose}
+              diceColor={form?.diceColor}
             />
           ),
       },
@@ -141,6 +169,7 @@ export default function InventoryModal({
               show={isActive}
               embedded
               ownedOnly
+              onChange={onAccessoriesChange}
             />
           ),
       },
@@ -152,6 +181,11 @@ export default function InventoryModal({
       normalizedItems,
       normalizedAccessories,
       normalizedWeapons,
+      onItemsChange,
+      onWeaponsChange,
+      onArmorChange,
+      onAccessoriesChange,
+      handleItemListClose,
     ]
   );
 
@@ -175,17 +209,6 @@ export default function InventoryModal({
     }
     return classes.join(' ');
   }, [isDocked]);
-
-  const handleModalHide = useCallback(() => {
-    if (isDocked) {
-      if (typeof onDockClose === 'function') {
-        onDockClose();
-      }
-      return;
-    }
-
-    onHide?.();
-  }, [isDocked, onDockClose, onHide]);
 
   return (
     <Modal
