@@ -382,8 +382,24 @@ export function ActiveEnemyQuickList({
   latestEnemyRoll,
 }) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const orderedSummaries = React.useMemo(() => {
+    if (!Array.isArray(summaries) || summaries.length === 0) {
+      return [];
+    }
 
-  if (!Array.isArray(summaries) || summaries.length === 0) {
+    const activeTurnSummary = summaries.find((summary) => summary?.isActiveTurn);
+
+    if (!activeTurnSummary) {
+      return summaries;
+    }
+
+    return [
+      activeTurnSummary,
+      ...summaries.filter((summary) => summary !== activeTurnSummary),
+    ];
+  }, [summaries]);
+
+  if (orderedSummaries.length === 0) {
     return null;
   }
 
@@ -483,7 +499,7 @@ export function ActiveEnemyQuickList({
         data-testid="active-map-enemies-list"
         hidden={isCollapsed}
       >
-        {summaries.map((summary) => (
+        {orderedSummaries.map((summary) => (
           <ActiveEnemyQuickCard
             key={summary.enemy.enemyId || summary.enemy._id}
             enemy={summary.enemy}
