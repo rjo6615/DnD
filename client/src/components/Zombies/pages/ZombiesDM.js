@@ -2895,6 +2895,27 @@ export default function ZombiesDM() {
           timestamp: Date.now(),
         });
 
+        window.dispatchEvent(
+          new CustomEvent('damage-roll', {
+            detail: {
+              value: result.total,
+              breakdown: result.breakdown,
+              source: `${enemyName} ${actionName}`,
+              rollLabel: 'Damage',
+              diceRolls: result.diceRolls,
+              sourceLabel: `${enemyName} ${actionName}`,
+              actionLabel: 'Damage',
+              expression: damageString,
+            },
+          })
+        );
+
+        setEnemyRollPopup({
+          value: result.total,
+          label: 'Damage',
+          timestamp: Date.now(),
+        });
+
         setLatestEnemyRoll({
           enemyId: enemy.enemyId,
           enemyName,
