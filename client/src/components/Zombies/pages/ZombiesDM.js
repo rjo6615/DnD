@@ -26,6 +26,7 @@ import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
 import { calculateDamage } from '../attributes/PlayerTurnActions';
+import { rollSkillWithDiceBox } from '../attributes/Skills';
 import D20RollerModal, { DEFAULT_DICE_COLOR } from '../common/D20RollerModal';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import ShopVisibilityManager from '../attributes/ShopVisibilityManager';
@@ -542,6 +543,7 @@ function EnemyCard({
   legendaryActionsList,
   latestEnemyRoll,
   onEnemyDamageRoll,
+  onEnemyAttackRoll,
   onEnemyAdjustmentInputChange,
   onApplyEnemyHealthAdjustment,
   onResetEnemyHealth,
@@ -704,7 +706,7 @@ function EnemyCard({
             <h6 className="enemy-card__section-title text-uppercase text-muted small fw-semibold mb-2">
               Attacks
             </h6>
-            <div className="d-flex flex-column gap-2">
+            <div className="attack-card-grid enemy-card__attack-grid">
               {damagingActions.map((action, actionIndex) => {
                 const actionLabel = action?.name || 'Action';
                 const attackBonusDisplay = formatAttackBonus(action?.attack_bonus);
@@ -715,24 +717,39 @@ function EnemyCard({
                   latestEnemyRoll?.actionName === actionLabel;
 
                 return (
-                  <div key={actionKey} className="enemy-card__attack">
-                    <div className="enemy-card__attack-header">
-                      <div className="fw-semibold small text-body">{actionLabel}</div>
-                      <div className="small text-muted">Attack Bonus: {attackBonusDisplay ?? '—'}</div>
-                      <div className="small text-muted">Damage: {damageLine || '—'}</div>
+                  <div key={actionKey} className="attack-card enemy-card__attack-card">
+                    <div className="attack-card__title">{actionLabel}</div>
+                    <div className="attack-card__details">
+                      <div className="attack-card__row">
+                        <span className="attack-card__label">Attack Bonus</span>
+                        <span className="attack-card__value">{attackBonusDisplay ?? '—'}</span>
+                      </div>
+                      <div className="attack-card__row">
+                        <span className="attack-card__label">Damage</span>
+                        <span className="attack-card__value">{damageLine || '—'}</span>
+                      </div>
                     </div>
-                    <div className="enemy-card__attack-actions">
+                    <div className="attack-card__actions">
                       <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={() => onEnemyDamageRoll(enemy, action)}
+                        variant="link"
+                        className="attack-card__roll"
+                        onClick={() => onEnemyAttackRoll(enemy, action)}
+                        aria-label={`Roll attack for ${actionLabel}`}
                       >
-                        Roll
+                        <i className="fa-solid fa-bullseye" aria-hidden="true"></i>
+                      </Button>
+                      <Button
+                        variant="link"
+                        className="attack-card__roll"
+                        onClick={() => onEnemyDamageRoll(enemy, action)}
+                        aria-label={`Roll damage for ${actionLabel}`}
+                      >
+                        <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>
                       </Button>
                     </div>
                     {isLatestRoll && latestEnemyRoll?.breakdown && (
                       <div className="mt-2 small fw-semibold text-primary">
-                        {`Result: ${latestEnemyRoll.total} damage (${latestEnemyRoll.breakdown})`}
+                        {`${latestEnemyRoll.rollType === 'attack' ? 'Attack' : 'Damage'}: ${latestEnemyRoll.total} (${latestEnemyRoll.breakdown})`}
                       </div>
                     )}
                   </div>
@@ -2651,6 +2668,59 @@ export default function ZombiesDM() {
       return numeric.toString();
     }, []);
 
+    const handleEnemyAttackRoll = useCallback(
+      async (enemy, action) => {
+        if (!enemy || !action) {
+          return;
+        }
+
+        const rawBonus = Number(action.attack_bonus);
+        const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
+        const { result, d20 } = await rollSkillWithDiceBox(bonus, {
+          diceColor: DEFAULT_DICE_COLOR,
+        });
+        const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
+        const actionName = action.name || 'Action';
+        const segments = [`${d20} (d20)`];
+        if (bonus) {
+          const sign = bonus >= 0 ? '+' : '-';
+          segments.push(`${sign} ${Math.abs(bonus)} Attack Bonus`);
+        }
+
+        window.dispatchEvent(
+          new CustomEvent('damage-roll', {
+            detail: {
+              value: result,
+              breakdown: segments.join(' '),
+              source: `${enemyName} ${actionName} Attack Roll`,
+              critical: d20 === 20,
+              fumble: d20 === 1,
+              rollLabel: 'Attack Roll',
+              diceRolls: [
+                {
+                  sides: 20,
+                  value: d20,
+                  type: 'Attack Roll',
+                  category: 'base',
+                },
+              ],
+            },
+          })
+        );
+
+        setLatestEnemyRoll({
+          enemyId: enemy.enemyId,
+          enemyName,
+          actionName,
+          total: result,
+          breakdown: segments.join(' '),
+          rollType: 'attack',
+        });
+        setStatus({ type: 'info', message: `${enemyName} rolls ${result} to hit with ${actionName}.` });
+      },
+      [setStatus]
+    );
+
     const handleEnemyDamageRoll = useCallback(
       (enemy, action) => {
         if (!enemy || !action) {
@@ -2679,6 +2749,21 @@ export default function ZombiesDM() {
         const actionName = action.name || 'Action';
         const message = `${enemyName} deals ${result.total} damage with ${actionName} (${result.breakdown}).`;
 
+        window.dispatchEvent(
+          new CustomEvent('damage-roll', {
+            detail: {
+              value: result.total,
+              breakdown: result.breakdown,
+              source: `${enemyName} ${actionName}`,
+              rollLabel: 'Damage',
+              diceRolls: result.diceRolls,
+              sourceLabel: `${enemyName} ${actionName}`,
+              actionLabel: 'Damage',
+              expression: damageString,
+            },
+          })
+        );
+
         setLatestEnemyRoll({
           enemyId: enemy.enemyId,
           enemyName,
@@ -2686,6 +2771,7 @@ export default function ZombiesDM() {
           total: result.total,
           breakdown: result.breakdown,
           damageFormula: damageString,
+          rollType: 'damage',
         });
 
         setStatus({ type: 'info', message });
@@ -6539,6 +6625,7 @@ const resolveIcon = (category, iconMap, fallback) => {
           onApplyEnemyHealthAdjustment={handleApplyEnemyHealthAdjustment}
           onResetEnemyHealth={handleResetEnemyHealth}
           onEnemyDamageRoll={handleEnemyDamageRoll}
+          onEnemyAttackRoll={handleEnemyAttackRoll}
           formatAttackBonus={formatAttackBonus}
           getEnemyActionDamageString={getEnemyActionDamageString}
           latestEnemyRoll={latestEnemyRoll}
@@ -7724,6 +7811,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                       legendaryActionsList={legendaryActionsList}
                       latestEnemyRoll={latestEnemyRoll}
                       onEnemyDamageRoll={handleEnemyDamageRoll}
+                      onEnemyAttackRoll={handleEnemyAttackRoll}
                       onEnemyAdjustmentInputChange={handleEnemyAdjustmentInputChange}
                       onApplyEnemyHealthAdjustment={handleApplyEnemyHealthAdjustment}
                       onResetEnemyHealth={handleResetEnemyHealth}
