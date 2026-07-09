@@ -595,13 +595,16 @@ const CampaignMapBoard = ({
     () => resolveGridDimensions(map),
     [map]
   );
-  const stageAspectRatio = useMemo(() => {
+  const stageAspectRatioData = useMemo(() => {
     const metricsWidth = Number(mapImageMetrics?.width);
     const metricsHeight = Number(mapImageMetrics?.height);
 
     if (Number.isFinite(metricsWidth) && Number.isFinite(metricsHeight)) {
       if (metricsWidth > 0 && metricsHeight > 0) {
-        return `${metricsWidth} / ${metricsHeight}`;
+        return {
+          cssRatio: `${metricsWidth} / ${metricsHeight}`,
+          numericRatio: metricsWidth / metricsHeight,
+        };
       }
     }
 
@@ -616,8 +619,14 @@ const CampaignMapBoard = ({
       return null;
     }
 
-    return `${safeColumns} / ${safeRows}`;
+    return {
+      cssRatio: `${safeColumns} / ${safeRows}`,
+      numericRatio: safeColumns / safeRows,
+    };
   }, [gridColumns, gridRows, mapImageMetrics?.height, mapImageMetrics?.width]);
+
+  const stageAspectRatio = stageAspectRatioData?.cssRatio ?? null;
+  const stageAspectRatioNumber = stageAspectRatioData?.numericRatio ?? null;
   const metadataSquareSize = useMemo(() => resolveSquareSizeFromMetadata(map), [map]);
 
   useEffect(() => {
@@ -792,8 +801,12 @@ const CampaignMapBoard = ({
       style['--campaign-map-stage-aspect-ratio'] = stageAspectRatio;
     }
 
+    if (Number.isFinite(stageAspectRatioNumber) && stageAspectRatioNumber > 0) {
+      style['--campaign-map-stage-ratio-number'] = stageAspectRatioNumber;
+    }
+
     return style;
-  }, [mapPanOffset.x, mapPanOffset.y, stageAspectRatio]);
+  }, [mapPanOffset.x, mapPanOffset.y, stageAspectRatio, stageAspectRatioNumber]);
 
   useEffect(() => {
     mapPanStateRef.current = null;
