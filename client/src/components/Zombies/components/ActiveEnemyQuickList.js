@@ -383,7 +383,24 @@ export function ActiveEnemyQuickList({
 }) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
-  if (!Array.isArray(summaries) || summaries.length === 0) {
+  const normalizedSummaries = Array.isArray(summaries) ? summaries : [];
+  const orderedSummaries = React.useMemo(() => {
+    const activeSummaries = [];
+    const inactiveSummaries = [];
+
+    normalizedSummaries.forEach((summary) => {
+      if (summary?.isActiveTurn) {
+        activeSummaries.push(summary);
+        return;
+      }
+
+      inactiveSummaries.push(summary);
+    });
+
+    return [...activeSummaries, ...inactiveSummaries];
+  }, [normalizedSummaries]);
+
+  if (normalizedSummaries.length === 0) {
     return null;
   }
 
@@ -483,7 +500,7 @@ export function ActiveEnemyQuickList({
         data-testid="active-map-enemies-list"
         hidden={isCollapsed}
       >
-        {summaries.map((summary) => (
+        {orderedSummaries.map((summary) => (
           <ActiveEnemyQuickCard
             key={summary.enemy.enemyId || summary.enemy._id}
             enemy={summary.enemy}
