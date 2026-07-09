@@ -25,6 +25,7 @@ import { calculateCharacterInitiative } from '../utils/derivedStats';
 import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
+import DamageDiceCanvas from '../attributes/DamageDiceCanvas';
 import { calculateDamage } from '../attributes/PlayerTurnActions';
 import { rollSkillWithDiceBox } from '../attributes/Skills';
 import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
@@ -1610,6 +1611,9 @@ export default function ZombiesDM() {
     const [mapPlacementError, setMapPlacementError] = useState(null);
     const [showDiceRoller, setShowDiceRoller] = useState(false);
     const [enemyRollPopup, setEnemyRollPopup] = useState(null);
+    const [enemyDiceOverlayActive, setEnemyDiceOverlayActive] = useState(false);
+    const [enemyRollDice, setEnemyRollDice] = useState([]);
+    const enemyDiceClearTimeoutRef = useRef(null);
     const socketRef = useRef(null);
     const mapTokensRef = useRef(mapTokens);
     const activeMapTokensRef = useRef(activeMapTokens);
@@ -1626,6 +1630,57 @@ export default function ZombiesDM() {
     const encodedCampaign = useMemo(
       () => (campaignId ? encodeURIComponent(campaignId) : ''),
       [campaignId]
+    );
+
+
+    const waitForNextAnimationFrame = useCallback(
+      () =>
+        new Promise((resolve) => {
+          if (
+            typeof window === 'undefined' ||
+            typeof window.requestAnimationFrame !== 'function'
+          ) {
+            resolve();
+            return;
+          }
+
+          window.requestAnimationFrame(() => resolve());
+        }),
+      []
+    );
+
+    const showEnemyDiceOverlay = useCallback(async () => {
+      clearTimeout(enemyDiceClearTimeoutRef.current);
+      setEnemyDiceOverlayActive(true);
+      setEnemyRollDice([]);
+      await waitForNextAnimationFrame();
+    }, [waitForNextAnimationFrame]);
+
+    const displayEnemyDiceResults = useCallback((diceDetails = []) => {
+      const timestamp = Date.now();
+      const nextDice = Array.isArray(diceDetails)
+        ? diceDetails.map((detail, index) => ({
+            id: `${timestamp}-${index}`,
+            value: typeof detail?.value === 'number' ? detail.value : Number(detail?.value) || 0,
+            sides: Number.isFinite(detail?.sides) ? Math.max(2, Math.round(detail.sides)) : 20,
+            type: detail?.type || '',
+            category: detail?.category || 'base',
+          }))
+        : [];
+
+      setEnemyRollDice(nextDice);
+      clearTimeout(enemyDiceClearTimeoutRef.current);
+      enemyDiceClearTimeoutRef.current = setTimeout(() => {
+        setEnemyRollDice([]);
+        setEnemyDiceOverlayActive(false);
+      }, 2600);
+    }, []);
+
+    useEffect(
+      () => () => {
+        clearTimeout(enemyDiceClearTimeoutRef.current);
+      },
+      []
     );
 
     const normalizedMaps = useMemo(
@@ -2678,6 +2733,7 @@ export default function ZombiesDM() {
 
         const rawBonus = Number(action.attack_bonus);
         const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
+        await showEnemyDiceOverlay();
         const { result, d20 } = await rollSkillWithDiceBox(bonus, {
           diceColor: DEFAULT_DICE_COLOR,
         });
@@ -2710,6 +2766,14 @@ export default function ZombiesDM() {
           })
         );
 
+        displayEnemyDiceResults([
+          {
+            sides: 20,
+            value: d20,
+            type: 'Attack Roll',
+            category: 'base',
+          },
+        ]);
         setEnemyRollPopup({
           value: result,
           label: 'Attack Roll',
@@ -2723,9 +2787,8 @@ export default function ZombiesDM() {
           breakdown: segments.join(' '),
           rollType: 'attack',
         });
-        setStatus({ type: 'info', message: `${enemyName} rolls ${result} to hit with ${actionName}.` });
       },
-      [setStatus]
+      [displayEnemyDiceResults, showEnemyDiceOverlay]
     );
 
     const handleEnemyDamageRoll = useCallback(
@@ -2753,6 +2816,7 @@ export default function ZombiesDM() {
         }
 
         let result = validation;
+        await showEnemyDiceOverlay();
         const diceRequests = Array.isArray(validation.diceRolls)
           ? validation.diceRolls.reduce((requests, die) => {
               const sides = Number(die?.sides);
@@ -2809,7 +2873,27 @@ export default function ZombiesDM() {
 
         const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
         const actionName = action.name || 'Action';
-        const message = `${enemyName} deals ${result.total} damage with ${actionName} (${result.breakdown}).`;
+        window.dispatchEvent(
+          new CustomEvent('damage-roll', {
+            detail: {
+              value: result.total,
+              breakdown: result.breakdown,
+              source: `${enemyName} ${actionName}`,
+              rollLabel: 'Damage',
+              diceRolls: result.diceRolls,
+              sourceLabel: `${enemyName} ${actionName}`,
+              actionLabel: 'Damage',
+              expression: damageString,
+            },
+          })
+        );
+
+        displayEnemyDiceResults(result.diceRolls);
+        setEnemyRollPopup({
+          value: result.total,
+          label: 'Damage',
+          timestamp: Date.now(),
+        });
 
         window.dispatchEvent(
           new CustomEvent('damage-roll', {
@@ -2842,9 +2926,8 @@ export default function ZombiesDM() {
           rollType: 'damage',
         });
 
-        setStatus({ type: 'info', message });
       },
-      [getEnemyActionDamageString, setStatus]
+      [displayEnemyDiceResults, getEnemyActionDamageString, setStatus, showEnemyDiceOverlay]
     );
 
     const challengeRatingOptions = useMemo(() => {
@@ -6675,6 +6758,22 @@ const resolveIcon = (category, iconMap, fallback) => {
             tokenLookup={tokenMetaById}
           />
         </div>
+
+        {enemyDiceOverlayActive && (
+          <div className="zombies-dm-roll-dice-overlay" aria-hidden="true">
+            <div className="damage-roller__dice-wrapper zombies-dm-roll-dice-overlay__wrapper">
+              <div className="damage-roller__dice-area zombies-dm-roll-dice-overlay__area">
+                <DamageDiceCanvas
+                  dice={enemyRollDice}
+                  diceColor={DEFAULT_DICE_COLOR}
+                  instanceKey="zombies-dm-enemy-rolls"
+                  showOverlayDice
+                  diceAreaSize={520}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {enemyRollPopup && (
           <div className="combat-hud-damage-popup" role="status" aria-live="polite">
