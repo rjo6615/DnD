@@ -391,18 +391,6 @@ export function ActiveEnemyQuickList({
     ? 'Expand active enemy display'
     : 'Collapse active enemy display';
   const listId = 'active-map-enemies-list';
-  const orderedSummaries = React.useMemo(() => {
-    const activeTurnSummary = summaries.find((summary) => summary?.isActiveTurn);
-
-    if (!activeTurnSummary) {
-      return summaries;
-    }
-
-    return [
-      activeTurnSummary,
-      ...summaries.filter((summary) => summary !== activeTurnSummary),
-    ];
-  }, [summaries]);
 
   return (
     <div
@@ -495,7 +483,7 @@ export function ActiveEnemyQuickList({
         data-testid="active-map-enemies-list"
         hidden={isCollapsed}
       >
-        {orderedSummaries.map((summary) => (
+        {summaries.map((summary) => (
           <ActiveEnemyQuickCard
             key={summary.enemy.enemyId || summary.enemy._id}
             enemy={summary.enemy}
