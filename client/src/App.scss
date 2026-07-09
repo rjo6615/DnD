@@ -10711,3 +10711,18 @@ body.character-select-scroll-enabled {
 .zombies-dm-page__map-board .campaign-map-board__tokens-layer {
   inset: 0;
 }
+
+/* DM Command Center mobile map cover: preserve square grid while filling the viewport */
+@media (max-width: 768px) {
+  .zombies-dm-page__map-board .campaign-map-board__stage {
+    width: max(100vw, calc(100dvh * var(--campaign-map-stage-aspect-ratio, 1)));
+    max-width: none;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .zombies-dm-page__map-board .campaign-map-board__image-wrapper {
+    width: 100%;
+    aspect-ratio: var(--campaign-map-stage-aspect-ratio, 1 / 1);
+  }
+}
