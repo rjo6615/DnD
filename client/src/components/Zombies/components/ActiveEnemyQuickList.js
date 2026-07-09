@@ -360,6 +360,23 @@ function EnemyQuickAttacksModal({
   );
 }
 
+function getActiveTurnFirstSummaries(summaries) {
+  if (!Array.isArray(summaries) || summaries.length === 0) {
+    return [];
+  }
+
+  const activeTurnSummary = summaries.find((summary) => summary?.isActiveTurn);
+
+  if (!activeTurnSummary) {
+    return summaries;
+  }
+
+  return [
+    activeTurnSummary,
+    ...summaries.filter((summary) => summary !== activeTurnSummary),
+  ];
+}
+
 export function ActiveEnemyQuickList({
   summaries,
   activeMapTitle,
@@ -382,22 +399,7 @@ export function ActiveEnemyQuickList({
   latestEnemyRoll,
 }) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
-  const orderedSummaries = React.useMemo(() => {
-    if (!Array.isArray(summaries) || summaries.length === 0) {
-      return [];
-    }
-
-    const activeTurnSummary = summaries.find((summary) => summary?.isActiveTurn);
-
-    if (!activeTurnSummary) {
-      return summaries;
-    }
-
-    return [
-      activeTurnSummary,
-      ...summaries.filter((summary) => summary !== activeTurnSummary),
-    ];
-  }, [summaries]);
+  const orderedSummaries = getActiveTurnFirstSummaries(summaries);
 
   if (orderedSummaries.length === 0) {
     return null;
