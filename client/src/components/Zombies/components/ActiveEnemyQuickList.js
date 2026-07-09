@@ -349,9 +349,12 @@ function EnemyQuickAttacksModal({
                     <Button
                       variant="link"
                       className="attack-card__roll"
-                      onClick={() =>
-                        normalizedEnemyId && onEnemyAttackRoll && onEnemyAttackRoll(enemy, action)
-                      }
+                      onClick={() => {
+                        onHide();
+                        if (normalizedEnemyId && onEnemyAttackRoll) {
+                          onEnemyAttackRoll(enemy, action);
+                        }
+                      }}
                       disabled={!onEnemyAttackRoll || !normalizedEnemyId}
                       aria-label={`Roll attack for ${actionLabel}`}
                     >
@@ -360,9 +363,12 @@ function EnemyQuickAttacksModal({
                     <Button
                       variant="link"
                       className="attack-card__roll"
-                      onClick={() =>
-                        normalizedEnemyId && onEnemyDamageRoll && onEnemyDamageRoll(enemy, action)
-                      }
+                      onClick={() => {
+                        onHide();
+                        if (normalizedEnemyId && onEnemyDamageRoll) {
+                          onEnemyDamageRoll(enemy, action);
+                        }
+                      }}
                       disabled={!onEnemyDamageRoll || !normalizedEnemyId}
                       aria-label={`Roll damage for ${actionLabel}`}
                     >

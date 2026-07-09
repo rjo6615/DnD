@@ -27,6 +27,7 @@ import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
 import { calculateDamage } from '../attributes/PlayerTurnActions';
 import { rollSkillWithDiceBox } from '../attributes/Skills';
+import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
 import D20RollerModal, { DEFAULT_DICE_COLOR } from '../common/D20RollerModal';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import ShopVisibilityManager from '../attributes/ShopVisibilityManager';
@@ -1608,6 +1609,7 @@ export default function ZombiesDM() {
     const [mapPlacementSaving, setMapPlacementSaving] = useState(false);
     const [mapPlacementError, setMapPlacementError] = useState(null);
     const [showDiceRoller, setShowDiceRoller] = useState(false);
+    const [enemyRollPopup, setEnemyRollPopup] = useState(null);
     const socketRef = useRef(null);
     const mapTokensRef = useRef(mapTokens);
     const activeMapTokensRef = useRef(activeMapTokens);
@@ -2708,6 +2710,11 @@ export default function ZombiesDM() {
           })
         );
 
+        setEnemyRollPopup({
+          value: result,
+          label: 'Attack Roll',
+          timestamp: Date.now(),
+        });
         setLatestEnemyRoll({
           enemyId: enemy.enemyId,
           enemyName,
@@ -2722,7 +2729,7 @@ export default function ZombiesDM() {
     );
 
     const handleEnemyDamageRoll = useCallback(
-      (enemy, action) => {
+      async (enemy, action) => {
         if (!enemy || !action) {
           return;
         }
@@ -2736,7 +2743,62 @@ export default function ZombiesDM() {
           return;
         }
 
-        const result = calculateDamage(damageString);
+        const validation = calculateDamage(damageString);
+        if (!validation) {
+          setStatus({
+            type: 'warning',
+            message: 'Unable to roll damage for this action.',
+          });
+          return;
+        }
+
+        let result = validation;
+        const diceRequests = Array.isArray(validation.diceRolls)
+          ? validation.diceRolls.reduce((requests, die) => {
+              const sides = Number(die?.sides);
+              if (!Number.isFinite(sides) || sides < 2) {
+                return requests;
+              }
+              const existing = requests.find((request) => request.sides === sides);
+              if (existing) {
+                existing.count += 1;
+              } else {
+                requests.push({ count: 1, sides });
+              }
+              return requests;
+            }, [])
+          : [];
+
+        if (diceRequests.length > 0) {
+          try {
+            setDiceBoxThemeColor(DEFAULT_DICE_COLOR);
+            const { rolls } = await rollDiceWithBox(diceRequests);
+            const rolledValuesBySides = new Map();
+            diceRequests.forEach((request, requestIndex) => {
+              const rawGroup = Array.isArray(rolls) ? rolls[requestIndex] : undefined;
+              const values = Array.isArray(rawGroup) ? rawGroup : [rawGroup];
+              rolledValuesBySides.set(
+                request.sides,
+                values
+                  .map((value) => Number(value))
+                  .filter((value) => Number.isFinite(value))
+              );
+            });
+
+            result = calculateDamage(damageString, 0, false, (count, sides) => {
+              const queue = rolledValuesBySides.get(sides) || [];
+              return Array.from({ length: count }, () => {
+                const nextValue = queue.shift();
+                return Number.isFinite(nextValue)
+                  ? nextValue
+                  : Math.floor(Math.random() * sides) + 1;
+              });
+            });
+          } catch (error) {
+            console.error('Enemy damage roll using dice box failed', error);
+          }
+        }
+
         if (!result) {
           setStatus({
             type: 'warning',
@@ -2763,6 +2825,12 @@ export default function ZombiesDM() {
             },
           })
         );
+
+        setEnemyRollPopup({
+          value: result.total,
+          label: 'Damage',
+          timestamp: Date.now(),
+        });
 
         setLatestEnemyRoll({
           enemyId: enemy.enemyId,
@@ -6607,6 +6675,21 @@ const resolveIcon = (category, iconMap, fallback) => {
             tokenLookup={tokenMetaById}
           />
         </div>
+
+        {enemyRollPopup && (
+          <div className="combat-hud-damage-popup" role="status" aria-live="polite">
+            <button
+              type="button"
+              className="combat-hud-damage-popup__close"
+              onClick={() => setEnemyRollPopup(null)}
+              aria-label="Close enemy roll popup"
+            >
+              ×
+            </button>
+            <span className="combat-hud-damage-popup__label">{enemyRollPopup.label || 'Damage'}</span>
+            <strong className="combat-hud-damage-popup__value">{enemyRollPopup.value}</strong>
+          </div>
+        )}
 
         <ActiveEnemyQuickList
           summaries={activeMapEnemySummaries}
