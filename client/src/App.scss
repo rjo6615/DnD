@@ -10741,7 +10741,7 @@ body.character-select-scroll-enabled {
   }
 }
 
-/* DM map viewport parity: use the same aspect-ratio constrained board as character maps. */
+/* DM map viewport cover: preserve the map/grid aspect ratio while filling the full screen. */
 .zombies-dm-page__map-surface {
   align-items: center;
   justify-content: center;
@@ -10751,7 +10751,7 @@ body.character-select-scroll-enabled {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   width: 100vw;
   height: 100dvh;
@@ -10763,11 +10763,11 @@ body.character-select-scroll-enabled {
 .zombies-dm-page__map-board .campaign-map-board__stage {
   position: relative;
   flex: 0 0 auto;
-  width: min(100vw, calc(100dvh * var(--campaign-map-stage-ratio-number, 1)));
-  max-width: 100vw;
+  width: max(100vw, calc(100dvh * var(--campaign-map-stage-ratio-number, 1)));
+  max-width: none;
   height: auto !important;
   min-height: 0 !important;
-  margin: 0 auto;
+  margin: 0;
   transform: none;
 }
 
@@ -10780,7 +10780,7 @@ body.character-select-scroll-enabled {
 }
 
 .zombies-dm-page__map-board .campaign-map-board__image {
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
 }
 
