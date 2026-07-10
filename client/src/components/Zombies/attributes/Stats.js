@@ -4,7 +4,7 @@ import DockControls from '../components/DockControls';
 import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
 import { normalizeEquipmentMap } from './equipmentNormalization';
-import { rollSkillWithDiceBox } from './Skills';
+import { resolveAbilityCheckRollMode, rollSkillWithDiceBox } from './Skills';
 import {
   DEFAULT_DICE_COLOR,
   normalizeDiceColor,
@@ -13,9 +13,19 @@ import {
 const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
 const formatAdjustmentSegment = (value, label) => {
-  if (!value) return null;
   const sign = value >= 0 ? '+' : '-';
   return `${sign} ${Math.abs(value)} ${label}`;
+};
+
+const formatAbilityCheckBreakdown = ({ keptD20, rolledD20s, rollMode, modifier, abilityLabel }) => {
+  const diceLine = rollMode === 'advantage' || rollMode === 'disadvantage'
+    ? `${keptD20} (d20) (Rolled ${rolledD20s.join(' and ')}; kept ${keptD20})`
+    : `${keptD20} (d20)`;
+
+  return [
+    diceLine,
+    formatAdjustmentSegment(modifier, `${abilityLabel} Modifier`),
+  ].join(' ');
 };
 
 const createEmptyStatMap = () => ({
@@ -162,22 +172,30 @@ export default function Stats({
         handleCloseStats?.();
       }
 
-      const { result, d20 } = await rollSkillWithDiceBox(statMod, {
+      const { mode: rollMode } = resolveAbilityCheckRollMode(form, statKey);
+      const rollResult = await rollSkillWithDiceBox(statMod, {
         diceColor: diceFaceColor,
+        rollMode,
       });
-      const breakdownParts = [`${d20} (d20)`];
-      const modifierSegment = formatAdjustmentSegment(
-        statMod,
-        `${statLabel} Modifier`
-      );
-      if (modifierSegment) {
-        breakdownParts.push(modifierSegment);
-      }
+      const { result, d20 } = rollResult;
+      const rolledD20s = Array.isArray(rollResult.rolledD20s) && rollResult.rolledD20s.length > 0
+        ? rollResult.rolledD20s
+        : [d20];
+      const breakdown = formatAbilityCheckBreakdown({
+        keptD20: rollResult.keptD20 ?? d20,
+        rolledD20s,
+        rollMode: rollResult.rollMode || rollMode,
+        modifier: statMod,
+        abilityLabel: statLabel,
+      });
 
       const diceRolls = [
         {
           sides: 20,
           value: d20,
+          rolls: rolledD20s,
+          kept: rollResult.keptD20 ?? d20,
+          rollMode: rollResult.rollMode || rollMode,
           type: `${statLabel} Check`,
           category: 'base',
         },
@@ -187,8 +205,12 @@ export default function Stats({
         new CustomEvent('damage-roll', {
           detail: {
             value: result,
-            breakdown: breakdownParts.join(' '),
-            source: statLabel,
+            breakdown,
+            source: rollMode === 'advantage'
+              ? `${statLabel} with Advantage`
+              : rollMode === 'disadvantage'
+                ? `${statLabel} with Disadvantage`
+                : statLabel,
             rollLabel: 'Stat Roll',
             critical: d20 === 20,
             fumble: d20 === 1,
@@ -198,7 +220,7 @@ export default function Stats({
       );
 
     },
-    [diceFaceColor, handleCloseStats, isDocked, statMods]
+    [diceFaceColor, form, handleCloseStats, isDocked, statMods]
   );
 
   const dialogClassName = useMemo(() => {
