@@ -139,7 +139,43 @@ const barbarianFeatures = {
   1: [
     {
       name: 'Rage',
-      description: 'In battle, you fight with primal ferocity.'
+      description: `**Rage**
+
+You can imbue yourself with a primal power called Rage, a force that grants you extraordinary might and resilience. You can enter it as a Bonus Action if you aren't wearing Heavy Armor.
+
+You can enter your Rage the number of times shown for your Barbarian level. You regain one expended use when you finish a Short Rest, and you regain all expended uses when you finish a Long Rest.
+
+While active, your Rage grants the following benefits:
+
+**Damage Resistance**
+
+You have Resistance to Bludgeoning, Piercing, and Slashing damage.
+
+**Rage Damage**
+
+When you make an attack using Strength with either a weapon or an Unarmed Strike and deal damage, you gain the Rage Damage bonus appropriate for your Barbarian level.
+
+**Strength Advantage**
+
+You have Advantage on Strength checks and Strength saving throws.
+
+**No Concentration or Spells**
+
+You can't maintain Concentration, and you can't cast spells while raging.
+
+**Duration**
+
+Rage lasts until the end of your next turn and ends early if you wear Heavy Armor or gain the Incapacitated condition.
+
+If your Rage is still active on your next turn, you can extend it for another round by doing one of the following:
+
+- Make an attack roll against an enemy.
+- Force an enemy to make a saving throw.
+- Take a Bonus Action to extend your Rage.
+
+Each time Rage is extended, it lasts until the end of your next turn.
+
+A Rage can last for up to 10 minutes.`
     },
     {
       name: 'Unarmored Defense',
