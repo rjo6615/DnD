@@ -43,6 +43,7 @@ import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import { getMonkFocusPoints } from '../../../utils/monk';
+import { activateRage, applyRageRest, endRage, getRageBenefits, getRageState, hasHeavyArmorEquipped } from '../utils/barbarian';
 import { FaDiceD20 } from "react-icons/fa";
 import { Backpack, BookOpen, CircleHelp, Dice5, Dumbbell, Gem, HeartPulse, Package, Settings, Shield, Sparkles, Swords, UserRound } from "lucide-react";
 import { Button as HudButton, Dock, IconButton, Panel, Toolbar } from "../common/HudPrimitives";
@@ -827,6 +828,29 @@ export default function ZombiesCharacterSheet() {
     setUsedSlots(nextState);
     usedSlotsHydrationRef.current = true;
   }, [characterId, getStoredUsedSlots]);
+
+  useEffect(() => {
+    const benefits = getRageBenefits(form);
+    if (!benefits.blocksConcentration) {
+      return;
+    }
+    setActiveEffects((prev) => {
+      const next = prev.filter((effect) => String(effect?.name || '').toLowerCase() !== 'concentration');
+      return next.length === prev.length ? prev : next;
+    });
+  }, [form]);
+
+  useEffect(() => {
+    if (!form || !getRageState(form).active) {
+      return;
+    }
+    const incapacitated = (form?.conditions || form?.statusConditions || []).some(
+      (condition) => String(condition?.name || condition?.label || condition).toLowerCase() === 'incapacitated'
+    );
+    if (hasHeavyArmorEquipped(form) || incapacitated) {
+      setForm((prev) => endRage(prev));
+    }
+  }, [form]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !characterId) {
@@ -2796,10 +2820,20 @@ export default function ZombiesCharacterSheet() {
 
   const handleLongRest = useCallback(() => {
     setLongRestCount((c) => c + 1);
+    setForm((prev) => applyRageRest(prev, 'long'));
   }, []);
 
   const handleShortRest = useCallback(() => {
     setShortRestCount((c) => c + 1);
+    setForm((prev) => applyRageRest(prev, 'short'));
+  }, []);
+
+  const handleActivateRage = useCallback(() => {
+    setForm((prev) => activateRage(prev));
+  }, []);
+
+  const handleEndRage = useCallback(() => {
+    setForm((prev) => endRage(prev));
   }, []);
 
   const rollSpellDamage = useCallback(
@@ -4882,8 +4916,9 @@ export default function ZombiesCharacterSheet() {
       calculateCharacterArmorClass(form, {
         dexMod: statMods.dex,
         wisMod: statMods.wis,
+        conMod: statMods.con,
       }),
-    [form, statMods.dex, statMods.wis]
+    [form, statMods.con, statMods.dex, statMods.wis]
   );
 
   const SPELLCASTING_ABILITIES = {
@@ -5180,7 +5215,8 @@ export default function ZombiesCharacterSheet() {
 
     const monkFocusMax = getMonkFocusPoints(form);
     pushResource({ id: 'monk-focus', icon: '✋', name: 'Ki / Focus', current: Math.max(monkFocusMax - (Number(usedSlots?.focus) || 0), 0), max: monkFocusMax, color: '#38e8ff' });
-    pushResource({ id: 'rage', icon: '🔥', name: 'Rage', current: classLevels.barbarian >= 20 ? '∞' : (classLevels.barbarian >= 17 ? 6 : classLevels.barbarian >= 12 ? 5 : classLevels.barbarian >= 6 ? 4 : classLevels.barbarian >= 3 ? 3 : classLevels.barbarian >= 1 ? 2 : 0), max: classLevels.barbarian >= 20 ? '∞' : (classLevels.barbarian >= 17 ? 6 : classLevels.barbarian >= 12 ? 5 : classLevels.barbarian >= 6 ? 4 : classLevels.barbarian >= 3 ? 3 : classLevels.barbarian >= 1 ? 2 : 0), color: '#f0733f' });
+    const rageState = getRageState(form);
+    pushResource({ id: 'rage', icon: '🔥', name: rageState.active ? 'Raging' : 'Rage', current: rageState.current, max: rageState.max, color: '#f0733f', active: rageState.active });
     if (classLevels.bard) pushResource({ id: 'bardic-inspiration', icon: '🎵', name: 'Bardic Inspiration', current: abilityModifier(form?.cha), max: abilityModifier(form?.cha), color: '#d7b46a' });
     if (classLevels.sorcerer) pushResource({ id: 'sorcery-points', icon: '✦', name: 'Sorcery Points', current: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, max: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, color: '#b85cff' });
     if (classLevels.cleric) pushResource({ id: 'channel-divinity', icon: '☀', name: 'Channel Divinity', current: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, max: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, color: '#f3d98a' });
@@ -5754,8 +5790,18 @@ export default function ZombiesCharacterSheet() {
                     <div className="combat-hud-dock__resource-rail" aria-label="Class resources">
                       {footerClassResources.map((resource) => {
                         const isFocusResource = resource.id === 'monk-focus';
+                        const isRageResource = resource.id === 'rage';
                         const resourceMax = Number(resource.max);
                         const handleResourceActivate = (event, action = 'spend') => {
+                          if (isRageResource) {
+                            event.preventDefault();
+                            if (resource.active) {
+                              handleEndRage();
+                            } else {
+                              handleActivateRage();
+                            }
+                            return;
+                          }
                           if (!isFocusResource || !Number.isFinite(resourceMax) || resourceMax <= 0) {
                             return;
                           }
@@ -5769,12 +5815,12 @@ export default function ZombiesCharacterSheet() {
                             type="button"
                             className="combat-hud-resource-tile"
                             style={{ '--hud-resource-accent': resource.color }}
-                            title={isFocusResource ? `${resource.name}: click to spend, right-click to restore, double-click to reset` : `${resource.name}: ${resource.current ?? '—'}/${resource.max ?? '—'}`}
+                            title={isRageResource ? (resource.active ? `End Rage: ${resource.current ?? '—'}/${resource.max ?? '—'} uses remaining` : hasHeavyArmorEquipped(form) ? 'Cannot rage while wearing Heavy Armor' : Number(resource.current) <= 0 ? 'No Rage uses remaining' : `Activate Rage: ${resource.current ?? '—'}/${resource.max ?? '—'} uses remaining`) : isFocusResource ? `${resource.name}: click to spend, right-click to restore, double-click to reset` : `${resource.name}: ${resource.current ?? '—'}/${resource.max ?? '—'}`}
                             aria-label={`${resource.name}: ${resource.current ?? '—'} of ${resource.max ?? '—'}`}
                             onClick={(event) => handleResourceActivate(event, event.shiftKey ? 'restore' : 'spend')}
                             onContextMenu={(event) => handleResourceActivate(event, 'restore')}
                             onDoubleClick={(event) => handleResourceActivate(event, 'reset')}
-                            disabled={!isFocusResource}
+                            disabled={(!isFocusResource && !isRageResource) || (isRageResource && !resource.active && (Number(resource.current) <= 0 || hasHeavyArmorEquipped(form)))}
                           >
                             <span className="combat-hud-resource-tile__icon" aria-hidden="true">{resource.icon}</span>
                             <span className="combat-hud-resource-tile__name">{resource.name}</span>
