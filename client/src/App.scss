@@ -7140,6 +7140,40 @@ h1 {
 .combat-hud-dock__stat-pills { display: flex; flex-wrap: wrap; gap: var(--hud-space-1); padding-inline: var(--hud-space-1); }
 .combat-hud-pill { display: inline-flex; align-items: center; gap: 4px; min-height: 28px; padding: 0 8px; border-radius: 999px; background: rgba(255,255,255,0.08); color: var(--hud-muted); font-size: 0.78rem; }
 
+.combat-hud-conditions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hud-space-1);
+  align-items: center;
+}
+
+.combat-hud-condition {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 54px;
+  min-height: 48px;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--hud-condition-accent, var(--hud-accent)) 42%, rgba(255,255,255,0.14));
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.04));
+  color: var(--hud-text);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.combat-hud-condition__icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.combat-hud-condition__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
 .combat-hud-dock__resources { display: grid; grid-template-columns: minmax(360px, 1fr) minmax(180px, 0.7fr); gap: var(--hud-space-1); align-items: stretch; }
 .combat-hud-dock__resource-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(156px, 1fr)); gap: var(--hud-space-1); }
 

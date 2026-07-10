@@ -33,6 +33,35 @@ describe("barbarian rage", () => {
     });
   });
 
+
+  it("scales rage uses, rage damage, and weapon mastery count from the progression table", () => {
+    expect(getBarbarianProgression(3)).toMatchObject({
+      rageUses: 3,
+      rageDamage: 2,
+      weaponMasteryCount: 2,
+    });
+    expect(getBarbarianProgression(4)).toMatchObject({
+      rageUses: 3,
+      rageDamage: 2,
+      weaponMasteryCount: 3,
+    });
+    expect(getBarbarianProgression(9)).toMatchObject({
+      rageUses: 4,
+      rageDamage: 3,
+      weaponMasteryCount: 3,
+    });
+    expect(getBarbarianProgression(17)).toMatchObject({
+      rageUses: 6,
+      rageDamage: 4,
+      weaponMasteryCount: 4,
+    });
+    expect(getRageState(barbarian({ occupation: [{ Name: "Barbarian", Level: 12 }] }))).toMatchObject({
+      current: 5,
+      max: 5,
+      rageDamage: 3,
+    });
+  });
+
   it("activates once, persists active state, and does not double spend", () => {
     const active = activateRage(barbarian());
     expect(getRageState(active)).toMatchObject({ active: true, current: 1 });
