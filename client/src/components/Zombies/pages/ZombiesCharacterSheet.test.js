@@ -115,7 +115,39 @@ jest.mock('../attributes/Features', () => (props) => {
   return null;
 });
 
-import ZombiesCharacterSheet from './ZombiesCharacterSheet';
+import ZombiesCharacterSheet, { buildFooterConditions, getFooterConditionLabel } from './ZombiesCharacterSheet';
+
+describe('footer condition helpers', () => {
+  const normalize = (value) => (Array.isArray(value) ? value : []);
+
+  test('includes active rage in the condition collection and removes inactive rage', () => {
+    const active = {
+      classState: { barbarian: { rage: { active: true, current: 1 } } },
+      occupation: [{ Name: 'Barbarian', Level: 3 }],
+      conditions: [],
+    };
+    expect(buildFooterConditions(active, normalize)).toEqual([
+      { id: 'rage-condition', icon: '🔥', name: 'Rage', color: '#f0733f' },
+    ]);
+    expect(buildFooterConditions({ ...active, classState: { barbarian: { rage: { active: false, current: 1 } } } }, normalize)).toEqual([]);
+  });
+
+  test('does not duplicate rage and preserves other conditions', () => {
+    const character = {
+      classState: { barbarian: { rage: { active: true, current: 1 } } },
+      occupation: [{ Name: 'Barbarian', Level: 3 }],
+      conditions: [{ id: 'rage', name: 'Rage' }, { id: 'poisoned', name: 'Poisoned' }],
+    };
+    expect(buildFooterConditions(character, normalize)).toEqual(character.conditions);
+  });
+
+  test('formats empty, singular, and plural condition labels', () => {
+    expect(getFooterConditionLabel(0)).toBe('No conditions');
+    expect(getFooterConditionLabel(1)).toBe('1 condition');
+    expect(getFooterConditionLabel(2)).toBe('2 conditions');
+  });
+});
+
 const { rollDiceWithBox } = require('../../../utils/diceBoxManager');
 
 const getFooterButtonByLabel = (label) =>

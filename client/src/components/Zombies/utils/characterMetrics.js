@@ -225,13 +225,16 @@ const isArmorItem = (item) => {
   if (Array.isArray(item)) {
     const [name, acBonus, maxDex, category] = item;
     const text = String(`${name ?? ''} ${category ?? ''}`).toLowerCase();
+    if (text.includes('no armor') || text.includes('unarmored') || text.includes('none')) {
+      return false;
+    }
     return (
       text.includes('armor') ||
       text.includes('light') ||
       text.includes('medium') ||
       text.includes('heavy') ||
-      (Number.isFinite(Number(acBonus)) && !String(name ?? '').toLowerCase().includes('shield')) ||
-      Number.isFinite(Number(maxDex))
+      (Number.isFinite(Number(acBonus)) && Number(acBonus) > 0 && !String(name ?? '').toLowerCase().includes('shield')) ||
+      (Number.isFinite(Number(maxDex)) && Number(maxDex) > 0)
     );
   }
 
