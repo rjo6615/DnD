@@ -50,10 +50,7 @@ export const getBarbarianProgression = (levelOrCharacter) => {
 };
 
 export const hasHeavyArmorEquipped = (character) => {
-  const items = [
-    ...Object.values(character?.equipment || {}),
-    ...(Array.isArray(character?.armor) ? character.armor : []),
-  ].filter(Boolean);
+  const items = Object.values(character?.equipment || {}).filter(Boolean);
   return items.some((item) => {
     if (Array.isArray(item)) return normalize(item[0]).includes("heavy");
     const text = [

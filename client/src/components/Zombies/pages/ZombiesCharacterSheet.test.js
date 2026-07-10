@@ -115,7 +115,7 @@ jest.mock('../attributes/Features', () => (props) => {
   return null;
 });
 
-import ZombiesCharacterSheet, { buildFooterConditions, getFooterConditionLabel } from './ZombiesCharacterSheet';
+import ZombiesCharacterSheet, { buildFooterConditions, getFooterConditionLabel, getFooterConditionSummary } from './ZombiesCharacterSheet';
 
 describe('footer condition helpers', () => {
   const normalize = (value) => (Array.isArray(value) ? value : []);
@@ -145,6 +145,17 @@ describe('footer condition helpers', () => {
     expect(getFooterConditionLabel(0)).toBe('No conditions');
     expect(getFooterConditionLabel(1)).toBe('1 condition');
     expect(getFooterConditionLabel(2)).toBe('2 conditions');
+  });
+
+  test('summarizes active conditions for rendering inside the existing pill', () => {
+    expect(getFooterConditionSummary([])).toMatchObject({ empty: true, label: 'No conditions' });
+    expect(getFooterConditionSummary([{ id: 'rage', icon: '🔥', name: 'Rage' }])).toMatchObject({
+      empty: false,
+      label: 'Rage',
+      primaryCondition: { id: 'rage', icon: '🔥', name: 'Rage' },
+      overflowCount: 0,
+    });
+    expect(getFooterConditionSummary([{ id: 'rage', icon: '🔥', name: 'Rage' }, { id: 'poisoned', name: 'Poisoned' }])).toMatchObject({ label: 'Rage +1', overflowCount: 1 });
   });
 });
 

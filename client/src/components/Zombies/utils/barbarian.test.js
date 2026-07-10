@@ -74,9 +74,13 @@ describe("barbarian rage", () => {
       classState: { barbarian: { rage: { active: false, current: 0 } } },
     });
     expect(activateRage(empty)).toBe(empty);
+    const ownedArmor = barbarian({
+      armor: [{ name: "Plate", category: "Heavy Armor", source: "armor" }],
+    });
+    expect(getRageState(activateRage(ownedArmor))).toMatchObject({ active: true, current: 1 });
     const armored = barbarian({
       equipment: {
-        body: { name: "Plate", category: "Heavy Armor", source: "armor" },
+        chest: { name: "Plate", category: "Heavy Armor", source: "armor" },
       },
     });
     expect(activateRage(armored)).toBe(armored);
