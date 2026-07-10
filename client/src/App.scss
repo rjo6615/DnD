@@ -10741,9 +10741,9 @@ body.character-select-scroll-enabled {
   }
 }
 
-/* DM map viewport parity: use the same aspect-ratio constrained board as character maps. */
+/* DM map viewport parity: match the character sheet's full-width map surface without stretching. */
 .zombies-dm-page__map-surface {
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
 }
 
@@ -10751,19 +10751,24 @@ body.character-select-scroll-enabled {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   width: 100vw;
   height: 100dvh;
+  max-width: none;
+  max-height: none;
   min-height: 100dvh;
   padding: 0;
   overflow: hidden;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .zombies-dm-page__map-board .campaign-map-board__stage {
   position: relative;
   flex: 0 0 auto;
-  width: min(100vw, calc(100dvh * var(--campaign-map-stage-ratio-number, 1)));
+  width: 100vw;
   max-width: 100vw;
   height: auto !important;
   min-height: 0 !important;
@@ -10777,6 +10782,7 @@ body.character-select-scroll-enabled {
   min-height: 0 !important;
   aspect-ratio: var(--campaign-map-stage-aspect-ratio, 1 / 1);
   border-radius: 0;
+  background: transparent;
 }
 
 .zombies-dm-page__map-board .campaign-map-board__image {
