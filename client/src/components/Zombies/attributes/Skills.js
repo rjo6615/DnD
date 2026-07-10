@@ -17,6 +17,7 @@ import {
   normalizeDiceColor,
   applyDiceFaceColor,
 } from '../../../utils/diceColors';
+import { getRageBenefits } from '../utils/barbarian';
 
 const EMPTY_OBJECT = Object.freeze({});
 
@@ -72,8 +73,43 @@ export function rollSkill(bonus = 0, d20Override = null) {
   return { result, d20 };
 }
 
+export const resolveD20RollMode = ({ advantageSources = [], disadvantageSources = [] } = {}) => {
+  const hasAdvantage = Array.isArray(advantageSources) && advantageSources.length > 0;
+  const hasDisadvantage = Array.isArray(disadvantageSources) && disadvantageSources.length > 0;
+  if (hasAdvantage && !hasDisadvantage) return 'advantage';
+  if (hasDisadvantage && !hasAdvantage) return 'disadvantage';
+  return 'normal';
+};
+
+export const resolveAbilityCheckRollMode = (character, abilityKey, options = {}) => {
+  const normalizedAbility = String(abilityKey || '').toLowerCase();
+  const advantageSources = Array.isArray(options.advantageSources)
+    ? [...options.advantageSources]
+    : [];
+  const disadvantageSources = Array.isArray(options.disadvantageSources)
+    ? [...options.disadvantageSources]
+    : [];
+
+  if (getRageBenefits(character).advantage.abilityChecks.includes(normalizedAbility)) {
+    advantageSources.push('Rage');
+  }
+
+  return {
+    mode: resolveD20RollMode({ advantageSources, disadvantageSources }),
+    advantageSources,
+    disadvantageSources,
+  };
+};
+
+const resolveKeptD20 = (values, mode) => {
+  if (mode === 'advantage') return Math.max(...values);
+  if (mode === 'disadvantage') return Math.min(...values);
+  return values[0];
+};
+
 export async function rollSkillWithDiceBox(bonus = 0, options = {}) {
-  const { diceColor = null } = options || {};
+  const { diceColor = null, rollMode = 'normal' } = options || {};
+  const normalizedRollMode = rollMode === 'advantage' || rollMode === 'disadvantage' ? rollMode : 'normal';
   const normalizedColor = normalizeDiceColor(diceColor) || DEFAULT_DICE_COLOR;
 
   applyDiceFaceColor(normalizedColor);
@@ -81,19 +117,42 @@ export async function rollSkillWithDiceBox(bonus = 0, options = {}) {
   await waitForNextAnimationFrame();
 
   try {
-    const { rolls } = await rollDiceWithBox([{ count: 1, sides: 20 }]);
+    const diceCount = normalizedRollMode === 'normal' ? 1 : 2;
+    const { rolls } = await rollDiceWithBox([{ count: diceCount, sides: 20 }]);
     const firstGroup = Array.isArray(rolls) ? rolls[0] : undefined;
-    const firstValue = Array.isArray(firstGroup) ? firstGroup[0] : firstGroup;
-    const override = normalizeD20Value(firstValue);
-    if (override !== null) {
-      return { ...rollSkill(bonus, override), usedDiceBox: true };
+    const rolledD20s = (Array.isArray(firstGroup) ? firstGroup : [firstGroup])
+      .map(normalizeD20Value)
+      .filter((value) => value !== null)
+      .slice(0, diceCount);
+    if (rolledD20s.length === diceCount) {
+      const keptD20 = resolveKeptD20(rolledD20s, normalizedRollMode);
+      return {
+        ...rollSkill(bonus, keptD20),
+        d20: keptD20,
+        rolledD20s,
+        keptD20,
+        rollMode: normalizedRollMode,
+        usedDiceBox: true,
+      };
     }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Skill roll using dice box failed', error);
   }
 
-  return { ...rollSkill(bonus), usedDiceBox: false };
+  const fallbackRolls = Array.from(
+    { length: normalizedRollMode === 'normal' ? 1 : 2 },
+    () => Math.floor(Math.random() * 20) + 1
+  );
+  const keptD20 = resolveKeptD20(fallbackRolls, normalizedRollMode);
+  return {
+    ...rollSkill(bonus, keptD20),
+    d20: keptD20,
+    rolledD20s: fallbackRolls,
+    keptD20,
+    rollMode: normalizedRollMode,
+    usedDiceBox: false,
+  };
 }
 
 export default function Skills({

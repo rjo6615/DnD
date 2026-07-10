@@ -222,3 +222,76 @@ test('rolling a stat dispatches a roll event and closes the modal when undocked'
     dispatchSpy.mockRestore();
   }
 });
+
+test('active rage grants advantage on Strength ability checks through resolver output', async () => {
+  rollDiceWithBox.mockResolvedValueOnce({ rolls: [[4, 2]] });
+  const form = {
+    str: 16,
+    dex: 14,
+    con: 14,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    race: { abilities: {} },
+    feat: [],
+    item: [],
+    occupation: [{ Name: 'Barbarian', Level: 1 }],
+    classState: { barbarian: { rage: { active: true, current: 1 } } },
+  };
+  const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+
+  render(<Stats form={form} showStats={true} handleCloseStats={() => {}} />);
+
+  const strengthCard = screen.getByText('STR').closest('.stat-card');
+  await act(async () => {
+    await userEvent.click(
+      within(strengthCard).getByRole('button', { name: /Roll Strength check/i })
+    );
+  });
+
+  await waitFor(() => {
+    expect(rollDiceWithBox).toHaveBeenCalledWith([{ count: 2, sides: 20 }]);
+  });
+  const rollEvent = dispatchSpy.mock.calls.find(([event]) => event?.type === 'damage-roll')?.[0];
+  expect(rollEvent.detail).toMatchObject({
+    value: 7,
+    source: 'Strength with Advantage',
+    breakdown: '4 (d20) (Rolled 4 and 2; kept 4) + 3 Strength Modifier',
+    diceRolls: [
+      expect.objectContaining({
+        value: 4,
+        rolls: [4, 2],
+        kept: 4,
+        rollMode: 'advantage',
+      }),
+    ],
+  });
+  dispatchSpy.mockRestore();
+});
+
+test('inactive rage does not grant advantage on Strength ability checks', async () => {
+  const form = {
+    str: 16,
+    dex: 14,
+    con: 14,
+    int: 10,
+    wis: 10,
+    cha: 10,
+    race: { abilities: {} },
+    feat: [],
+    item: [],
+    occupation: [{ Name: 'Barbarian', Level: 1 }],
+    classState: { barbarian: { rage: { active: false, current: 1 } } },
+  };
+
+  render(<Stats form={form} showStats={true} handleCloseStats={() => {}} />);
+
+  await act(async () => {
+    await userEvent.click(
+      within(screen.getByText('STR').closest('.stat-card')).getByRole('button', { name: /Roll Strength check/i })
+    );
+  });
+  await waitFor(() => {
+    expect(rollDiceWithBox).toHaveBeenLastCalledWith([{ count: 1, sides: 20 }]);
+  });
+});
