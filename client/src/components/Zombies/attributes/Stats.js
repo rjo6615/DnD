@@ -5,6 +5,8 @@ import STATS from "../statSchema";
 import StatBreakdownModal from "./StatBreakdownModal";
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import { resolveAbilityCheckRollMode, rollSkillWithDiceBox } from './Skills';
+import proficiencyBonus from '../../../utils/proficiencyBonus';
+import { resolveSavingThrowRollMode } from '../utils/barbarian';
 import {
   DEFAULT_DICE_COLOR,
   normalizeDiceColor,
@@ -12,20 +14,55 @@ import {
 
 const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
+const ABILITY_LABELS = {
+  str: 'Strength',
+  dex: 'Dexterity',
+  con: 'Constitution',
+  int: 'Intelligence',
+  wis: 'Wisdom',
+  cha: 'Charisma',
+};
+
 const formatAdjustmentSegment = (value, label) => {
   const sign = value >= 0 ? '+' : '-';
   return `${sign} ${Math.abs(value)} ${label}`;
 };
 
-const formatAbilityCheckBreakdown = ({ keptD20, rolledD20s, rollMode, modifier, abilityLabel }) => {
-const diceLine = rollMode === 'advantage' || rollMode === 'disadvantage'
+const formatRollBreakdown = ({ keptD20, rolledD20s, rollMode, modifier, abilityLabel, proficiency = 0 }) => {
+  const diceLine = rollMode === 'advantage' || rollMode === 'disadvantage'
     ? `${keptD20} (d20) (Rolled ${rolledD20s.join(' and ')})`
     : `${keptD20} (d20)`;
 
   return [
     diceLine,
     formatAdjustmentSegment(modifier, `${abilityLabel} Modifier`),
-  ].join(' ');
+    proficiency ? formatAdjustmentSegment(proficiency, 'Proficiency Bonus') : null,
+  ].filter(Boolean).join(' ');
+};
+
+const formatAbilityCheckBreakdown = (options) => formatRollBreakdown(options);
+
+const formatSavingThrowBreakdown = (options) => formatRollBreakdown(options);
+
+const getTotalLevel = (form = {}) => (Array.isArray(form.occupation) ? form.occupation : []).reduce(
+  (total, entry) => total + (Number(entry?.Level ?? entry?.level ?? 0) || 0),
+  0
+);
+
+const normalizeAbilityToken = (value) => {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  const entries = Object.entries(ABILITY_LABELS);
+  return entries.find(([key, label]) => normalized === key || normalized === label.toLowerCase())?.[0] || normalized;
+};
+
+export const isSavingThrowProficient = (form = {}, statKey) => {
+  const target = normalizeAbilityToken(statKey);
+  const sources = [
+    ...(Array.isArray(form.savingThrows) ? form.savingThrows : []),
+    ...(Array.isArray(form.savingThrowProficiencies) ? form.savingThrowProficiencies : []),
+    ...(Array.isArray(form.occupation) ? form.occupation.flatMap((entry) => entry?.savingThrows || entry?.proficiencies?.savingThrows || []) : []),
+  ];
+  return sources.some((entry) => normalizeAbilityToken(entry) === target);
 };
 
 const createEmptyStatMap = () => ({
@@ -223,6 +260,74 @@ export default function Stats({
     [diceFaceColor, form, handleCloseStats, isDocked, statMods]
   );
 
+
+  const handleSavingThrow = useCallback(
+    async (statKey) => {
+      const statMod = statMods[statKey] ?? 0;
+      const abilityLabel = ABILITY_LABELS[statKey] || STATS.find((stat) => stat.key === statKey)?.label || statKey.toUpperCase();
+      const proficient = isSavingThrowProficient(form, statKey);
+      const proficiency = proficient ? proficiencyBonus(getTotalLevel(form)) : 0;
+
+      if (!isDocked) {
+        handleCloseStats?.();
+      }
+
+      const { mode: rollMode, advantageSources, disadvantageSources } = resolveSavingThrowRollMode(form, statKey);
+      const rollResult = await rollSkillWithDiceBox(statMod + proficiency, {
+        diceColor: diceFaceColor,
+        rollMode,
+      });
+      const { result, d20 } = rollResult;
+      const rolledD20s = Array.isArray(rollResult.rolledD20s) && rollResult.rolledD20s.length > 0
+        ? rollResult.rolledD20s
+        : [d20];
+      const actualRollMode = rollResult.rollMode || rollMode;
+      const breakdown = formatSavingThrowBreakdown({
+        keptD20: rollResult.keptD20 ?? d20,
+        rolledD20s,
+        rollMode: actualRollMode,
+        modifier: statMod,
+        proficiency,
+        abilityLabel,
+      });
+
+      const diceRolls = [
+        {
+          sides: 20,
+          value: d20,
+          rolls: rolledD20s,
+          kept: rollResult.keptD20 ?? d20,
+          rollMode: actualRollMode,
+          type: `${abilityLabel} Saving Throw`,
+          rollType: 'savingThrow',
+          category: 'base',
+        },
+      ];
+
+      window.dispatchEvent(
+        new CustomEvent('damage-roll', {
+          detail: {
+            value: result,
+            breakdown,
+            source: actualRollMode === 'advantage'
+              ? `${abilityLabel} Saving Throw with Advantage`
+              : actualRollMode === 'disadvantage'
+                ? `${abilityLabel} Saving Throw with Disadvantage`
+                : `${abilityLabel} Saving Throw`,
+            rollLabel: 'Saving Throw',
+            rollType: 'savingThrow',
+            critical: d20 === 20,
+            fumble: d20 === 1,
+            diceRolls,
+            advantageSources,
+            disadvantageSources,
+          },
+        })
+      );
+    },
+    [diceFaceColor, form, handleCloseStats, isDocked, statMods]
+  );
+
   const dialogClassName = useMemo(() => {
     if (!isDocked) {
       return undefined;
@@ -299,9 +404,17 @@ export default function Stats({
                       onClick={() => handleRoll(key)}
                       variant="link"
                       aria-label={`Roll ${label || key} check`}
-                      className="stat-card-roll"
+                      className="stat-card-view stat-card-roll"
                     >
                       <i className="fa-solid fa-dice-d20"></i>
+                    </Button>
+                    <Button
+                      onClick={() => handleSavingThrow(key)}
+                      variant="link"
+                      aria-label={`Roll ${ABILITY_LABELS[key] || label || key} saving throw`}
+                      className="stat-card-view stat-card-save"
+                    >
+                      <i className="fa-solid fa-heart"></i>
                     </Button>
                   </div>
                 </div>

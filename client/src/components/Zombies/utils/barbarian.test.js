@@ -210,6 +210,14 @@ describe("barbarian level 2 features", () => {
     expect(getAvailableBarbarianFeatures(barbarian({ occupation: [{ Name: "Barbarian", Level: 5 }] })).map((f) => f.name)).toEqual(expect.arrayContaining(["Danger Sense", "Reckless Attack"]));
   });
 
+  it("applies Rage only to active Strength saving throws", () => {
+    const active = barbarian({ classState: { barbarian: { rage: { active: true, current: 1 } } } });
+    expect(resolveSavingThrowRollMode(active, "str")).toMatchObject({ mode: "advantage", advantageSources: ["Rage"] });
+    expect(resolveSavingThrowRollMode(barbarian({ classState: { barbarian: { rage: { active: false, current: 1 } } } }), "str").mode).toBe("normal");
+    expect(resolveSavingThrowRollMode(active, "dex").mode).toBe("normal");
+    expect(resolveAttackRollMode(active, { ability: "str", type: "weapon attack" }).advantageSources).not.toContain("Rage");
+  });
+
   it("applies Danger Sense only to Dexterity saving throws and uses cancellation", () => {
     expect(resolveSavingThrowRollMode(barbarian2(), "dex")).toMatchObject({ mode: "advantage", advantageSources: ["Danger Sense"] });
     expect(resolveSavingThrowRollMode(barbarian2(), "str").mode).toBe("normal");
