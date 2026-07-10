@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { io } from "socket.io-client";
 import apiFetch from '../../../utils/apiFetch';
 import { useParams } from "react-router-dom";
-import { Navbar, Container } from 'react-bootstrap';
+import { Navbar, Container, Modal, Card, Button as BootstrapButton } from 'react-bootstrap';
 import '../../../App.scss';
 import CharacterInfo from "../attributes/CharacterInfo";
 import Stats from "../attributes/Stats";
@@ -584,6 +584,55 @@ export const buildFooterConditions = (character, normalizeCollection) => {
     : [{ id: 'rage-condition', icon: '🔥', name: 'Rage', color: '#f0733f' }, ...withReckless];
 };
 
+
+function ActiveConditionsModal({ show, onHide, conditions = [] }) {
+  return (
+    <Modal
+      className="dnd-modal modern-modal"
+      show={show}
+      onHide={onHide}
+      centered
+      scrollable
+      fullscreen="sm-down"
+    >
+      <Card className="modern-card active-conditions-modal">
+        <Card.Header className="modal-header">
+          <Card.Title className="modal-title">Active Conditions</Card.Title>
+        </Card.Header>
+        <Card.Body className="modal-body active-conditions-modal__body">
+          {conditions.length === 0 ? (
+            <p className="active-conditions-modal__empty">No conditions</p>
+          ) : (
+            <ul className="active-conditions-modal__list">
+              {conditions.map((condition, index) => {
+                const name = condition?.name || condition?.label || condition?.id || 'Condition';
+                const key = condition?.id || `${name}-${index}`;
+                const secondaryText = condition?.source || condition?.duration || condition?.description;
+                return (
+                  <li className="active-conditions-modal__item" key={key}>
+                    <span className="active-conditions-modal__icon" aria-hidden="true">
+                      {condition?.icon || '✦'}
+                    </span>
+                    <span className="active-conditions-modal__content">
+                      <strong>{name}</strong>
+                      {secondaryText && <small>{secondaryText}</small>}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card.Body>
+        <Card.Footer className="modal-footer">
+          <BootstrapButton className="action-btn close-btn" onClick={onHide}>
+            Close
+          </BootstrapButton>
+        </Card.Footer>
+      </Card>
+    </Modal>
+  );
+}
+
 export default function ZombiesCharacterSheet() {
   const params = useParams();
   const characterId = params.id;
@@ -611,6 +660,7 @@ export default function ZombiesCharacterSheet() {
   const [showEquipment, setShowEquipment] = useState(false);
   const [showSpells, setShowSpells] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showActiveConditionsModal, setShowActiveConditionsModal] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const [spellPointsLeft, setSpellPointsLeft] = useState(0);
   const [longRestCount, setLongRestCount] = useState(0);
@@ -5292,6 +5342,15 @@ export default function ZombiesCharacterSheet() {
     () => getFooterConditionSummary(footerConditions),
     [footerConditions]
   );
+  const hasActiveFooterConditions = footerConditions.length > 0;
+  const handleOpenActiveConditionsModal = useCallback(() => {
+    if (hasActiveFooterConditions) {
+      setShowActiveConditionsModal(true);
+    }
+  }, [hasActiveFooterConditions]);
+  const handleCloseActiveConditionsModal = useCallback(() => {
+    setShowActiveConditionsModal(false);
+  }, []);
 
   const hasFooterSpellSlots = hasSpellcasting || (form?.occupation || []).some((cls) => {
     const name = (cls.Name || cls.Occupation || '').toLowerCase();
@@ -5825,7 +5884,17 @@ export default function ZombiesCharacterSheet() {
                     <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
                     <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
                     <span className="combat-hud-pill" aria-label="Active conditions">
-                      <Sparkles size={16} />
+                      {hasActiveFooterConditions ? (
+                        <IconButton
+                          className="combat-hud-conditions-trigger"
+                          label="View active conditions"
+                          onClick={handleOpenActiveConditionsModal}
+                        >
+                          <Sparkles size={16} />
+                        </IconButton>
+                      ) : (
+                        <Sparkles size={16} aria-hidden="true" />
+                      )}
                       {footerConditionSummary.empty ? (
                         footerConditionSummary.label
                       ) : (
@@ -5957,6 +6026,11 @@ export default function ZombiesCharacterSheet() {
               </Dock>
             </Container>
           </Navbar>
+          <ActiveConditionsModal
+            show={showActiveConditionsModal}
+            onHide={handleCloseActiveConditionsModal}
+            conditions={footerConditions}
+          />
         </>
       ) : (
         <div

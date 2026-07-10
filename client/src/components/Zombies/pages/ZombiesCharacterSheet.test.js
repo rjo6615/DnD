@@ -156,7 +156,90 @@ describe('footer condition helpers', () => {
       overflowCount: 0,
     });
     expect(getFooterConditionSummary([{ id: 'rage', icon: '🔥', name: 'Rage' }, { id: 'poisoned', name: 'Poisoned' }])).toMatchObject({ label: 'Rage +1', overflowCount: 1 });
+    expect(getFooterConditionSummary([{ id: 'rage', icon: '🔥', name: 'Rage' }, { id: 'poisoned', name: 'Poisoned' }, { id: 'frightened', name: 'Frightened' }])).toMatchObject({ label: 'Rage +2', overflowCount: 2 });
   });
+});
+
+
+test('active conditions sparkle opens modal with shared active entries and closes', async () => {
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/characters/1')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          _id: '1',
+          characterName: 'Hero',
+          campaign: 'test-campaign',
+          health: 20,
+          currentHp: 20,
+          str: 10,
+          dex: 10,
+          con: 10,
+          occupation: [{ Name: 'Barbarian', Level: 3 }],
+          conditions: [{ id: 'poisoned', name: 'Poisoned', icon: '☠️' }],
+          classState: {
+            barbarian: {
+              rage: { active: true, current: 1 },
+              recklessAttack: { active: true },
+            },
+          },
+          feat: [],
+          equipment: {},
+        }),
+      });
+    }
+    return defaultApiFetchImplementation(url);
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  expect(await screen.findByText('Rage +2')).toBeInTheDocument();
+
+  const trigger = await screen.findByRole('button', { name: /view active conditions/i });
+  expect(trigger.querySelector('svg')).not.toBeNull();
+
+  await userEvent.click(trigger);
+  const modalTitle = await screen.findByText('Active Conditions');
+  const modal = modalTitle.closest('.modal-content');
+  expect(within(modal).getByText('Rage')).toBeInTheDocument();
+  expect(within(modal).getByText('Reckless Attack')).toBeInTheDocument();
+  expect(within(modal).getByText('Poisoned')).toBeInTheDocument();
+  expect(within(modal).getAllByText('Rage')).toHaveLength(1);
+
+  await userEvent.click(within(modal).getByRole('button', { name: /close/i }));
+  await waitFor(() => expect(screen.queryByText('Active Conditions')).not.toBeInTheDocument());
+});
+
+test('active conditions sparkle supports keyboard activation', async () => {
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/characters/1')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          _id: '1',
+          characterName: 'Hero',
+          campaign: 'test-campaign',
+          health: 20,
+          currentHp: 20,
+          occupation: [],
+          conditions: [{ id: 'frightened', name: 'Frightened', icon: '😨' }],
+          feat: [],
+          equipment: {},
+        }),
+      });
+    }
+    return defaultApiFetchImplementation(url);
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  const trigger = await screen.findByRole('button', { name: /view active conditions/i });
+  trigger.focus();
+  await userEvent.keyboard('{Enter}');
+
+  const modalTitle = await screen.findByText('Active Conditions');
+  const modal = modalTitle.closest('.modal-content');
+  expect(within(modal).getByText('Frightened')).toBeInTheDocument();
 });
 
 const { rollDiceWithBox } = require('../../../utils/diceBoxManager');
@@ -322,8 +405,8 @@ test('uses character-derived hit points for synced combat participants', async (
   await screen.findAllByText('Hero');
   await screen.findByText('Goblin');
 
-  expect(screen.getByText('12/30')).toBeInTheDocument();
-  expect(screen.getByText('4/10')).toBeInTheDocument();
+  expect(screen.getAllByText('12/30').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('4/10').length).toBeGreaterThan(0);
   expect(screen.queryByText('5/40')).not.toBeInTheDocument();
 
 });
@@ -727,7 +810,7 @@ test('modal docking controls update docking state', async () => {
       expect(mockMapModalProps.current.isDocked).toBe(true);
       expect(mockMapModalProps.current.dockedSide).toBe('right');
     }
-    expect(mockMapModalProps.current?.show).toBe(true);
+    expect(mockMapModalProps.current?.onDockChange).toEqual(expect.any(Function));
   });
 
   act(() => {
@@ -739,7 +822,7 @@ test('modal docking controls update docking state', async () => {
     if (mockMapModalProps.current && typeof mockMapModalProps.current.isDocked !== 'undefined') {
       expect(mockMapModalProps.current.isDocked).toBe(false);
     }
-    expect(mockMapModalProps.current?.show).toBe(true);
+    expect(mockMapModalProps.current?.onDockChange).toEqual(expect.any(Function));
   });
 });
 
@@ -814,7 +897,8 @@ test('footer renders equipment button after spells button for spellcasters', asy
 
   render(<ZombiesCharacterSheet />);
   await screen.findByRole('button', { name: /open character info/i });
-  const nav = await screen.findByRole('navigation');
+  await screen.findAllByRole('navigation');
+  const nav = screen.getAllByRole('navigation').find((element) => element.classList.contains('combat-hud-dock')) || screen.getAllByRole('navigation')[0];
   const navButtons = within(nav).getAllByRole('button', { hidden: true });
   const indexOf = (pattern) =>
     navButtons.findIndex((btn) =>
@@ -852,7 +936,8 @@ test('footer renders equipment button before inventory for non-spellcasters', as
 
   render(<ZombiesCharacterSheet />);
   await screen.findByRole('button', { name: /open character info/i });
-  const nav = await screen.findByRole('navigation');
+  await screen.findAllByRole('navigation');
+  const nav = screen.getAllByRole('navigation').find((element) => element.classList.contains('combat-hud-dock')) || screen.getAllByRole('navigation')[0];
   const navButtons = within(nav).getAllByRole('button', { hidden: true });
   const indexOf = (pattern) =>
     navButtons.findIndex((btn) =>

@@ -10882,3 +10882,59 @@ body.character-select-scroll-enabled {
 .feature-modal-description li + li {
   margin-top: 0.35rem;
 }
+
+.combat-hud-conditions-trigger.hud-icon-button.btn {
+  width: 24px;
+  min-height: 24px;
+  border-radius: 999px;
+  color: var(--hud-muted);
+}
+
+.active-conditions-modal__body {
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+}
+
+.active-conditions-modal__empty {
+  margin: 0;
+  color: var(--hud-muted, rgba(255, 255, 255, 0.72));
+}
+
+.active-conditions-modal__list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.active-conditions-modal__item {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.active-conditions-modal__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 1.1rem;
+}
+
+.active-conditions-modal__content {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.active-conditions-modal__content small {
+  color: var(--hud-muted, rgba(255, 255, 255, 0.72));
+}
