@@ -115,6 +115,43 @@ describe('calculateDamage parser', () => {
       ],
     });
   });
+
+  test('applies barbarian rage damage only to qualifying strength damage', () => {
+    const activeLevel3 = {
+      occupation: [{ Name: 'Barbarian', Level: 3 }],
+      classState: { barbarian: { rage: { active: true, current: 1 } } },
+    };
+    const inactiveLevel3 = {
+      ...activeLevel3,
+      classState: { barbarian: { rage: { active: false, current: 1 } } },
+    };
+
+    const qualifying = { ability: 'str', kind: 'unarmed', isUnarmedStrike: true, dealsDamage: true };
+    expect(calculateDamage('1d4 Bludgeoning', 3, false, fixedRoll, undefined, 0, { character: inactiveLevel3, attack: qualifying }).total).toBe(4);
+    expect(calculateDamage('1d4 Bludgeoning', 3, false, fixedRoll, undefined, 0, { character: activeLevel3, attack: qualifying })).toMatchObject({
+      total: 6,
+      breakdown: '4 Bludgeoning + 2 Rage',
+      modifiers: [{ label: 'Rage', value: 2 }],
+    });
+    expect(calculateDamage('1d8 Slashing', 3, false, fixedRoll, undefined, 0, { character: activeLevel3, attack: { ability: 'str', kind: 'weapon', isWeaponAttack: true, dealsDamage: true } }).total).toBe(6);
+    expect(calculateDamage('1d8 Piercing', 3, false, fixedRoll, undefined, 0, { character: activeLevel3, attack: { ability: 'dex', kind: 'weapon', isWeaponAttack: true, dealsDamage: true } }).total).toBe(4);
+    expect(calculateDamage('1d10 Fire', 3, false, fixedRoll, undefined, 0, { character: activeLevel3, attack: { ability: 'str', kind: 'spell', isSpellAttack: true, dealsDamage: true } }).total).toBe(4);
+  });
+
+  test('scales rage damage from barbarian class level', () => {
+    const raging = (barbarianLevel, otherLevel = 0) => ({
+      occupation: [
+        { Name: 'Barbarian', Level: barbarianLevel },
+        ...(otherLevel ? [{ Name: 'Fighter', Level: otherLevel }] : []),
+      ],
+      classState: { barbarian: { rage: { active: true, current: 1 } } },
+    });
+    const attack = { ability: 'str', kind: 'weapon', isWeaponAttack: true, dealsDamage: true };
+    expect(calculateDamage('1d4 Slashing', 3, false, fixedRoll, undefined, 0, { character: raging(9), attack }).total).toBe(7);
+    expect(calculateDamage('1d4 Slashing', 3, false, fixedRoll, undefined, 0, { character: raging(16), attack }).total).toBe(8);
+    expect(calculateDamage('1d4 Slashing', 3, false, fixedRoll, undefined, 0, { character: raging(3, 13), attack }).total).toBe(6);
+  });
+
 });
 
 describe('PlayerTurnActions weapon damage display', () => {

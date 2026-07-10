@@ -34,6 +34,7 @@ import {
   normalizeDiceColor,
   resolveDamageTypeColor,
 } from '../../../utils/diceColors';
+import { getRageDamageBonus } from '../utils/barbarian';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -290,7 +291,8 @@ export function calculateDamage(
   crit = false,
   roll = rollDice,
   extraDice,
-  levelsAbove = 0
+  levelsAbove = 0,
+  options = {}
 ) {
   const parts = damageString.split(/\s+\+\s+/);
   const results = [];
@@ -380,8 +382,18 @@ export function calculateDamage(
     results.push({ value: damageSum + modifier + abilityBonus, type });
   }
 
+  const rageBonus = getRageDamageBonus(options?.character, options?.attack);
+  if (rageBonus > 0) {
+    results.push({ value: rageBonus, type: 'Rage' });
+  }
+
   const total = results.reduce((sum, r) => sum + r.value, 0);
-  return { total, breakdown: formatDamageRolls(results), diceRolls };
+  return {
+    total,
+    breakdown: formatDamageRolls(results),
+    diceRolls,
+    modifiers: rageBonus > 0 ? [{ label: 'Rage', value: rageBonus }] : [],
+  };
 }
 
 const PlayerTurnActions = React.forwardRef(
@@ -1316,6 +1328,7 @@ const manualCriticalRef = useRef(false);
       crit = false,
       extraDice,
       levelsAbove = 0,
+      options,
     }) => {
       if (typeof damageString !== 'string') return null;
       const trimmed = damageString.trim();
@@ -1332,6 +1345,7 @@ const manualCriticalRef = useRef(false);
         },
         extraDice,
         levelsAbove,
+        options,
       );
 
       if (!validation) {
@@ -1478,6 +1492,7 @@ const manualCriticalRef = useRef(false);
           rollDice,
           extraDice,
           levelsAbove,
+          options,
         );
         return staticResult ? { ...staticResult, rollValues: undefined } : null;
       }
@@ -1654,6 +1669,7 @@ const manualCriticalRef = useRef(false);
           applyRolls,
           extraDice,
           levelsAbove,
+          options,
         );
 
         const appliedValues = collectRollValues(appliedRollGroups);
@@ -1670,6 +1686,7 @@ const manualCriticalRef = useRef(false);
           rollDice,
           extraDice,
           levelsAbove,
+          options,
         );
         return fallbackResult ? { ...fallbackResult, rollValues: undefined } : null;
       }
@@ -1686,6 +1703,7 @@ const manualCriticalRef = useRef(false);
   const handleWeaponAttack = useCallback(
     async (slot, weapon) => {
       const ability = abilityForWeapon(weapon, slot);
+      const abilityKey = getAbilityKeyForWeapon(slot, weapon);
       const damageString = getDamageStringForHandSelection(slot, weapon);
       if (typeof damageString !== 'string' || !damageString.trim()) return;
 
@@ -1693,6 +1711,16 @@ const manualCriticalRef = useRef(false);
         damageString,
         ability,
         crit: isCritical,
+        options: {
+          character: form,
+          attack: {
+            ability: abilityKey,
+            kind: isUnarmedAttack(weapon) ? 'unarmed' : 'weapon',
+            isWeaponAttack: !isUnarmedAttack(weapon),
+            isUnarmedStrike: isUnarmedAttack(weapon),
+            dealsDamage: true,
+          },
+        },
       });
       if (!result) return;
 
@@ -1704,7 +1732,6 @@ const manualCriticalRef = useRef(false);
 
       let modifierValues;
       if (Number.isFinite(ability) && ability !== 0) {
-        const abilityKey = getAbilityKeyForWeapon(slot, weapon);
         const abilityName =
           abilityKey === 'dex'
             ? 'DEX'
@@ -1723,7 +1750,13 @@ const manualCriticalRef = useRef(false);
         sourceLabel: weaponLabel,
         actionLabel: 'Damage',
         expression: expression || undefined,
-        modifierValues,
+        modifierValues: [
+          ...(modifierValues || []),
+          ...((result.modifiers || []).map((modifier) => {
+            const sign = modifier.value >= 0 ? '+' : '-';
+            return `${sign}${Math.abs(modifier.value)} ${modifier.label}`;
+          })),
+        ],
       };
 
       updateDamageValueWithAnimation(
@@ -1738,7 +1771,9 @@ const manualCriticalRef = useRef(false);
       getAbilityKeyForWeapon,
       getDamageStringForHandSelection,
       getWeaponDisplayName,
+      form,
       isCritical,
+      isUnarmedAttack,
       rollDamageExpression,
     ],
   );

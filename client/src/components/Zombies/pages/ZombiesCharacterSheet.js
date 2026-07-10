@@ -540,6 +540,27 @@ const SPELLCASTING_CLASSES = {
   ranger: 'half',
 };
 
+
+export const getFooterConditionLabel = (count) => {
+  const numericCount = Number(count) || 0;
+  if (numericCount <= 0) return 'No conditions';
+  return `${numericCount} ${numericCount === 1 ? 'condition' : 'conditions'}`;
+};
+
+export const buildFooterConditions = (character, normalizeCollection) => {
+  const normalize = typeof normalizeCollection === 'function' ? normalizeCollection : (value) => value || [];
+  const conditions = normalize(character?.conditions || character?.statusConditions);
+  if (!getRageState(character).active) {
+    return conditions;
+  }
+  const hasRageCondition = conditions.some((condition) =>
+    String(condition?.name || condition?.label || condition?.id || '').toLowerCase() === 'rage'
+  );
+  return hasRageCondition
+    ? conditions
+    : [{ id: 'rage-condition', icon: '🔥', name: 'Rage', color: '#f0733f' }, ...conditions];
+};
+
 export default function ZombiesCharacterSheet() {
   const params = useParams();
   const characterId = params.id;
@@ -5216,7 +5237,7 @@ export default function ZombiesCharacterSheet() {
     const monkFocusMax = getMonkFocusPoints(form);
     pushResource({ id: 'monk-focus', icon: '✋', name: 'Ki / Focus', current: Math.max(monkFocusMax - (Number(usedSlots?.focus) || 0), 0), max: monkFocusMax, color: '#38e8ff' });
     const rageState = getRageState(form);
-    pushResource({ id: 'rage', icon: '🔥', name: rageState.active ? 'Raging' : 'Rage', current: rageState.current, max: rageState.max, color: '#f0733f', active: rageState.active });
+    pushResource({ id: 'rage', icon: '🔥', name: 'Rage', current: rageState.current, max: rageState.max, color: '#f0733f', active: rageState.active });
     if (classLevels.bard) pushResource({ id: 'bardic-inspiration', icon: '🎵', name: 'Bardic Inspiration', current: abilityModifier(form?.cha), max: abilityModifier(form?.cha), color: '#d7b46a' });
     if (classLevels.sorcerer) pushResource({ id: 'sorcery-points', icon: '✦', name: 'Sorcery Points', current: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, max: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, color: '#b85cff' });
     if (classLevels.cleric) pushResource({ id: 'channel-divinity', icon: '☀', name: 'Channel Divinity', current: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, max: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, color: '#f3d98a' });
@@ -5231,18 +5252,10 @@ export default function ZombiesCharacterSheet() {
     () => normalizeFooterCollection(form?.activeBonuses || form?.bonuses || form?.activeEffects),
     [form?.activeBonuses, form?.bonuses, form?.activeEffects, normalizeFooterCollection]
   );
-  const footerConditions = useMemo(() => {
-    const conditions = normalizeFooterCollection(form?.conditions || form?.statusConditions);
-    if (!getRageState(form).active) {
-      return conditions;
-    }
-    const hasRageCondition = conditions.some((condition) =>
-      String(condition?.name || condition?.label || condition?.id || '').toLowerCase() === 'rage'
-    );
-    return hasRageCondition
-      ? conditions
-      : [{ id: 'rage-condition', icon: '🔥', name: 'Rage', color: '#f0733f' }, ...conditions];
-  }, [form, normalizeFooterCollection]);
+  const footerConditions = useMemo(
+    () => buildFooterConditions(form, normalizeFooterCollection),
+    [form, normalizeFooterCollection]
+  );
 
   const hasFooterSpellSlots = hasSpellcasting || (form?.occupation || []).some((cls) => {
     const name = (cls.Name || cls.Occupation || '').toLowerCase();
@@ -5773,7 +5786,7 @@ export default function ZombiesCharacterSheet() {
                   <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
                     <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
                     <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
-                    <span className="combat-hud-pill"><Sparkles size={16} /> {footerConditions.length || 'No'} conditions</span>
+                    <span className="combat-hud-pill"><Sparkles size={16} /> {getFooterConditionLabel(footerConditions.length)}</span>
                     {footerConditions.length > 0 && (
                       <div className="combat-hud-conditions-list" aria-label="Active conditions">
                         {footerConditions.map((condition) => (
