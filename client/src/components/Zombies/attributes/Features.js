@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Modal, Card, Button, Spinner } from 'react-bootstrap';
+import { Modal, Card, Button, Spinner, Form } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
 import UpcastModal from './UpcastModal';
@@ -10,6 +10,12 @@ import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
 import speakWithAnimalIcon from '../../../images/speak-with-animal.png';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import DockControls from '../components/DockControls';
+import {
+  getBarbarianLevel,
+  getWeaponMasteryState,
+  setWeaponMasterySelections,
+  validateBarbarianWeaponMasteries,
+} from '../utils/barbarian';
 
 const LINEAGE_SPELLS = {
   'elf-drow-dancing-lights': {
@@ -126,6 +132,7 @@ export default function Features({
   onDockClose,
   onDockChange,
   characterId,
+  onCharacterChange,
 }) {
   const [features, setFeatures] = useState([]);
   const [modalFeature, setModalFeature] = useState(null);
@@ -145,6 +152,7 @@ export default function Features({
   });
   const [showUpcast, setShowUpcast] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
+  const [weaponData, setWeaponData] = useState({});
   const hasInitializedRestRef = useRef(false);
   const speakWithAnimalsUsesRef = useRef(speakWithAnimalsUses);
   const lineageSpellUsesRef = useRef(lineageSpellUses);
@@ -158,6 +166,38 @@ export default function Features({
       return sum + levelValue;
     }, 0);
   }, [form?.occupation]);
+
+
+  const barbarianLevel = useMemo(() => getBarbarianLevel(form), [form]);
+  const weaponMasteryState = useMemo(
+    () => getWeaponMasteryState(form),
+    [form]
+  );
+  const eligibleWeaponMasteryOptions = useMemo(() => {
+    const byKey = new Map();
+    Object.entries(weaponData || {}).forEach(([key, weapon]) => {
+      const normalizedKey = String(weapon?.type || key || '').trim().toLowerCase();
+      const category = String(weapon?.category || '').trim().toLowerCase();
+      if (
+        !normalizedKey ||
+        byKey.has(normalizedKey) ||
+        (category !== 'simple melee' && category !== 'martial melee')
+      ) {
+        return;
+      }
+      byKey.set(normalizedKey, {
+        key: normalizedKey,
+        name: weapon?.name || normalizedKey,
+        category,
+        mastery: weapon?.mastery,
+      });
+    });
+    return Array.from(byKey.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [weaponData]);
+  const eligibleWeaponMasteryMap = useMemo(
+    () => new Map(eligibleWeaponMasteryOptions.map((weapon) => [weapon.key, weapon])),
+    [eligibleWeaponMasteryOptions]
+  );
 
   const profBonus = useMemo(() => {
     const provided = Number(form?.proficiencyBonus);
@@ -1268,10 +1308,116 @@ export default function Features({
     normalizedTieflingLegacyKey,
   ]);
 
+  const classFeatures = useMemo(() => {
+    if (barbarianLevel < 1) return features;
+    const hasWeaponMastery = features.some(
+      (feature) =>
+        String(feature?.class || '').toLowerCase() === 'barbarian' &&
+        String(feature?.name || '').toLowerCase() === 'weapon mastery'
+    );
+    if (hasWeaponMastery) return features;
+    const weaponMasteryFeature = {
+      id: 'barbarian-weapon-mastery',
+      name: 'Weapon Mastery',
+      class: 'Barbarian',
+      level: 1,
+      hideUseButton: true,
+      isWeaponMasteryConfig: true,
+      description:
+        'Your training with weapons allows you to use the mastery property of selected simple or martial melee weapon types. You can replace one selection when you finish a Long Rest.',
+    };
+    return [...features, weaponMasteryFeature].sort(
+      (a, b) =>
+        (a.class || '').localeCompare(b.class || '') ||
+        (a.level || 0) - (b.level || 0)
+    );
+  }, [barbarianLevel, features]);
+
   const displayFeatures = useMemo(() => {
-    if (ancestryFeatures.length === 0) return features;
-    return [...ancestryFeatures, ...features];
-  }, [ancestryFeatures, features]);
+    if (ancestryFeatures.length === 0) return classFeatures;
+    return [...ancestryFeatures, ...classFeatures];
+  }, [ancestryFeatures, classFeatures]);
+
+
+  const displayedWeaponMasteryState = useMemo(() => {
+    if (eligibleWeaponMasteryMap.size === 0) return weaponMasteryState;
+    return {
+      ...weaponMasteryState,
+      selections: weaponMasteryState.selections.filter((key) =>
+        eligibleWeaponMasteryMap.has(key)
+      ),
+    };
+  }, [eligibleWeaponMasteryMap, weaponMasteryState]);
+
+  const handleWeaponMasteryChange = useCallback(
+    (slotIndex, nextKey) => {
+      if (!onCharacterChange) return;
+      const activeSelections = Array.from(
+        { length: displayedWeaponMasteryState.count },
+        (_, index) => displayedWeaponMasteryState.selections[index] || ''
+      );
+      activeSelections[slotIndex] = nextKey;
+      const selectedKeys = activeSelections.filter(Boolean);
+      const selectedWeapons = selectedKeys.map((key) => eligibleWeaponMasteryMap.get(key) || key);
+      const validation = validateBarbarianWeaponMasteries(form, selectedWeapons);
+      if (validation.valid.length !== selectedKeys.length || validation.hasDuplicates) return;
+      onCharacterChange((previous) => setWeaponMasterySelections(previous || form, selectedWeapons));
+    },
+    [eligibleWeaponMasteryMap, form, onCharacterChange, displayedWeaponMasteryState]
+  );
+
+  const renderWeaponMasteryDetails = useCallback(() => {
+    const activeSelections = Array.from(
+      { length: displayedWeaponMasteryState.count },
+      (_, index) => displayedWeaponMasteryState.selections[index] || ''
+    );
+    const activeSet = new Set(activeSelections.filter(Boolean));
+    const selectedNames = activeSelections
+      .filter(Boolean)
+      .map((key) => eligibleWeaponMasteryMap.get(key)?.name || key);
+    return (
+      <div className="text-start">
+        <p className="mb-2">
+          <strong>Barbarian Level 1.</strong> Current choices:{' '}
+          {displayedWeaponMasteryState.count}
+        </p>
+        <p className="text-muted small">
+          Choose simple or martial melee weapon types from the centralized weapon
+          list. One stored selection can be replaced after a Long Rest; the
+          current UI keeps the dropdowns editable so that pending replacement can
+          be enforced more strictly by a future rest-resolution workflow.
+        </p>
+        {Array.from({ length: displayedWeaponMasteryState.count }).map((_, index) => {
+          const selectedKey = activeSelections[index] || '';
+          return (
+            <Form.Group className="mb-3" controlId={`barbarian-weapon-mastery-${index}`} key={index}>
+              <Form.Label>{`Mastery ${index + 1}`}</Form.Label>
+              <Form.Select
+                aria-label={`Weapon Mastery ${index + 1}`}
+                value={selectedKey}
+                onChange={(event) => handleWeaponMasteryChange(index, event.target.value)}
+                disabled={!onCharacterChange}
+              >
+                <option value="">Select weapon</option>
+                {eligibleWeaponMasteryOptions.map((weapon) => {
+                  const disabled = activeSet.has(weapon.key) && weapon.key !== selectedKey;
+                  return (
+                    <option value={weapon.key} disabled={disabled} key={weapon.key}>
+                      {weapon.name}
+                      {weapon.mastery ? ` (${weapon.mastery})` : ''}
+                    </option>
+                  );
+                })}
+              </Form.Select>
+            </Form.Group>
+          );
+        })}
+        {selectedNames.length > 0 && (
+          <p className="small mb-0">Selected: {selectedNames.join(', ')}</p>
+        )}
+      </div>
+    );
+  }, [eligibleWeaponMasteryMap, eligibleWeaponMasteryOptions, handleWeaponMasteryChange, onCharacterChange, displayedWeaponMasteryState]);
 
   const pendingFreeCastConfig = pendingSpell?.freeCast || null;
   const pendingFreeCastRemaining = pendingFreeCastConfig
@@ -1281,6 +1427,26 @@ export default function Features({
       ? Math.max(0, Math.floor(pendingFreeCastConfig.remaining))
       : 0
     : 0;
+
+  useEffect(() => {
+    if (!showFeatures || barbarianLevel < 1) return;
+    let cancelled = false;
+    async function fetchWeapons() {
+      try {
+        const res = await apiFetch('/weapons');
+        if (!cancelled && res?.ok) {
+          const data = await res.json();
+          setWeaponData(data || {});
+        }
+      } catch (err) {
+        // Weapon Mastery uses the centralized weapon API when it is available.
+      }
+    }
+    fetchWeapons();
+    return () => {
+      cancelled = true;
+    };
+  }, [showFeatures, barbarianLevel]);
 
   useEffect(() => {
     if (!showFeatures) return;
@@ -1505,6 +1671,7 @@ export default function Features({
                     const isAdrenalineRush = feat.id === 'orc-adrenaline-rush';
                     const isSpeakWithAnimals =
                       feat.id === 'gnome-forest-speak-with-animals';
+                    const isWeaponMasteryConfig = Boolean(feat.isWeaponMasteryConfig);
                     const lineageSpellConfig =
                       LINEAGE_SPELLS[feat.id] || null;
                     const lineageSpellHasLimitedUses =
@@ -1826,7 +1993,11 @@ export default function Features({
                               size="sm"
                               className="view-link-btn"
                               onClick={() => {
-                                setModalFeature(feat);
+                                setModalFeature(
+                                  isWeaponMasteryConfig
+                                    ? { ...feat, renderDetails: renderWeaponMasteryDetails }
+                                    : feat
+                                );
                                 setShowModal(true);
                               }}
                             >
@@ -1834,6 +2005,11 @@ export default function Features({
                             </Button>
                           </div>
                         </div>
+                        {isWeaponMasteryConfig && (
+                          <div className="feature-card-uses text-muted small mt-2">
+                            {displayedWeaponMasteryState.selections.length} / {displayedWeaponMasteryState.count} selected
+                          </div>
+                        )}
                         {isAdrenalineRush && (
                           <div className="feature-card-uses text-muted small mt-2">
                             Uses remaining: {adrenalineRushUses}

@@ -1993,3 +1993,89 @@ test('features are sorted by class then level', async () => {
   const order = featureNameNodes.map((node) => node.textContent);
   expect(order).toEqual(['Second Wind', 'Action Surge', 'Arcane Recovery']);
 });
+
+describe('barbarian weapon mastery feature UI', () => {
+  const weapons = {
+    club: { name: 'Club', type: 'club', category: 'simple melee', mastery: 'slow' },
+    handaxe: { name: 'Handaxe', type: 'handaxe', category: 'simple melee', mastery: 'vex' },
+    greataxe: { name: 'Greataxe', type: 'greataxe', category: 'martial melee', mastery: 'cleave' },
+    longbow: { name: 'Longbow', type: 'longbow', category: 'martial ranged', mastery: 'slow' },
+  };
+
+  const mockFeatureApi = () => {
+    apiFetch.mockImplementation((url) => {
+      if (url === '/weapons') {
+        return Promise.resolve({ ok: true, json: async () => weapons });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({ features: [] }) });
+    });
+  };
+
+  test('appears for Barbarian level 1 and renders data-driven mastery slots', async () => {
+    mockFeatureApi();
+    render(
+      <Features
+        form={{ occupation: [{ Name: 'Barbarian', Level: 1 }] }}
+        showFeatures={true}
+        handleCloseFeatures={() => {}}
+        characterId={TEST_CHARACTER_ID}
+      />
+    );
+
+    const title = await screen.findByText('Weapon Mastery');
+    const card = title.closest('.feature-card');
+    expect(within(card).getByText('0 / 2 selected')).toBeInTheDocument();
+    await userEvent.click(within(card).getByRole('button', { name: /view feature/i }));
+    expect(screen.getByLabelText('Weapon Mastery 1')).toBeInTheDocument();
+    expect(screen.getByLabelText('Weapon Mastery 2')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Weapon Mastery 3')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('option', { name: /Greataxe/i }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('option', { name: /Longbow/i })).not.toBeInTheDocument();
+  });
+
+  test('does not appear for characters without Barbarian levels', async () => {
+    mockFeatureApi();
+    render(
+      <Features
+        form={{ occupation: [{ Name: 'Fighter', Level: 1 }] }}
+        showFeatures={true}
+        handleCloseFeatures={() => {}}
+        characterId={TEST_CHARACTER_ID}
+      />
+    );
+    await waitFor(() => expect(apiFetch).toHaveBeenCalled());
+    expect(screen.queryByText('Weapon Mastery')).not.toBeInTheDocument();
+  });
+
+  test('uses Barbarian class level for progression and prevents duplicate saves', async () => {
+    mockFeatureApi();
+        let character = {
+      occupation: [
+        { Name: 'Barbarian', Level: 4 },
+        { Name: 'Wizard', Level: 6 },
+      ],
+      classState: { barbarian: { weaponMasteries: { selections: ['greataxe'] } } },
+    };
+    const handleCharacterChange = (updater) => {
+      character = typeof updater === 'function' ? updater(character) : updater;
+    };
+    render(
+      <Features
+        form={character}
+        showFeatures={true}
+        handleCloseFeatures={() => {}}
+        characterId={TEST_CHARACTER_ID}
+        onCharacterChange={handleCharacterChange}
+      />
+    );
+
+    const title = await screen.findByText('Weapon Mastery');
+    expect(within(title.closest('.feature-card')).getByText('1 / 3 selected')).toBeInTheDocument();
+    await userEvent.click(within(title.closest('.feature-card')).getByRole('button', { name: /view feature/i }));
+    expect(screen.getByLabelText('Weapon Mastery 3')).toBeInTheDocument();
+    const secondSelect = screen.getByLabelText('Weapon Mastery 2');
+    expect(within(secondSelect).getByRole('option', { name: /Greataxe/i })).toBeDisabled();
+    await userEvent.selectOptions(secondSelect, 'handaxe');
+    expect(character.classState.barbarian.weaponMasteries.selections).toEqual(['greataxe', 'handaxe']);
+  });
+});

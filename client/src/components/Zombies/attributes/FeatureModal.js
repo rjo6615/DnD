@@ -19,7 +19,11 @@ export default function FeatureModal({ show, onHide, feature }) {
             <Card.Title className="modal-title">{feature.name}</Card.Title>
           </Card.Header>
           <Card.Body>
-            <p>{description || 'Feature details unavailable'}</p>
+            {typeof feature.renderDetails === 'function' ? (
+              feature.renderDetails()
+            ) : (
+              <p>{description || 'Feature details unavailable'}</p>
+            )}
           </Card.Body>
           <Card.Footer className="modal-footer">
             <Button className="action-btn close-btn" onClick={onHide}>

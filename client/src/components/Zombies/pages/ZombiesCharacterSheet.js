@@ -5352,6 +5352,7 @@ export default function ZombiesCharacterSheet() {
           handleCloseFeatures,
           onActionSurge: handleActionSurge,
           onLargeForm: handleLargeForm,
+          onCharacterChange: setForm,
           longRestCount,
           shortRestCount,
           onDockChange: (side) => handleDockChange('features', side),
@@ -6017,6 +6018,7 @@ export default function ZombiesCharacterSheet() {
           availableSlots={availableSlots}
           actionCount={actionCount}
           characterId={characterId}
+          onCharacterChange={setForm}
           dockedSide={getDockedSide('features')}
           onDockChange={(side) => handleDockChange('features', side)}
         />
@@ -6027,6 +6029,7 @@ export default function ZombiesCharacterSheet() {
           onTabChange={setInventoryTab}
           form={form}
           characterId={characterId}
+          onCharacterChange={setForm}
           dockedSide={getDockedSide('inventory')}
           onDockChange={(side) => handleDockChange('inventory', side)}
           onItemsChange={handleItemsChange}
