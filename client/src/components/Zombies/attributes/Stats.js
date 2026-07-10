@@ -18,8 +18,8 @@ const formatAdjustmentSegment = (value, label) => {
 };
 
 const formatAbilityCheckBreakdown = ({ keptD20, rolledD20s, rollMode, modifier, abilityLabel }) => {
-  const diceLine = rollMode === 'advantage' || rollMode === 'disadvantage'
-    ? `${keptD20} (d20) (Rolled ${rolledD20s.join(' and ')}; kept ${keptD20})`
+const diceLine = rollMode === 'advantage' || rollMode === 'disadvantage'
+    ? `${keptD20} (d20) (Rolled ${rolledD20s.join(' and ')})`
     : `${keptD20} (d20)`;
 
   return [

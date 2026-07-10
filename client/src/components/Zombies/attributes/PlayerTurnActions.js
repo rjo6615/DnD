@@ -2427,7 +2427,7 @@ const damageAmountStyle = {
       </div>
       <Modal centered show={showLog} onHide={() => setShowLog(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Damage Log</Modal.Title>
+          <Modal.Title>Log</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <ul className="list-unstyled mb-0">
