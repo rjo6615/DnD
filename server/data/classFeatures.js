@@ -179,17 +179,17 @@ A Rage can last for up to 10 minutes.`
     },
     {
       name: 'Unarmored Defense',
-      description: 'While not wearing armor, your AC equals 10 + your Dex modifier + your Con modifier.'
+      description: 'While you aren’t wearing any armor, your base Armor Class equals 10 plus your Dexterity and Constitution modifiers. You can use a Shield and still gain this benefit.'
     }
   ],
   2: [
     {
       name: 'Reckless Attack',
-      description: 'You can throw aside all concern for defense to attack with fierce desperation.'
+      description: 'You can throw aside all concern for defense to attack with increased ferocity. When you make your first attack roll on your turn, you can decide to attack recklessly. Doing so gives you Advantage on attack rolls using Strength until the start of your next turn, but attack rolls against you have Advantage during that time.'
     },
     {
       name: 'Danger Sense',
-      description: 'You have advantage on Dex saving throws against effects you can see.'
+      description: 'You gain an uncanny sense of when things aren’t as they should be, giving you an edge when you dodge perils. You have Advantage on Dexterity saving throws unless you have the Incapacitated condition.'
     }
   ],
   3: [
