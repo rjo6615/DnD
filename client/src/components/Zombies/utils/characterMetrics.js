@@ -216,6 +216,46 @@ const isShieldItem = (item) => {
   return name.includes('shield');
 };
 
+
+const isArmorItem = (item) => {
+  if (!item || isShieldItem(item)) {
+    return false;
+  }
+
+  if (Array.isArray(item)) {
+    const [name, acBonus, maxDex, category] = item;
+    const text = String(`${name ?? ''} ${category ?? ''}`).toLowerCase();
+    return (
+      text.includes('armor') ||
+      text.includes('light') ||
+      text.includes('medium') ||
+      text.includes('heavy') ||
+      (Number.isFinite(Number(acBonus)) && !String(name ?? '').toLowerCase().includes('shield')) ||
+      Number.isFinite(Number(maxDex))
+    );
+  }
+
+  if (typeof item !== 'object') {
+    return false;
+  }
+
+  const source = String(item.__source ?? item.source ?? '').toLowerCase();
+  const category = String(item.category ?? item.type ?? item.armorType ?? '').toLowerCase();
+  const name = String(item.name ?? item.title ?? item.displayName ?? item.label ?? '').toLowerCase();
+  const text = `${source} ${category} ${name}`;
+
+  return (
+    source === 'armor' ||
+    category.includes('armor') ||
+    category === 'light' ||
+    category === 'medium' ||
+    category === 'heavy' ||
+    text.includes('light armor') ||
+    text.includes('medium armor') ||
+    text.includes('heavy armor')
+  );
+};
+
 const resolveMonkLevel = (character) => {
   if (!Array.isArray(character?.occupation)) {
     return 0;
@@ -333,22 +373,7 @@ export const calculateCharacterArmorClass = (character, overrides = {}) => {
     : Math.floor((abilities.con - 10) / 2);
 
   const hasShieldEquipped = armorItems.some((item) => isShieldItem(item));
-  const hasArmorEquipped = armorItems.some((item) => {
-    if (!item) {
-      return false;
-    }
-    if (Array.isArray(item)) {
-      return true;
-    }
-    if (typeof item !== 'object') {
-      return false;
-    }
-    if (isShieldItem(item)) {
-      return false;
-    }
-    const source = String(item.__source ?? item.source ?? '').toLowerCase();
-    return source === 'armor';
-  });
+  const hasArmorEquipped = armorItems.some((item) => isArmorItem(item));
 
   const monkLevel = resolveMonkLevel(character);
   const barbarianLevel = getBarbarianLevel(character);

@@ -5231,10 +5231,18 @@ export default function ZombiesCharacterSheet() {
     () => normalizeFooterCollection(form?.activeBonuses || form?.bonuses || form?.activeEffects),
     [form?.activeBonuses, form?.bonuses, form?.activeEffects, normalizeFooterCollection]
   );
-  const footerConditions = useMemo(
-    () => normalizeFooterCollection(form?.conditions || form?.statusConditions),
-    [form?.conditions, form?.statusConditions, normalizeFooterCollection]
-  );
+  const footerConditions = useMemo(() => {
+    const conditions = normalizeFooterCollection(form?.conditions || form?.statusConditions);
+    if (!getRageState(form).active) {
+      return conditions;
+    }
+    const hasRageCondition = conditions.some((condition) =>
+      String(condition?.name || condition?.label || condition?.id || '').toLowerCase() === 'rage'
+    );
+    return hasRageCondition
+      ? conditions
+      : [{ id: 'rage-condition', icon: '🔥', name: 'Rage', color: '#f0733f' }, ...conditions];
+  }, [form, normalizeFooterCollection]);
 
   const hasFooterSpellSlots = hasSpellcasting || (form?.occupation || []).some((cls) => {
     const name = (cls.Name || cls.Occupation || '').toLowerCase();
@@ -5766,6 +5774,21 @@ export default function ZombiesCharacterSheet() {
                     <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
                     <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
                     <span className="combat-hud-pill"><Sparkles size={16} /> {footerConditions.length || 'No'} conditions</span>
+                    {footerConditions.length > 0 && (
+                      <div className="combat-hud-conditions-list" aria-label="Active conditions">
+                        {footerConditions.map((condition) => (
+                          <span
+                            key={condition.id || condition.name}
+                            className="combat-hud-condition"
+                            style={{ '--hud-condition-accent': condition.color }}
+                            title={condition.name}
+                          >
+                            <span className="combat-hud-condition__icon" aria-hidden="true">{condition.icon || '✦'}</span>
+                            <span className="combat-hud-condition__label">{condition.name}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </Panel>
 

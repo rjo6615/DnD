@@ -1,5 +1,24 @@
 export const BARBARIAN_PROGRESSION = [
   { level: 1, rageUses: 2, rageDamage: 2, weaponMasteryCount: 2 },
+  { level: 2, rageUses: 2, rageDamage: 2, weaponMasteryCount: 2 },
+  { level: 3, rageUses: 3, rageDamage: 2, weaponMasteryCount: 2 },
+  { level: 4, rageUses: 3, rageDamage: 2, weaponMasteryCount: 3 },
+  { level: 5, rageUses: 3, rageDamage: 2, weaponMasteryCount: 3 },
+  { level: 6, rageUses: 4, rageDamage: 2, weaponMasteryCount: 3 },
+  { level: 7, rageUses: 4, rageDamage: 2, weaponMasteryCount: 3 },
+  { level: 8, rageUses: 4, rageDamage: 2, weaponMasteryCount: 3 },
+  { level: 9, rageUses: 4, rageDamage: 3, weaponMasteryCount: 3 },
+  { level: 10, rageUses: 4, rageDamage: 3, weaponMasteryCount: 4 },
+  { level: 11, rageUses: 4, rageDamage: 3, weaponMasteryCount: 4 },
+  { level: 12, rageUses: 5, rageDamage: 3, weaponMasteryCount: 4 },
+  { level: 13, rageUses: 5, rageDamage: 3, weaponMasteryCount: 4 },
+  { level: 14, rageUses: 5, rageDamage: 3, weaponMasteryCount: 4 },
+  { level: 15, rageUses: 5, rageDamage: 3, weaponMasteryCount: 4 },
+  { level: 16, rageUses: 5, rageDamage: 4, weaponMasteryCount: 4 },
+  { level: 17, rageUses: 6, rageDamage: 4, weaponMasteryCount: 4 },
+  { level: 18, rageUses: 6, rageDamage: 4, weaponMasteryCount: 4 },
+  { level: 19, rageUses: 6, rageDamage: 4, weaponMasteryCount: 4 },
+  { level: 20, rageUses: 6, rageDamage: 4, weaponMasteryCount: 4 },
 ];
 
 const normalize = (value) =>
