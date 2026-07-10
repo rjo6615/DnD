@@ -10784,7 +10784,7 @@ body.character-select-scroll-enabled {
 }
 
 .zombies-dm-page__map-board .campaign-map-board__image {
-  object-fit: contain;
+  object-fit: fill;
   object-position: center;
 }
 

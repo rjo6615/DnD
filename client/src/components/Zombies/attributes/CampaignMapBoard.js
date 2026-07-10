@@ -596,6 +596,18 @@ const CampaignMapBoard = ({
     [map]
   );
   const stageAspectRatioData = useMemo(() => {
+    if (Number.isFinite(gridColumns) && Number.isFinite(gridRows)) {
+      const safeColumns = Math.max(1, Number(gridColumns));
+      const safeRows = Math.max(1, Number(gridRows));
+
+      if (safeColumns > 0 && safeRows > 0) {
+        return {
+          cssRatio: `${safeColumns} / ${safeRows}`,
+          numericRatio: safeColumns / safeRows,
+        };
+      }
+    }
+
     const metricsWidth = Number(mapImageMetrics?.width);
     const metricsHeight = Number(mapImageMetrics?.height);
 
@@ -608,21 +620,7 @@ const CampaignMapBoard = ({
       }
     }
 
-    if (!Number.isFinite(gridColumns) || !Number.isFinite(gridRows)) {
-      return null;
-    }
-
-    const safeColumns = Math.max(1, Number(gridColumns));
-    const safeRows = Math.max(1, Number(gridRows));
-
-    if (safeColumns <= 0 || safeRows <= 0) {
-      return null;
-    }
-
-    return {
-      cssRatio: `${safeColumns} / ${safeRows}`,
-      numericRatio: safeColumns / safeRows,
-    };
+    return null;
   }, [gridColumns, gridRows, mapImageMetrics?.height, mapImageMetrics?.width]);
 
   const stageAspectRatio = stageAspectRatioData?.cssRatio ?? null;
