@@ -43,7 +43,7 @@ import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import { getMonkFocusPoints } from '../../../utils/monk';
-import { activateRage, applyRageRest, endRage, getRageBenefits, getRageState, hasHeavyArmorEquipped } from '../utils/barbarian';
+import { activateRage, applyRageRest, declareRecklessAttack, endRage, endRecklessAttack, getBarbarianLevel, getRageBenefits, getRageState, getRecklessAttackState, hasHeavyArmorEquipped } from '../utils/barbarian';
 import { FaDiceD20 } from "react-icons/fa";
 import { Backpack, BookOpen, CircleHelp, Dice5, Dumbbell, Gem, HeartPulse, Package, Settings, Shield, Sparkles, Swords, UserRound } from "lucide-react";
 import { Button as HudButton, Dock, IconButton, Panel, Toolbar } from "../common/HudPrimitives";
@@ -569,15 +569,19 @@ export const getFooterConditionSummary = (conditions) => {
 export const buildFooterConditions = (character, normalizeCollection) => {
   const normalize = typeof normalizeCollection === 'function' ? normalizeCollection : (value) => value || [];
   const conditions = normalize(character?.conditions || character?.statusConditions);
+  const recklessActive = getRecklessAttackState(character).active;
+  const withReckless = recklessActive && !conditions.some((condition) => String(condition?.name || condition?.label || condition?.id || '').toLowerCase() === 'reckless attack')
+    ? [{ id: 'reckless-attack-effect', icon: '⚔️', name: 'Reckless Attack', color: '#f59e0b' }, ...conditions]
+    : conditions;
   if (!getRageState(character).active) {
-    return conditions;
+    return withReckless;
   }
   const hasRageCondition = conditions.some((condition) =>
     String(condition?.name || condition?.label || condition?.id || '').toLowerCase() === 'rage'
   );
   return hasRageCondition
-    ? conditions
-    : [{ id: 'rage-condition', icon: '🔥', name: 'Rage', color: '#f0733f' }, ...conditions];
+    ? withReckless
+    : [{ id: 'rage-condition', icon: '🔥', name: 'Rage', color: '#f0733f' }, ...withReckless];
 };
 
 export default function ZombiesCharacterSheet() {
@@ -2874,6 +2878,13 @@ export default function ZombiesCharacterSheet() {
 
   const handleEndRage = useCallback(() => {
     setForm((prev) => endRage(prev));
+  }, []);
+
+  const handleToggleRecklessAttack = useCallback(() => {
+    setForm((prev) => {
+      const state = getRecklessAttackState(prev);
+      return state.active ? endRecklessAttack(prev) : declareRecklessAttack(prev);
+    });
   }, []);
 
   const rollSpellDamage = useCallback(
@@ -5257,6 +5268,8 @@ export default function ZombiesCharacterSheet() {
     pushResource({ id: 'monk-focus', icon: '✋', name: 'Ki / Focus', current: Math.max(monkFocusMax - (Number(usedSlots?.focus) || 0), 0), max: monkFocusMax, color: '#38e8ff' });
     const rageState = getRageState(form);
     pushResource({ id: 'rage', icon: '🔥', name: 'Rage', current: rageState.current, max: rageState.max, color: '#f0733f', active: rageState.active });
+    const recklessState = getRecklessAttackState(form);
+    if (getBarbarianLevel(form) >= 2) pushResource({ id: 'reckless-attack', icon: '⚔️', name: 'Reckless Attack', current: recklessState.active ? 'On' : 'Off', max: '∞', color: '#f59e0b', active: recklessState.active, disabled: recklessState.firstAttackMade && !recklessState.active });
     if (classLevels.bard) pushResource({ id: 'bardic-inspiration', icon: '🎵', name: 'Bardic Inspiration', current: abilityModifier(form?.cha), max: abilityModifier(form?.cha), color: '#d7b46a' });
     if (classLevels.sorcerer) pushResource({ id: 'sorcery-points', icon: '✦', name: 'Sorcery Points', current: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, max: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, color: '#b85cff' });
     if (classLevels.cleric) pushResource({ id: 'channel-divinity', icon: '☀', name: 'Channel Divinity', current: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, max: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, color: '#f3d98a' });
@@ -5736,6 +5749,7 @@ export default function ZombiesCharacterSheet() {
                 ref={playerTurnActionsRef}
                 onCastSpell={handleCastSpell}
                 onDamageSummaryChange={handleDamageSummaryChange}
+                onCharacterChange={setForm}
                 availableSlots={availableSlots}
                 longRestCount={longRestCount}
                 shortRestCount={shortRestCount}
@@ -5846,6 +5860,7 @@ export default function ZombiesCharacterSheet() {
                       {footerClassResources.map((resource) => {
                         const isFocusResource = resource.id === 'monk-focus';
                         const isRageResource = resource.id === 'rage';
+                        const isRecklessAttackResource = resource.id === 'reckless-attack';
                         const resourceMax = Number(resource.max);
                         const handleResourceActivate = (event, action = 'spend') => {
                           if (isRageResource) {
@@ -5855,6 +5870,11 @@ export default function ZombiesCharacterSheet() {
                             } else {
                               handleActivateRage();
                             }
+                            return;
+                          }
+                          if (isRecklessAttackResource) {
+                            event.preventDefault();
+                            handleToggleRecklessAttack();
                             return;
                           }
                           if (!isFocusResource || !Number.isFinite(resourceMax) || resourceMax <= 0) {
@@ -5875,7 +5895,7 @@ export default function ZombiesCharacterSheet() {
                             onClick={(event) => handleResourceActivate(event, event.shiftKey ? 'restore' : 'spend')}
                             onContextMenu={(event) => handleResourceActivate(event, 'restore')}
                             onDoubleClick={(event) => handleResourceActivate(event, 'reset')}
-                            disabled={(!isFocusResource && !isRageResource) || (isRageResource && !resource.active && (Number(resource.current) <= 0 || hasHeavyArmorEquipped(form)))}
+                            disabled={(!isFocusResource && !isRageResource && !isRecklessAttackResource) || resource.disabled || (isRageResource && !resource.active && (Number(resource.current) <= 0 || hasHeavyArmorEquipped(form)))}
                           >
                             <span className="combat-hud-resource-tile__icon" aria-hidden="true">{resource.icon}</span>
                             <span className="combat-hud-resource-tile__name">{resource.name}</span>

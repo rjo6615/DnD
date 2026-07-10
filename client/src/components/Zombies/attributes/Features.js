@@ -10,7 +10,9 @@ import adrenalineRushIcon from '../../../images/adrenaline-rush.png';
 import speakWithAnimalIcon from '../../../images/speak-with-animal.png';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
 import DockControls from '../components/DockControls';
+import { Swords } from 'lucide-react';
 import {
+  getAvailableBarbarianFeatures,
   getBarbarianLevel,
   getWeaponMasteryState,
   setWeaponMasterySelections,
@@ -1310,28 +1312,25 @@ export default function Features({
 
   const classFeatures = useMemo(() => {
     if (barbarianLevel < 1) return features;
-    const hasWeaponMastery = features.some(
-      (feature) =>
-        String(feature?.class || '').toLowerCase() === 'barbarian' &&
-        String(feature?.name || '').toLowerCase() === 'weapon mastery'
+    const existingKeys = new Set(
+      features.map((feature) =>
+        `${String(feature?.class || '').toLowerCase()}:${String(feature?.name || '').toLowerCase()}`
+      )
     );
-    if (hasWeaponMastery) return features;
-    const weaponMasteryFeature = {
-      id: 'barbarian-weapon-mastery',
-      name: 'Weapon Mastery',
-      class: 'Barbarian',
-      level: 1,
-      hideUseButton: true,
-      isWeaponMasteryConfig: true,
-      description:
-        'Your training with weapons allows you to use the mastery property of selected simple or martial melee weapon types. You can replace one selection when you finish a Long Rest.',
-    };
-    return [...features, weaponMasteryFeature].sort(
+    const generatedBarbarianFeatures = getAvailableBarbarianFeatures(form)
+      .filter((feature) => !existingKeys.has('barbarian:' + String(feature.name || '').toLowerCase()))
+      .map((feature) => ({
+        ...feature,
+        hideUseButton: feature.type === 'passive' || feature.id === 'barbarian-weapon-mastery',
+        isWeaponMasteryConfig: feature.id === 'barbarian-weapon-mastery',
+        isRecklessAttackToggle: feature.id === 'reckless-attack',
+      }));
+    return [...features, ...generatedBarbarianFeatures].sort(
       (a, b) =>
         (a.class || '').localeCompare(b.class || '') ||
         (a.level || 0) - (b.level || 0)
     );
-  }, [barbarianLevel, features]);
+  }, [barbarianLevel, features, form]);
 
   const displayFeatures = useMemo(() => {
     if (ancestryFeatures.length === 0) return classFeatures;
@@ -1672,6 +1671,7 @@ export default function Features({
                     const isSpeakWithAnimals =
                       feat.id === 'gnome-forest-speak-with-animals';
                     const isWeaponMasteryConfig = Boolean(feat.isWeaponMasteryConfig);
+                    const isRecklessAttackToggle = Boolean(feat.isRecklessAttackToggle);
                     const lineageSpellConfig =
                       LINEAGE_SPELLS[feat.id] || null;
                     const lineageSpellHasLimitedUses =
@@ -1982,6 +1982,36 @@ export default function Features({
                                   />
                                 </Button>
                               </div>
+                            ) : isRecklessAttackToggle ? (
+                              <Button
+                                aria-label="toggle Reckless Attack"
+                                variant="link"
+                                className="p-0 border-0"
+                                onClick={() => {
+                                  if (!onCharacterChange) return;
+                                  onCharacterChange((previous) => {
+                                    const source = previous || form;
+                                    const current = source?.classState?.barbarian?.recklessAttack || {};
+                                    return {
+                                      ...source,
+                                      classState: {
+                                        ...(source?.classState || {}),
+                                        barbarian: {
+                                          ...(source?.classState?.barbarian || {}),
+                                          recklessAttack: current.active
+                                            ? { active: false, declared: false, firstAttackMade: current.firstAttackMade }
+                                            : current.firstAttackMade
+                                            ? current
+                                            : { active: true, declared: true, firstAttackMade: false, defensiveDrawbackPending: true },
+                                        },
+                                      },
+                                    };
+                                  });
+                                }}
+                                disabled={Boolean(form?.classState?.barbarian?.recklessAttack?.firstAttackMade && !form?.classState?.barbarian?.recklessAttack?.active)}
+                              >
+                                <span className={`combat-hud-resource-tile__icon ${form?.classState?.barbarian?.recklessAttack?.active ? 'opacity-100' : 'opacity-50'}`}><Swords size={36} /></span>
+                              </Button>
                             ) : !feat.hideUseButton ? (
                               <Button aria-label="use feature" variant="outline-light" size="sm">
                                 Use

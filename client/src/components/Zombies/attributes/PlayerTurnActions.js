@@ -34,7 +34,7 @@ import {
   normalizeDiceColor,
   resolveDamageTypeColor,
 } from '../../../utils/diceColors';
-import { getRageDamageBonus } from '../utils/barbarian';
+import { getRageDamageBonus, markBarbarianAttackRoll, resolveAttackRollMode } from '../utils/barbarian';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -407,6 +407,7 @@ const PlayerTurnActions = React.forwardRef(
       spellAbilityKey = '',
       onCastSpell,
       onDamageSummaryChange = () => {},
+      onCharacterChange,
       availableSlots = { regular: {}, warlock: {} },
       longRestCount = 0,
       shortRestCount = 0,
@@ -1781,12 +1782,26 @@ const manualCriticalRef = useRef(false);
   const handleWeaponAttackRoll = async (slot, weapon) => {
     const rawBonus = Number(getAttackBonus(slot, weapon));
     const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
-    const { result, d20 } = await rollSkillWithDiceBox(bonus, {
+    const abilityKey = getAbilityKeyForWeapon(slot, weapon);
+    const attackContext = {
+      ability: abilityKey,
+      kind: isUnarmedAttack(weapon) ? 'unarmed' : 'weapon',
+      isWeaponAttack: !isUnarmedAttack(weapon),
+      isUnarmedStrike: isUnarmedAttack(weapon),
+    };
+    const rollModeResult = resolveAttackRollMode(form, attackContext);
+    const { result, d20, rolledD20s, keptD20, rollMode } = await rollSkillWithDiceBox(bonus, {
       diceColor: diceFaceColor,
+      rollMode: rollModeResult.mode,
     });
+    onCharacterChange?.((previous) => markBarbarianAttackRoll(previous || form));
     diceBoxThemeRef.current = diceFaceColor;
     const weaponLabel = getWeaponDisplayName(slot, weapon);
-    const segments = [`${d20} (d20)`];
+    const actualRollMode = rollMode || rollModeResult.mode;
+    const d20Segment = actualRollMode === 'advantage' || actualRollMode === 'disadvantage'
+      ? `${keptD20 ?? d20} (d20) (Rolled ${(rolledD20s || [d20]).join(' and ')})`
+      : `${d20} (d20)`;
+    const segments = [d20Segment];
     if (bonus) {
       const sign = bonus >= 0 ? '+' : '-';
       segments.push(`${sign} ${Math.abs(bonus)} Attack Bonus`);
@@ -1797,14 +1812,18 @@ const manualCriticalRef = useRef(false);
         detail: {
           value: result,
           breakdown: segments.join(' '),
-          source: `${weaponLabel} Attack Roll`,
+          source: `${weaponLabel}${actualRollMode === 'normal' ? '' : ` with ${actualRollMode === 'advantage' ? 'Advantage' : 'Disadvantage'}`} Attack Roll`,
           critical: d20 === 20,
           fumble: d20 === 1,
           rollLabel: 'Attack Roll',
+          rollMode: actualRollMode,
+          advantageSources: rollModeResult.advantageSources,
+          disadvantageSources: rollModeResult.disadvantageSources,
           diceRolls: [
             {
               sides: 20,
-              value: d20,
+              value: keptD20 ?? d20,
+              rolled: rolledD20s,
               type: 'Attack Roll',
               category: 'base',
             },

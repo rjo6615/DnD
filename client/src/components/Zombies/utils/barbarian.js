@@ -21,6 +21,14 @@ export const BARBARIAN_PROGRESSION = [
   { level: 20, rageUses: 6, rageDamage: 4, weaponMasteryCount: 4 },
 ];
 
+const resolveD20RollMode = ({ advantageSources = [], disadvantageSources = [] } = {}) => {
+  const hasAdvantage = Array.isArray(advantageSources) && advantageSources.length > 0;
+  const hasDisadvantage = Array.isArray(disadvantageSources) && disadvantageSources.length > 0;
+  if (hasAdvantage && !hasDisadvantage) return "advantage";
+  if (hasDisadvantage && !hasAdvantage) return "disadvantage";
+  return "normal";
+};
+
 const normalize = (value) =>
   String(value ?? "")
     .trim()
@@ -132,6 +140,91 @@ export const applyRageRest = (character, restType) => {
     ...(next?.classState?.barbarian?.weaponMasteries || {}),
     canReplaceAfterLongRest: true,
   });
+};
+
+const hasCondition = (character, conditionName) => {
+  const target = normalize(conditionName);
+  const conditions = [
+    ...(Array.isArray(character?.conditions) ? character.conditions : []),
+    ...(Array.isArray(character?.statusConditions) ? character.statusConditions : []),
+  ];
+  return conditions.some((condition) =>
+    normalize(condition?.name ?? condition?.label ?? condition?.id ?? condition) === target
+  );
+};
+
+export const BARBARIAN_FEATURES = [
+  {
+    id: "barbarian-rage",
+    name: "Rage",
+    class: "Barbarian",
+    classId: "barbarian",
+    level: 1,
+    type: "toggle",
+  },
+  {
+    id: "barbarian-weapon-mastery",
+    name: "Weapon Mastery",
+    class: "Barbarian",
+    classId: "barbarian",
+    level: 1,
+    type: "configuration",
+    description:
+      "Your training with weapons allows you to use the mastery property of selected simple or martial melee weapon types. You can replace one selection when you finish a Long Rest.",
+  },
+  {
+    id: "danger-sense",
+    name: "Danger Sense",
+    class: "Barbarian",
+    classId: "barbarian",
+    level: 2,
+    type: "passive",
+    description:
+      "You gain an uncanny sense of when things aren’t as they should be, giving you an edge when you dodge perils.\n\nYou have Advantage on Dexterity saving throws unless you have the Incapacitated condition.",
+    hideUseButton: true,
+  },
+  {
+    id: "reckless-attack",
+    name: "Reckless Attack",
+    class: "Barbarian",
+    classId: "barbarian",
+    level: 2,
+    type: "toggle",
+    description:
+      "You can throw aside all concern for defense to attack with increased ferocity. When you make your first attack roll on your turn, you can decide to attack recklessly. Doing so gives you Advantage on attack rolls using Strength until the start of your next turn, but attack rolls against you have Advantage during that time.\n\nThis app currently applies the offensive Advantage to your Strength attack rolls; the defensive drawback is intentionally deferred until incoming attack modifiers are supported.",
+  },
+];
+
+export const getAvailableBarbarianFeatures = (character) => {
+  const barbarianLevel = getBarbarianLevel(character);
+  return BARBARIAN_FEATURES.filter((feature) => barbarianLevel >= feature.level);
+};
+
+export const hasDangerSense = (character) => getBarbarianLevel(character) >= 2;
+
+export const getDangerSenseSavingThrowSources = (character, abilityKey) => {
+  if (normalize(abilityKey) !== "dex" || !hasDangerSense(character)) return [];
+  return hasCondition(character, "incapacitated") ? [] : ["Danger Sense"];
+};
+
+export const resolveSavingThrowRollMode = (character, abilityKey, options = {}) => {
+  const advantageSources = Array.isArray(options.advantageSources)
+    ? [...options.advantageSources]
+    : [];
+  const disadvantageSources = Array.isArray(options.disadvantageSources)
+    ? [...options.disadvantageSources]
+    : [];
+
+  if (getRageBenefits(character).advantage.savingThrows.includes(normalize(abilityKey))) {
+    advantageSources.push("Rage");
+  }
+  advantageSources.push(...getDangerSenseSavingThrowSources(character, abilityKey));
+
+  return {
+    mode: resolveD20RollMode({ advantageSources, disadvantageSources }),
+    advantageSources,
+    disadvantageSources,
+  };
 };
 
 export const getRageBenefits = (character) =>
@@ -261,4 +354,79 @@ export const replaceWeaponMasteryAfterLongRest = (
     selections,
     canReplaceAfterLongRest: false,
   });
+};
+
+
+const withRecklessAttack = (character, recklessAttack) => ({
+  ...character,
+  classState: {
+    ...(character?.classState || {}),
+    barbarian: { ...(character?.classState?.barbarian || {}), recklessAttack },
+  },
+});
+
+export const getRecklessAttackState = (character) => {
+  const raw = character?.classState?.barbarian?.recklessAttack || {};
+  return {
+    active: getBarbarianLevel(character) >= 2 && Boolean(raw.active),
+    firstAttackMade: Boolean(raw.firstAttackMade),
+    declared: Boolean(raw.declared ?? raw.active),
+    defensiveDrawbackPending: Boolean(raw.defensiveDrawbackPending),
+  };
+};
+
+export const declareRecklessAttack = (character) => {
+  if (getBarbarianLevel(character) < 2) return character;
+  const state = getRecklessAttackState(character);
+  if (state.active || state.firstAttackMade) return character;
+  return withRecklessAttack(character, {
+    active: true,
+    declared: true,
+    firstAttackMade: false,
+    defensiveDrawbackPending: true,
+  });
+};
+
+export const endRecklessAttack = (character) => {
+  const state = getRecklessAttackState(character);
+  if (!state.active && !state.firstAttackMade && !state.declared) return character;
+  return withRecklessAttack(character, { active: false, declared: false, firstAttackMade: false });
+};
+
+export const markBarbarianAttackRoll = (character) => {
+  if (getBarbarianLevel(character) < 2) return character;
+  const state = getRecklessAttackState(character);
+  if (state.firstAttackMade) return character;
+  return withRecklessAttack(character, { ...state, firstAttackMade: true });
+};
+
+export const getRecklessAttackAdvantageSources = (character, attack = {}) => {
+  const state = getRecklessAttackState(character);
+  if (!state.active) return [];
+  const ability = normalize(attack.ability ?? attack.abilityKey ?? attack.stat);
+  const kind = normalize(attack.kind ?? attack.type ?? attack.attackType);
+  const isQualifyingKind =
+    kind.includes("weapon") ||
+    kind.includes("unarmed") ||
+    attack.isWeaponAttack ||
+    attack.isUnarmedStrike;
+  if (ability !== "str" || attack.isSpellAttack || !isQualifyingKind || attack.isDamageRoll) {
+    return [];
+  }
+  return ["Reckless Attack"];
+};
+
+export const resolveAttackRollMode = (character, attack = {}, options = {}) => {
+  const advantageSources = Array.isArray(options.advantageSources)
+    ? [...options.advantageSources]
+    : [];
+  const disadvantageSources = Array.isArray(options.disadvantageSources)
+    ? [...options.disadvantageSources]
+    : [];
+  advantageSources.push(...getRecklessAttackAdvantageSources(character, attack));
+  return {
+    mode: resolveD20RollMode({ advantageSources, disadvantageSources }),
+    advantageSources,
+    disadvantageSources,
+  };
 };
