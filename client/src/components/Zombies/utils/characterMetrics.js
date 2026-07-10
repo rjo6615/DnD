@@ -6,6 +6,7 @@ import {
   isExplicitlyUnowned,
   STAT_KEYS,
 } from './derivedStats';
+import { getBarbarianLevel } from './barbarian';
 
 const toFiniteNumberOrNull = (value) => {
   if (value === null || value === undefined || value === '') {
@@ -327,6 +328,10 @@ export const calculateCharacterArmorClass = (character, overrides = {}) => {
     ? overrides.wisMod
     : Math.floor((abilities.wis - 10) / 2);
 
+  const baseConMod = Number.isFinite(overrides.conMod)
+    ? overrides.conMod
+    : Math.floor((abilities.con - 10) / 2);
+
   const hasShieldEquipped = armorItems.some((item) => isShieldItem(item));
   const hasArmorEquipped = armorItems.some((item) => {
     if (!item) {
@@ -346,12 +351,17 @@ export const calculateCharacterArmorClass = (character, overrides = {}) => {
   });
 
   const monkLevel = resolveMonkLevel(character);
-  const wisdomBonus =
-    !hasArmorEquipped && !hasShieldEquipped && (hasUnarmoredDefense(character) || monkLevel > 0)
-      ? baseWisMod
-      : 0;
+  const barbarianLevel = getBarbarianLevel(character);
+  const unarmoredBaseBonuses = [];
+  if (!hasArmorEquipped && !hasShieldEquipped && (hasUnarmoredDefense(character) || monkLevel > 0)) {
+    unarmoredBaseBonuses.push(baseWisMod);
+  }
+  if (!hasArmorEquipped && barbarianLevel > 0) {
+    unarmoredBaseBonuses.push(baseConMod);
+  }
+  const unarmoredAbilityBonus = unarmoredBaseBonuses.length > 0 ? Math.max(...unarmoredBaseBonuses) : 0;
 
-  const armorClass = 10 + armorAcBonus + featAcBonus + additionalAcBonus + dexContribution + wisdomBonus;
+  const armorClass = 10 + armorAcBonus + featAcBonus + additionalAcBonus + dexContribution + unarmoredAbilityBonus;
   const normalized = Number(armorClass);
   return Number.isFinite(normalized) ? normalized : null;
 };

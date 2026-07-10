@@ -1,4 +1,4 @@
-import { calculateCharacterHitPoints } from './characterMetrics';
+import { calculateCharacterArmorClass, calculateCharacterHitPoints } from './characterMetrics';
 
 describe('calculateCharacterHitPoints', () => {
   it('calculates current and max hp using con and level', () => {
@@ -168,5 +168,22 @@ describe('calculateCharacterHitPoints', () => {
     );
 
     expect(result.maxHp).toBe(character.health + expectedConMod * totalLevel);
+  });
+});
+
+
+describe('calculateCharacterArmorClass barbarian unarmored defense', () => {
+  const base = { dex: 14, con: 16, wis: 18, occupation: [{ Name: 'Barbarian', Level: 1 }] };
+
+  it('uses 10 + dex + con while unarmored and allows shields', () => {
+    expect(calculateCharacterArmorClass(base)).toBe(15);
+    expect(calculateCharacterArmorClass({ ...base, armor: [{ name: 'Shield', category: 'Shield', acBonus: 2 }] })).toBe(17);
+  });
+
+  it('is disabled by armor and does not stack with monk wisdom', () => {
+    expect(calculateCharacterArmorClass({ ...base, armor: [{ name: 'Leather', category: 'Light Armor', source: 'armor', acBonus: 1 }] })).toBe(13);
+    expect(calculateCharacterArmorClass({ ...base, armor: [{ name: 'Hide', category: 'Medium Armor', source: 'armor', acBonus: 2, maxDex: 2 }] })).toBe(14);
+    expect(calculateCharacterArmorClass({ ...base, armor: [{ name: 'Plate', category: 'Heavy Armor', source: 'armor', acBonus: 8, maxDex: 0 }] })).toBe(20);
+    expect(calculateCharacterArmorClass({ ...base, occupation: [{ Name: 'Barbarian', Level: 1 }, { Name: 'Monk', Level: 1 }] })).toBe(16);
   });
 });
