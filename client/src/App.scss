@@ -10849,3 +10849,36 @@ body.character-select-scroll-enabled {
     top: calc(env(safe-area-inset-top, 0px) + 0.65rem) !important;
   }
 }
+
+.feature-modal-description {
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.feature-modal-description p {
+  margin: 0 0 1rem;
+}
+
+.feature-modal-description p:last-child,
+.feature-modal-description ul:last-child {
+  margin-bottom: 0;
+}
+
+.feature-modal-description__heading {
+  margin: 1.1rem 0 0.35rem !important;
+}
+
+.feature-modal-description__heading:first-child {
+  margin-top: 0 !important;
+}
+
+.feature-modal-description ul {
+  margin: 0 0 1rem 1.25rem;
+  padding-left: 1rem;
+}
+
+.feature-modal-description li + li {
+  margin-top: 0.35rem;
+}
