@@ -547,6 +547,25 @@ export const getFooterConditionLabel = (count) => {
   return `${numericCount} ${numericCount === 1 ? 'condition' : 'conditions'}`;
 };
 
+export const getFooterConditionSummary = (conditions) => {
+  const activeConditions = Array.isArray(conditions) ? conditions.filter(Boolean) : [];
+  if (activeConditions.length === 0) {
+    return { empty: true, label: 'No conditions', conditions: [] };
+  }
+
+  const [firstCondition, ...remainingConditions] = activeConditions;
+  const name = firstCondition?.name || firstCondition?.label || firstCondition?.id || 'Condition';
+  const overflowCount = remainingConditions.length;
+
+  return {
+    empty: false,
+    label: overflowCount > 0 ? `${name} +${overflowCount}` : name,
+    conditions: activeConditions,
+    primaryCondition: firstCondition,
+    overflowCount,
+  };
+};
+
 export const buildFooterConditions = (character, normalizeCollection) => {
   const normalize = typeof normalizeCollection === 'function' ? normalizeCollection : (value) => value || [];
   const conditions = normalize(character?.conditions || character?.statusConditions);
@@ -5256,6 +5275,10 @@ export default function ZombiesCharacterSheet() {
     () => buildFooterConditions(form, normalizeFooterCollection),
     [form, normalizeFooterCollection]
   );
+  const footerConditionSummary = useMemo(
+    () => getFooterConditionSummary(footerConditions),
+    [footerConditions]
+  );
 
   const hasFooterSpellSlots = hasSpellcasting || (form?.occupation || []).some((cls) => {
     const name = (cls.Name || cls.Occupation || '').toLowerCase();
@@ -5786,22 +5809,17 @@ export default function ZombiesCharacterSheet() {
                   <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
                     <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
                     <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
-                    <span className="combat-hud-pill"><Sparkles size={16} /> {getFooterConditionLabel(footerConditions.length)}</span>
-                    {footerConditions.length > 0 && (
-                      <div className="combat-hud-conditions-list" aria-label="Active conditions">
-                        {footerConditions.map((condition) => (
-                          <span
-                            key={condition.id || condition.name}
-                            className="combat-hud-condition"
-                            style={{ '--hud-condition-accent': condition.color }}
-                            title={condition.name}
-                          >
-                            <span className="combat-hud-condition__icon" aria-hidden="true">{condition.icon || '✦'}</span>
-                            <span className="combat-hud-condition__label">{condition.name}</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <span className="combat-hud-pill" aria-label="Active conditions">
+                      <Sparkles size={16} />
+                      {footerConditionSummary.empty ? (
+                        footerConditionSummary.label
+                      ) : (
+                        <span className="combat-hud-condition" style={{ '--hud-condition-accent': footerConditionSummary.primaryCondition?.color }} title={footerConditionSummary.conditions.map((condition) => condition?.name || condition?.label || condition?.id || 'Condition').join(', ')}>
+                          <span className="combat-hud-condition__icon" aria-hidden="true">{footerConditionSummary.primaryCondition?.icon || '✦'}</span>
+                          <span className="combat-hud-condition__label">{footerConditionSummary.label}</span>
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </Panel>
 

@@ -164,35 +164,30 @@ const resolveArmorItems = (character) => {
   const normalizedEquipment = normalizeEquipmentMap(character?.equipment);
   const equipmentEntries = Object.values(normalizedEquipment || {}).filter(Boolean);
 
-  if (equipmentEntries.length) {
-    return equipmentEntries.filter((item) => {
-      if (!item || typeof item !== 'object' || isExplicitlyUnowned(item)) {
-        return false;
-      }
+  return equipmentEntries.filter((item) => {
+    if (!item || typeof item !== 'object' || isExplicitlyUnowned(item)) {
+      return false;
+    }
 
-      if (Array.isArray(item)) {
-        return true;
-      }
+    if (Array.isArray(item)) {
+      return true;
+    }
 
-      const source = String(item.__source ?? item.source ?? '').toLowerCase();
-      if (source === 'armor') {
-        return true;
-      }
+    const source = String(item.__source ?? item.source ?? '').toLowerCase();
+    if (source === 'armor') {
+      return true;
+    }
 
-      return (
-        item.acBonus != null ||
-        item.armorBonus != null ||
-        item.ac != null ||
-        item.maxDex != null ||
-        item.maxDexterity != null ||
-        item.checkPenalty != null ||
-        item.stealth != null
-      );
-    });
-  }
-
-  const armorCollection = Array.isArray(character?.armor) ? character.armor : [];
-  return armorCollection.filter(Boolean);
+    return (
+      item.acBonus != null ||
+      item.armorBonus != null ||
+      item.ac != null ||
+      item.maxDex != null ||
+      item.maxDexterity != null ||
+      item.checkPenalty != null ||
+      item.stealth != null
+    );
+  });
 };
 
 const isShieldItem = (item) => {
