@@ -21,7 +21,7 @@ import loginbg from "../../../images/loginbg.png";
 import useUser from '../../../hooks/useUser';
 import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
-import { calculateCharacterInitiative } from '../utils/derivedStats';
+import { calculateCharacterInitiative, calculatePassivePerception } from '../utils/derivedStats';
 import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
@@ -284,6 +284,51 @@ const formatSensesDisplay = (senses) => {
   });
 
   return entries.length > 0 ? entries.join(', ') : '—';
+};
+
+const getEntityPassivePerception = (entity) => {
+  if (!entity || typeof entity !== 'object') {
+    return null;
+  }
+
+  if (entity.entityType !== 'enemy') {
+    const totalLevel = Array.isArray(entity.occupation)
+      ? entity.occupation.reduce((total, role) => total + (Number(role?.Level) || 0), 0)
+      : undefined;
+    const passivePerception = calculatePassivePerception(entity, totalLevel);
+    return Number.isFinite(passivePerception) ? passivePerception : null;
+  }
+
+  const directCandidates = [
+    entity.passivePerception,
+    entity.passive_perception,
+    entity.passive_perception_value,
+    entity.passivePerceptionValue,
+    entity.senses?.passive_perception,
+    entity.senses?.passivePerception,
+  ];
+
+  for (const candidate of directCandidates) {
+    const value = toFiniteNumberOrNull(candidate);
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  const sensesText = typeof entity.senses === 'string'
+    ? entity.senses
+    : typeof entity.senses?.summary === 'string'
+      ? entity.senses.summary
+      : '';
+  const match = sensesText.match(/passive\s+perception\s*(\d+)/i);
+  if (match) {
+    const value = toFiniteNumberOrNull(match[1]);
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return null;
 };
 
 const formatDamageTraitsDisplay = (traits) => {
@@ -3993,6 +4038,7 @@ export default function ZombiesDM() {
             character: entity,
             rowId,
             participantInfo,
+            passivePerception: getEntityPassivePerception(entity),
             initiativeValue,
             sortInitiative: numericInitiative,
             recordIndex,
@@ -6890,6 +6936,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                           <th scope="col">Character</th>
                           <th scope="col">Player</th>
                           <th scope="col" className="text-center">In Combat</th>
+                          <th scope="col" className="text-center">Passive Perception</th>
                           <th scope="col" className="text-center">Initiative</th>
                           <th scope="col" className="text-center">Actions</th>
                         </tr>
@@ -6901,6 +6948,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                               character,
                               rowId,
                               participantInfo,
+                              passivePerception,
                               initiativeValue,
                               recordIndex,
                             }) => {
@@ -6909,6 +6957,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                               const displayInitiative =
                                 initiativeValue !== undefined && initiativeValue !== null
                                   ? initiativeValue
+                                  : '—';
+                              const displayPassivePerception =
+                                passivePerception !== undefined && passivePerception !== null
+                                  ? passivePerception
                                   : '—';
                               const isActive =
                                 isParticipant &&
@@ -6980,7 +7032,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                                       aria-label={`Toggle ${checkboxLabel} in combat`}
                                     />
                                   </td>
-                                  <td className="text-center" style={{ width: '120px' }}>
+                                  <td className="text-center" style={{ width: '150px' }}>
+                                    {displayPassivePerception}
+                                  </td>
+                                  <td className="text-center" style={{ width: '110px' }}>
                                     {displayInitiative}
                                   </td>
                                   <td className="text-center">
@@ -7003,7 +7058,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                           )
                         ) : (
                           <tr>
-                            <td colSpan={5} className="text-center text-muted py-3">
+                            <td colSpan={6} className="text-center text-muted py-3">
                               No characters available.
                             </td>
                           </tr>
@@ -7123,6 +7178,7 @@ const resolveIcon = (category, iconMap, fallback) => {
 
                   const detailRows = [
                     { label: 'Level', value: totalLevel },
+                    { label: 'Passive Perception', value: getEntityPassivePerception(character) },
                     { label: 'Classes', value: classSummary },
                   ];
 
