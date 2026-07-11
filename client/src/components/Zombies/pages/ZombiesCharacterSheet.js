@@ -31,6 +31,8 @@ import {
   aggregateStatEffects,
   collectFeatAbilityBonuses,
   collectFeatNumericBonuses,
+  calculateCharacterInitiative,
+  calculatePassivePerception,
 } from "../utils/derivedStats";
 import {
   calculateCharacterArmorClass,
@@ -5033,6 +5035,14 @@ export default function ZombiesCharacterSheet() {
     () => calculateCharacterMovementSpeed(form),
     [form]
   );
+  const footerInitiativeModifier = useMemo(
+    () => calculateCharacterInitiative(form),
+    [form]
+  );
+  const footerPassivePerception = useMemo(
+    () => calculatePassivePerception(form, totalLevel),
+    [form, totalLevel]
+  );
 
   const SPELLCASTING_ABILITIES = {
     cleric: 'wis',
@@ -5897,6 +5907,7 @@ export default function ZombiesCharacterSheet() {
                     <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
                     <span className="combat-hud-pill" aria-label="Proficiency bonus">Proficiency {formatSignedBonus(footerProficiencyBonus)}</span>
                     <span className="combat-hud-pill" aria-label="Movement speed">Move: {footerMovementSpeed} ft</span>
+                    <span className="combat-hud-pill" aria-label="Initiative modifier">Int: {formatSignedBonus(footerInitiativeModifier)}</span>
                     <span className="combat-hud-pill" aria-label="Active conditions">
                       {hasActiveFooterConditions ? (
                         <IconButton
@@ -5911,6 +5922,7 @@ export default function ZombiesCharacterSheet() {
                       )}
                       <span className="combat-hud-condition__label">{footerConditionSummary.label}</span>
                     </span>
+                    <span className="combat-hud-pill" aria-label="Passive Perception">Passive Perception: {footerPassivePerception}</span>
                   </div>
                 </Panel>
 

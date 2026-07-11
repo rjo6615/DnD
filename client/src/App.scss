@@ -8280,8 +8280,8 @@ h1 {
 }
 
 .combat-hud-dock__status {
-  width: 320px;
-  min-width: 320px;
+  width: 520px;
+  min-width: 520px;
   padding: 8px;
   gap: 8px;
 }
@@ -8359,7 +8359,7 @@ h1 {
 
 @media (min-width: 901px) {
   .combat-hud-dock {
-    grid-template-columns: 320px auto 360px;
+    grid-template-columns: 520px auto 360px;
   }
 }
 
