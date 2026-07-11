@@ -132,19 +132,6 @@ describe('footer condition helpers', () => {
     expect(buildFooterConditions({ ...active, classState: { barbarian: { rage: { active: false, current: 1 } } } }, normalize)).toEqual([]);
   });
 
-
-  test('adds Reckless Attack as a multi-line active condition only while manually toggled on', () => {
-    const active = {
-      classState: { barbarian: { recklessAttack: { active: true, declared: true } } },
-      occupation: [{ Name: 'Barbarian', Level: 2 }],
-      conditions: [],
-    };
-    expect(buildFooterConditions(active, normalize)).toEqual([
-      { id: 'reckless-attack-effect', icon: '⚔️', name: 'Reckless Attack', displayLines: ['Reckless', 'Attack'], color: '#f59e0b' },
-    ]);
-    expect(buildFooterConditions({ ...active, classState: { barbarian: { recklessAttack: { active: false } } } }, normalize)).toEqual([]);
-  });
-
   test('does not duplicate rage and preserves other conditions', () => {
     const character = {
       classState: { barbarian: { rage: { active: true, current: 1 } } },

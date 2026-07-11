@@ -378,9 +378,8 @@ export const getRecklessAttackState = (character) => {
 export const declareRecklessAttack = (character) => {
   if (getBarbarianLevel(character) < 2) return character;
   const state = getRecklessAttackState(character);
-  if (state.active) return character;
+  if (state.active || state.firstAttackMade) return character;
   return withRecklessAttack(character, {
-    ...state,
     active: true,
     declared: true,
     firstAttackMade: false,
@@ -394,7 +393,12 @@ export const endRecklessAttack = (character) => {
   return withRecklessAttack(character, { active: false, declared: false, firstAttackMade: false });
 };
 
-export const markBarbarianAttackRoll = (character) => character;
+export const markBarbarianAttackRoll = (character) => {
+  if (getBarbarianLevel(character) < 2) return character;
+  const state = getRecklessAttackState(character);
+  if (state.firstAttackMade) return character;
+  return withRecklessAttack(character, { ...state, firstAttackMade: true });
+};
 
 export const getRecklessAttackAdvantageSources = (character, attack = {}) => {
   const state = getRecklessAttackState(character);
