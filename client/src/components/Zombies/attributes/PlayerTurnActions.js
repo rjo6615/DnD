@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from 'react';
 import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
+import { Swords } from 'lucide-react';
 import spellsData from '../../../data/spells';
 import UpcastModal from './UpcastModal';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
@@ -2806,7 +2807,7 @@ const damageAmountStyle = {
                           aria-label="Roll to hit"
                           className="attack-card__roll"
                         >
-                          <i className="fa-solid fa-bullseye"></i>
+                          <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>
                         </Button>
                         <Button
                           onClick={() => {
@@ -2817,7 +2818,7 @@ const damageAmountStyle = {
                           aria-label="Roll damage"
                           className="attack-card__roll"
                         >
-                          <i className="fa-solid fa-dice-d20"></i>
+                          <Swords size={18} aria-hidden="true" />
                         </Button>
                       </div>
                     </div>

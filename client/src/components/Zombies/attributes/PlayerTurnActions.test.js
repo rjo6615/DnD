@@ -671,6 +671,110 @@ describe('PlayerTurnActions weapon damage display', () => {
     }
   });
 
+
+  test('weapon card action icons map attack to d20 and damage to sword across weapon variants', () => {
+    const weapons = {
+      mainHand: {
+        name: 'Longsword',
+        damage: '1d8 slashing',
+        category: 'martial melee weapon',
+        source: 'weapon',
+      },
+      offHand: {
+        name: 'Dagger',
+        damage: '1d4 piercing',
+        category: 'simple melee weapon',
+        properties: ['Thrown (20/60)'],
+        source: 'weapon',
+      },
+      ranged: {
+        name: 'Shortbow',
+        damage: '1d6 piercing',
+        category: 'simple ranged weapon',
+        source: 'weapon',
+      },
+    };
+
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', equipment: weapons, spells: [] }}
+        strMod={2}
+        dexMod={3}
+      />
+    );
+
+    openAttackModal(actionsRef);
+
+    ['Longsword', 'Dagger', 'Shortbow', 'Unarmed Strike'].forEach((weaponName) => {
+      const card = screen.getByText(weaponName).closest('.attack-card');
+      expect(card).not.toBeNull();
+      if (!card) throw new Error(`missing ${weaponName} card`);
+
+      const attackButton = within(card).getByLabelText(/Roll to hit/i);
+      const damageButton = within(card).getByLabelText(/Roll damage/i);
+      expect(attackButton.querySelector('.fa-dice-d20')).not.toBeNull();
+      expect(attackButton.querySelector('.fa-bullseye')).toBeNull();
+      expect(damageButton.querySelector('.lucide-swords')).not.toBeNull();
+      expect(damageButton.querySelector('.fa-dice-d20')).toBeNull();
+    });
+  });
+
+  test('weapon card action icon change keeps attack and damage handlers wired to their original buttons', async () => {
+    const weapon = {
+      name: 'Longsword',
+      damage: '1d8 slashing',
+      category: 'martial melee weapon',
+      source: 'weapon',
+      attackBonus: 1,
+    };
+
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', equipment: { mainHand: weapon }, spells: [] }}
+        strMod={2}
+        dexMod={0}
+      />
+    );
+
+    openAttackModal(actionsRef);
+    let card = screen.getByText('Longsword').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('missing Longsword card');
+
+    const attackButton = within(card).getByLabelText(/Roll to hit/i);
+    expect(attackButton.querySelector('.fa-dice-d20')).not.toBeNull();
+    rollDiceWithBox.mockImplementationOnce(() => Promise.resolve({ rolls: [[9]] }));
+
+    await act(async () => {
+      fireEvent.click(attackButton);
+    });
+
+    await waitFor(() => {
+      const valueNode = document.getElementById('damageValue');
+      if (!valueNode) throw new Error('missing damage value node');
+      expect(valueNode.textContent).toBe('14');
+    });
+
+    openAttackModal(actionsRef);
+    card = screen.getByText('Longsword').closest('.attack-card');
+    expect(card).not.toBeNull();
+    if (!card) throw new Error('missing Longsword card after reopen');
+
+    const damageButton = within(card).getByLabelText(/Roll damage/i);
+    expect(damageButton.querySelector('.lucide-swords')).not.toBeNull();
+    rollDiceWithBox.mockImplementationOnce(() => Promise.resolve({ rolls: [[4]] }));
+
+    await act(async () => {
+      fireEvent.click(damageButton);
+    });
+
+    await waitFor(() => {
+      const valueNode = document.getElementById('damageValue');
+      if (!valueNode) throw new Error('missing damage value node');
+      expect(valueNode.textContent).toBe('6');
+    });
+  });
+
   test('weapon attack roll adds attack bonus to d20 result', async () => {
     const weapon = {
       name: 'Longsword',
