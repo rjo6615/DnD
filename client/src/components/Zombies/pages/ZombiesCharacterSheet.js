@@ -86,6 +86,16 @@ const DOCKABLE_MODAL_DEFINITIONS = {
   help: { label: 'Help', component: Help },
 };
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
+export const formatSignedBonus = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '—';
+  return `${numeric >= 0 ? '+' : ''}${numeric}`;
+};
+
+export const resolveFooterProficiencyBonus = (character, totalLevel) => {
+  const provided = Number(character?.proficiencyBonus);
+  return Number.isFinite(provided) ? provided : proficiencyBonus(totalLevel);
+};
 
 const CREATURE_SIZE_KEYS = ['gargantuan', 'huge', 'large', 'medium', 'small', 'tiny'];
 
@@ -5021,6 +5031,10 @@ export default function ZombiesCharacterSheet() {
       }),
     [form, statMods.con, statMods.dex, statMods.wis]
   );
+  const footerProficiencyBonus = useMemo(
+    () => resolveFooterProficiencyBonus(form, totalLevel),
+    [form, totalLevel]
+  );
 
   const SPELLCASTING_ABILITIES = {
     cleric: 'wis',
@@ -5883,6 +5897,7 @@ export default function ZombiesCharacterSheet() {
                   <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
                     <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
                     <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
+                    <span className="combat-hud-pill" aria-label="Proficiency bonus">Pro {formatSignedBonus(footerProficiencyBonus)}</span>
                     <span className="combat-hud-pill" aria-label="Active conditions">
                       {hasActiveFooterConditions ? (
                         <IconButton
