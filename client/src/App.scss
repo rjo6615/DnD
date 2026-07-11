@@ -9240,6 +9240,14 @@ h1 {
   color: var(--realm-muted) !important;
 }
 
+.modal .combat-tracker__active-row,
+.modal .combat-tracker__active-row > th,
+.modal .combat-tracker__active-row > td,
+.modal .combat-tracker__active-row > th :not(.btn):not(.btn *),
+.modal .combat-tracker__active-row > td :not(.btn):not(.btn *) {
+  color: var(--bs-dark) !important;
+}
+
 .modal .dropdown-menu,
 .modal .list-group-item,
 .modal table,
