@@ -75,6 +75,39 @@ import CombatTurnHeader, { HEADER_PADDING } from "../components/CombatTurnHeader
 
 const MIN_DOCKED_MODAL_WIDTH = 320;
 const DOCKED_MODAL_VIEWPORT_PADDING = 32;
+
+function useMediaQuery(query) {
+  const getMatches = useCallback(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
+    return window.matchMedia(query).matches;
+  }, [query]);
+
+  const [matches, setMatches] = useState(getMatches);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return undefined;
+    }
+
+    const mediaQueryList = window.matchMedia(query);
+    const handleChange = () => setMatches(mediaQueryList.matches);
+
+    handleChange();
+
+    if (typeof mediaQueryList.addEventListener === 'function') {
+      mediaQueryList.addEventListener('change', handleChange);
+      return () => mediaQueryList.removeEventListener('change', handleChange);
+    }
+
+    mediaQueryList.addListener(handleChange);
+    return () => mediaQueryList.removeListener(handleChange);
+  }, [getMatches, query]);
+
+  return matches;
+}
+
 const DOCKABLE_MODAL_DEFINITIONS = {
   characterInfo: { label: 'Character Info', component: CharacterInfo },
   stats: { label: 'Stats', component: Stats },
@@ -3623,6 +3656,7 @@ export default function ZombiesCharacterSheet() {
     return null;
   }, [form]);
 
+  const isMobileCombatHudLayout = useMediaQuery('(max-width: 900px)');
   const [mobileHudPanel, setMobileHudPanel] = useState(null);
   const [isDamagePopupDismissed, setIsDamagePopupDismissed] = useState(false);
   const [footerDamageSummary, setFooterDamageSummary] = useState({
@@ -5712,6 +5746,48 @@ export default function ZombiesCharacterSheet() {
     return classes.join(' ');
   }, [isMapInteractionActive]);
 
+  const renderCombatHudStatusPanel = () => (
+    <Panel className="combat-hud-dock__status" aria-label="Character status">
+      <FooterCharacterSlot
+        characterFigurine={characterFigurine}
+        characterId={characterId}
+        characterName={footerCharacterName}
+        currentHealth={footerHealth.current}
+        maxHealth={footerHealth.max}
+        armorClass={footerArmorClass}
+        onHealthChange={handleHealthChange}
+        damageSummary={footerDamageSummary}
+        onOpenDamageLog={() => handleFooterQuickAction(openDamageLog)}
+        spellSlots={null}
+        resourcesDrawer={null}
+        hiddenResourceCount={footerHiddenResourceCount}
+        actions={null}
+        onToggleCritical={toggleCriticalFromFooter}
+      />
+      <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
+        <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
+        <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
+        <span className="combat-hud-pill" aria-label="Proficiency bonus">Proficiency {formatSignedBonus(footerProficiencyBonus)}</span>
+        <span className="combat-hud-pill" aria-label="Movement speed">Move: {footerMovementSpeed} ft</span>
+        <span className="combat-hud-pill" aria-label="Initiative modifier">Initiative: {formatSignedBonus(footerInitiativeModifier)}</span>
+        <span className="combat-hud-pill" aria-label="Active conditions">
+          {hasActiveFooterConditions ? (
+            <IconButton
+              className="combat-hud-conditions-trigger"
+              label="View active conditions"
+              onClick={handleOpenActiveConditionsModal}
+            >
+              <Sparkles size={16} />
+            </IconButton>
+          ) : (
+            <Sparkles size={16} aria-hidden="true" />
+          )}
+          <span className="combat-hud-condition__label">{footerConditionSummary.label}</span>
+        </span>
+      </div>
+    </Panel>
+  );
+
   return (
     <div className={layoutClassName}>
       <div className={mapContainerClassName}>
@@ -5880,47 +5956,10 @@ export default function ZombiesCharacterSheet() {
                     Menu
                   </button>
                 </div>
-                <Panel className="combat-hud-dock__status" aria-label="Character status">
-                  <FooterCharacterSlot
-                    characterFigurine={characterFigurine}
-                    characterId={characterId}
-                    characterName={footerCharacterName}
-                    currentHealth={footerHealth.current}
-                    maxHealth={footerHealth.max}
-                    armorClass={footerArmorClass}
-                    onHealthChange={handleHealthChange}
-                    damageSummary={footerDamageSummary}
-                    onOpenDamageLog={() => handleFooterQuickAction(openDamageLog)}
-                    spellSlots={null}
-                    resourcesDrawer={null}
-                    hiddenResourceCount={footerHiddenResourceCount}
-                    actions={null}
-                    onToggleCritical={toggleCriticalFromFooter}
-                  />
-                  <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
-                    <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
-                    <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
-                    <span className="combat-hud-pill" aria-label="Proficiency bonus">Proficiency {formatSignedBonus(footerProficiencyBonus)}</span>
-                    <span className="combat-hud-pill" aria-label="Movement speed">Move: {footerMovementSpeed} ft</span>
-                    <span className="combat-hud-pill" aria-label="Initiative modifier">Initiative: {formatSignedBonus(footerInitiativeModifier)}</span>
-                    <span className="combat-hud-pill" aria-label="Active conditions">
-                      {hasActiveFooterConditions ? (
-                        <IconButton
-                          className="combat-hud-conditions-trigger"
-                          label="View active conditions"
-                          onClick={handleOpenActiveConditionsModal}
-                        >
-                          <Sparkles size={16} />
-                        </IconButton>
-                      ) : (
-                        <Sparkles size={16} aria-hidden="true" />
-                      )}
-                      <span className="combat-hud-condition__label">{footerConditionSummary.label}</span>
-                    </span>
-                  </div>
-                </Panel>
+                {!isMobileCombatHudLayout && renderCombatHudStatusPanel()}
 
                 <Panel className={`combat-hud-dock__resources ${mobileHudPanel === 'resources' ? 'is-mobile-open' : ''}`} aria-label="Combat resources">
+                  {isMobileCombatHudLayout && renderCombatHudStatusPanel()}
                   {form && (
                     <div className="combat-hud-dock__turn-slots" aria-label="Turn action tracking">
                       <SpellSlots
@@ -6023,7 +6062,7 @@ export default function ZombiesCharacterSheet() {
                     aria-label="Pass turn"
                     title="Pass turn"
                   >
-                    Pass Turn
+                    Pass<span className="hud-pass-turn-button__optional"> Turn</span>
                   </HudButton>
                 </Toolbar>
 

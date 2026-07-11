@@ -8600,12 +8600,12 @@ h1 {
   }
 
   .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail {
-    grid-row: 1;
+    grid-row: 3;
     width: 100%;
   }
 
   .combat-hud-dock__resources.is-mobile-open .spell-slot-container {
-    grid-row: 2;
+    grid-row: 4;
     width: 100% !important;
     min-width: 0 !important;
     max-width: none;
@@ -8672,13 +8672,25 @@ h1 {
     padding: 12px;
   }
 
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__status {
+    order: 0;
+    width: 100%;
+    padding: 8px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__turn-slots {
+    order: 1;
+  }
+
   .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail {
+    order: 2;
     padding: 10px;
     gap: 8px;
     grid-template-columns: repeat(4, minmax(96px, 1fr));
   }
 
   .combat-hud-dock__resources.is-mobile-open .spell-slot-container {
+    order: 3;
     padding: 12px 14px;
     scroll-padding-inline: 14px;
   }
@@ -8688,7 +8700,13 @@ h1 {
   }
 
   .combat-hud-dock__primary {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 56px 56px 64px minmax(0, 1fr);
+    align-items: center;
+    justify-content: stretch;
+    gap: 8px;
+    min-width: 0;
+    flex-wrap: nowrap;
   }
 
   .combat-hud-damage-chip {
@@ -8698,7 +8716,12 @@ h1 {
   }
 
   .hud-pass-turn-button.btn {
-    flex: 1 1 168px;
+    width: 100%;
+    min-width: 0;
+    min-height: 56px;
+    padding-inline: 8px;
+    border-radius: 18px;
+    white-space: nowrap;
   }
 }
 
@@ -10950,4 +10973,67 @@ body.character-select-scroll-enabled {
 
 .active-conditions-modal__content small {
   color: var(--hud-muted, rgba(255, 255, 255, 0.72));
+}
+
+/* Mobile combat HUD: keep the character HUD inside the Resources drawer and keep end-turn on the bottom action row. */
+@media (max-width: 900px) {
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__status {
+    grid-row: 1;
+    min-height: 0;
+    margin-bottom: 2px;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__turn-slots {
+    grid-row: 2;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open .combat-hud-dock__resource-rail {
+    grid-row: 3;
+  }
+
+  .combat-hud-dock__resources.is-mobile-open > .spell-slot-container {
+    grid-row: 4;
+  }
+
+  .combat-hud-dock__primary {
+    display: grid;
+    grid-template-columns: 56px 56px 64px minmax(0, 1fr);
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    justify-content: stretch;
+  }
+
+  .combat-hud-dock__primary .hud-action-button.btn,
+  .combat-hud-dock__primary .hud-action-button--attack.btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .combat-hud-dock__primary .hud-pass-turn-button.btn {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .combat-hud-dock__primary {
+    grid-template-columns: 50px 50px 56px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .combat-hud-dock__primary .hud-action-button.btn,
+  .combat-hud-dock__primary .hud-action-button--attack.btn {
+    min-height: 50px;
+  }
+
+  .combat-hud-dock__primary .hud-pass-turn-button.btn {
+    min-height: 50px;
+    font-size: 0.78rem;
+  }
+
+  .hud-pass-turn-button__optional {
+    display: none;
+  }
 }
