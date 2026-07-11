@@ -5890,7 +5890,7 @@ export default function ZombiesCharacterSheet() {
                   <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
                     <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
                     <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
-                    <span className="combat-hud-pill" aria-label="Proficiency bonus">Pro {formatSignedBonus(footerProficiencyBonus)}</span>
+                    <span className="combat-hud-pill" aria-label="Proficiency bonus">Proficiency {formatSignedBonus(footerProficiencyBonus)}</span>
                     <span className="combat-hud-pill" aria-label="Active conditions">
                       {hasActiveFooterConditions ? (
                         <IconButton
