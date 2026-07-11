@@ -226,15 +226,16 @@ describe("barbarian level 2 features", () => {
     expect(resolveSavingThrowRollMode(barbarian2(), "dex", { advantageSources: ["Help"] })).toMatchObject({ mode: "advantage", advantageSources: ["Help", "Danger Sense"] });
   });
 
-  it("declares Reckless Attack before the first attack, does not spend rage, and resets", () => {
+  it("toggles Reckless Attack manually without automatic first-attack tracking", () => {
     const declared = declareRecklessAttack(barbarian2());
     expect(getRecklessAttackState(declared)).toMatchObject({ active: true, declared: true, firstAttackMade: false });
     expect(getRageState(declared).current).toBe(2);
     const attacked = markBarbarianAttackRoll(declared);
-    expect(getRecklessAttackState(attacked).firstAttackMade).toBe(true);
+    expect(attacked).toBe(declared);
+    expect(getRecklessAttackState(attacked)).toMatchObject({ active: true, firstAttackMade: false });
     const reset = endRecklessAttack(attacked);
-    expect(declareRecklessAttack(markBarbarianAttackRoll(barbarian2()))).toMatchObject(markBarbarianAttackRoll(barbarian2()));
     expect(getRecklessAttackState(reset)).toMatchObject({ active: false, firstAttackMade: false });
+    expect(getRecklessAttackState(declareRecklessAttack(markBarbarianAttackRoll(barbarian2())))).toMatchObject({ active: true, firstAttackMade: false });
   });
 
   it("adds Reckless Attack advantage only to Strength weapon and unarmed attack rolls", () => {
@@ -245,5 +246,6 @@ describe("barbarian level 2 features", () => {
     expect(resolveAttackRollMode(declared, { ability: "str", type: "spell attack", isSpellAttack: true }).mode).toBe("normal");
     expect(resolveAttackRollMode(declared, { ability: "str", type: "weapon attack" }, { disadvantageSources: ["Prone"] }).mode).toBe("normal");
     expect(resolveAttackRollMode(declared, { ability: "str", type: "weapon attack" }, { advantageSources: ["Help"] }).mode).toBe("advantage");
+    expect(resolveAttackRollMode(endRecklessAttack(declared), { ability: "str", type: "weapon attack" }).mode).toBe("normal");
   });
 });

@@ -141,6 +141,25 @@ describe('footer condition helpers', () => {
     expect(buildFooterConditions(character, normalize)).toEqual(character.conditions);
   });
 
+
+  test('includes active Reckless Attack with multi-line display data', () => {
+    const character = {
+      classState: { barbarian: { recklessAttack: { active: true } } },
+      occupation: [{ Name: 'Barbarian', Level: 3 }],
+      conditions: [],
+    };
+
+    expect(buildFooterConditions(character, normalize)).toEqual([
+      {
+        id: 'reckless-attack-effect',
+        icon: '⚔️',
+        name: 'Reckless Attack',
+        displayLines: ['Reckless', 'Attack'],
+        color: '#f59e0b',
+      },
+    ]);
+  });
+
   test('formats empty, singular, and plural condition labels', () => {
     expect(getFooterConditionLabel(0)).toBe('No conditions');
     expect(getFooterConditionLabel(1)).toBe('1 condition');
@@ -208,6 +227,46 @@ test('active conditions sparkle opens modal with shared active entries and close
 
   await userEvent.click(within(modal).getByRole('button', { name: /close/i }));
   await waitFor(() => expect(screen.queryByText('Active Conditions')).not.toBeInTheDocument());
+});
+
+
+test('Reckless Attack resource uses generic multi-line display label without Off/∞ value', async () => {
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/characters/1')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          _id: '1',
+          characterName: 'Hero',
+          campaign: 'test-campaign',
+          health: 20,
+          currentHp: 20,
+          str: 16,
+          dex: 10,
+          con: 10,
+          occupation: [{ Name: 'Barbarian', Level: 3 }],
+          conditions: [],
+          classState: { barbarian: { rage: { active: false, current: 1 }, recklessAttack: { active: false } } },
+          feat: [],
+          equipment: {},
+        }),
+      });
+    }
+    return defaultApiFetchImplementation(url);
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  const recklessTile = await screen.findByRole('button', { name: /reckless attack/i });
+  expect(within(recklessTile).getByText('Reckless')).toBeInTheDocument();
+  expect(within(recklessTile).getByText('Attack')).toBeInTheDocument();
+  expect(within(recklessTile).queryByText('Off/∞')).not.toBeInTheDocument();
+  expect(within(recklessTile).queryByText(/Off/)).not.toBeInTheDocument();
+  expect(within(recklessTile).getByText('Reckless').className).toContain('combat-hud-resource-tile__name-line');
+
+  const rageTile = screen.getByRole('button', { name: /rage/i });
+  expect(within(rageTile).getByText('Rage')).toBeInTheDocument();
+  expect(within(rageTile).getByText('1/3')).toBeInTheDocument();
 });
 
 test('active conditions sparkle supports keyboard activation', async () => {
