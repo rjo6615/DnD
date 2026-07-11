@@ -1,4 +1,4 @@
-import { calculateCharacterArmorClass, calculateCharacterHitPoints } from './characterMetrics';
+import { calculateCharacterArmorClass, calculateCharacterHitPoints, calculateCharacterMovementSpeed } from './characterMetrics';
 
 describe('calculateCharacterHitPoints', () => {
   it('calculates current and max hp using con and level', () => {
@@ -198,5 +198,23 @@ describe('calculateCharacterArmorClass barbarian unarmored defense', () => {
     const equipped = { ...requestedBase, armor: [leather], equipment: { chest: leather } };
     expect(calculateCharacterArmorClass(equipped)).toBe(14);
     expect(calculateCharacterArmorClass({ ...equipped, equipment: { chest: null } })).toBe(16);
+  });
+});
+
+
+describe('calculateCharacterMovementSpeed', () => {
+  it('uses base character speed plus centralized derived speed modifiers', () => {
+    const character = {
+      speed: 30,
+      feat: [{ speed: 5 }],
+      equipment: { feet: { name: 'Boots of Pace', speedBonus: 5 } },
+      conditions: [{ name: 'Slowed', movementSpeedBonus: -10 }],
+    };
+
+    expect(calculateCharacterMovementSpeed(character)).toBe(30);
+  });
+
+  it('clamps reduced movement at zero feet', () => {
+    expect(calculateCharacterMovementSpeed({ speed: 25, conditions: [{ speedBonus: -40 }] })).toBe(0);
   });
 });

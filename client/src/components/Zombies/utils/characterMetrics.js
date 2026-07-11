@@ -90,6 +90,66 @@ const calculateEffectiveAbilityScores = (character) => {
   }, {});
 };
 
+
+const collectMovementSpeedBonus = (value) => {
+  if (!value || isExplicitlyUnowned(value)) {
+    return 0;
+  }
+  if (Array.isArray(value)) {
+    return value.reduce((total, entry) => total + collectMovementSpeedBonus(entry), 0);
+  }
+  if (typeof value !== 'object') {
+    return 0;
+  }
+
+  const directBonus =
+    toFiniteNumberOrZero(value.speedBonus) +
+    toFiniteNumberOrZero(value.movementSpeedBonus) +
+    toFiniteNumberOrZero(value.walkingSpeedBonus);
+
+  return (
+    directBonus +
+    collectMovementSpeedBonus(value.numericBonuses) +
+    collectMovementSpeedBonus(value.bonuses) +
+    collectMovementSpeedBonus(value.effects)
+  );
+};
+
+export const calculateCharacterMovementSpeed = (character, overrides = {}) => {
+  if (!character || typeof character !== 'object') {
+    return 0;
+  }
+
+  const baseSpeed =
+    toFiniteNumberOrNull(overrides.baseSpeed) ??
+    toFiniteNumberOrNull(character.speed) ??
+    toFiniteNumberOrNull(character?.race?.speed) ??
+    0;
+
+  const featBonuses = collectFeatNumericBonuses(character?.feat).speed;
+  const normalizedEquipment = normalizeEquipmentMap(character?.equipment);
+  const equipmentEntries = Object.values(normalizedEquipment || {}).filter(Boolean);
+  const accessoryEntries = normalizeAccessoryCollection(character);
+
+  const total =
+    baseSpeed +
+    featBonuses +
+    collectMovementSpeedBonus(character?.race) +
+    collectMovementSpeedBonus(character?.classState) +
+    collectMovementSpeedBonus(character?.features) +
+    collectMovementSpeedBonus(character?.item) +
+    collectMovementSpeedBonus(character?.items) +
+    collectMovementSpeedBonus(character?.armor) +
+    collectMovementSpeedBonus(equipmentEntries) +
+    collectMovementSpeedBonus(accessoryEntries) +
+    collectMovementSpeedBonus(character?.conditions) +
+    collectMovementSpeedBonus(character?.statusConditions) +
+    collectMovementSpeedBonus(character?.miscBonuses) +
+    collectMovementSpeedBonus(character?.bonuses);
+
+  return Math.max(0, Math.trunc(Number.isFinite(total) ? total : 0));
+};
+
 const calculateConModifier = (character) => {
   const abilities = calculateEffectiveAbilityScores(character);
   return Math.floor((abilities.con - 10) / 2);

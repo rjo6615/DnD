@@ -368,7 +368,7 @@ test('footer proficiency value updates from centralized level calculation as cha
 test('combat HUD restores proficiency badge between AC and conditions using derived character stats', async () => {
   const character = {
     _id: '1', characterId: '1', characterName: 'Hero', campaign: 'test-campaign',
-    health: 20, currentHp: 20, str: 10, dex: 12, con: 10, int: 10, wis: 10, cha: 10,
+    health: 20, currentHp: 20, speed: 30, str: 10, dex: 12, con: 10, int: 10, wis: 10, cha: 10,
     occupation: [{ Name: 'Fighter', Level: 1 }], conditions: [], classState: {}, feat: [], equipment: {},
     proficiencyBonus: 4,
   };
@@ -384,15 +384,65 @@ test('combat HUD restores proficiency badge between AC and conditions using deri
 
   const statPills = await screen.findByLabelText('Defenses and conditions');
   expect(within(statPills).getByText(/AC 11/)).toBeInTheDocument();
-  expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Pro +4');
+  expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Proficiency +4');
   expect(within(statPills).getByLabelText('Active conditions')).toHaveTextContent('No conditions');
-  expect(statPills).toHaveTextContent(/AC 11\s*Pro \+4\s*No conditions/);
+  expect(within(statPills).getByLabelText('Movement speed')).toHaveTextContent('Move: 30 ft');
+  expect(statPills).toHaveTextContent(/AC 11\s*Proficiency \+4\s*Move: 30 ft\s*No conditions/);
+});
+
+
+test('combat HUD movement badge uses centralized derived speed and preserves compact pills', async () => {
+  const baseCharacter = {
+    _id: '1', characterId: '1', characterName: 'Hero', campaign: 'test-campaign',
+    health: 20, currentHp: 20, speed: 25, str: 10, dex: 12, con: 10, int: 10, wis: 10, cha: 10,
+    occupation: [{ Name: 'Fighter', Level: 1 }], conditions: [], classState: {},
+    feat: [{ speed: 5 }], equipment: {},
+  };
+  let currentCharacter = baseCharacter;
+
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/characters/1')) {
+      return Promise.resolve({ ok: true, json: async () => currentCharacter });
+    }
+    return defaultApiFetchImplementation(url);
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  let statPills = await screen.findByLabelText('Defenses and conditions');
+  expect(statPills).toHaveClass('combat-hud-dock__stat-pills');
+  expect(within(statPills).getByLabelText('Movement speed')).toHaveClass('combat-hud-pill');
+  expect(within(statPills).getByLabelText('Movement speed')).toHaveTextContent('Move: 30 ft');
+  expect(within(statPills).getByText(/AC 11/)).toBeInTheDocument();
+  expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Proficiency +2');
+  expect(within(statPills).getByLabelText('Active conditions')).toHaveTextContent('No conditions');
+});
+
+test('combat HUD movement badge displays zero feet from centralized derived speed', async () => {
+  const character = {
+    _id: '1', characterId: '1', characterName: 'Hero', campaign: 'test-campaign',
+    health: 20, currentHp: 20, speed: 25, str: 10, dex: 12, con: 10, int: 10, wis: 10, cha: 10,
+    occupation: [{ Name: 'Fighter', Level: 1 }], conditions: [{ name: 'Immobilized', movementSpeedBonus: -40 }],
+    classState: {}, feat: [], equipment: {},
+  };
+
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/characters/1')) {
+      return Promise.resolve({ ok: true, json: async () => character });
+    }
+    return defaultApiFetchImplementation(url);
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  const statPills = await screen.findByLabelText('Defenses and conditions');
+  expect(within(statPills).getByLabelText('Movement speed')).toHaveTextContent('Move: 0 ft');
 });
 
 test('combat HUD proficiency badge uses centralized proficiency calculation and preserves active conditions layout', async () => {
   const character = {
     _id: '1', characterId: '1', characterName: 'Hero', campaign: 'test-campaign',
-    health: 20, currentHp: 20, str: 10, dex: 12, con: 10, int: 10, wis: 10, cha: 10,
+    health: 20, currentHp: 20, speed: 30, str: 10, dex: 12, con: 10, int: 10, wis: 10, cha: 10,
     occupation: [{ Name: 'Barbarian', Level: 9 }], conditions: [],
     classState: { barbarian: { rage: { active: true, current: 1 } } }, feat: [], equipment: {},
   };
@@ -407,8 +457,9 @@ test('combat HUD proficiency badge uses centralized proficiency calculation and 
   render(<ZombiesCharacterSheet />);
 
   const statPills = await screen.findByLabelText('Defenses and conditions');
-  expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Pro +4');
-  expect(statPills).toHaveTextContent(/AC 11\s*Pro \+4.*1 Condition/);
+  expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Proficiency +4');
+  expect(within(statPills).getByLabelText('Movement speed')).toHaveTextContent('Move: 30 ft');
+  expect(statPills).toHaveTextContent(/AC 11\s*Proficiency \+4\s*Move: 30 ft.*1 Condition/);
   expect(within(statPills).getByLabelText('Active conditions')).not.toHaveTextContent('Rage');
 });
 

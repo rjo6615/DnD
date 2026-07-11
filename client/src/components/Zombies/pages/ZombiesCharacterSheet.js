@@ -35,6 +35,7 @@ import {
 import {
   calculateCharacterArmorClass,
   calculateCharacterHitPoints,
+  calculateCharacterMovementSpeed,
 } from "../utils/characterMetrics";
 import SpellSelector from "../attributes/SpellSelector";
 import StatusEffectBar from "../attributes/StatusEffectBar";
@@ -5028,6 +5029,10 @@ export default function ZombiesCharacterSheet() {
     () => resolveFooterProficiencyBonus(form, totalLevel),
     [form, totalLevel]
   );
+  const footerMovementSpeed = useMemo(
+    () => calculateCharacterMovementSpeed(form),
+    [form]
+  );
 
   const SPELLCASTING_ABILITIES = {
     cleric: 'wis',
@@ -5891,6 +5896,7 @@ export default function ZombiesCharacterSheet() {
                     <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
                     <span className="combat-hud-pill"><Shield size={16} /> AC {footerArmorClass || '—'}</span>
                     <span className="combat-hud-pill" aria-label="Proficiency bonus">Proficiency {formatSignedBonus(footerProficiencyBonus)}</span>
+                    <span className="combat-hud-pill" aria-label="Movement speed">Move: {footerMovementSpeed} ft</span>
                     <span className="combat-hud-pill" aria-label="Active conditions">
                       {hasActiveFooterConditions ? (
                         <IconButton
