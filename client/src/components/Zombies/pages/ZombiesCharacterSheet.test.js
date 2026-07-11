@@ -162,20 +162,20 @@ describe('footer condition helpers', () => {
 
   test('formats empty, singular, and plural condition labels', () => {
     expect(getFooterConditionLabel(0)).toBe('No conditions');
-    expect(getFooterConditionLabel(1)).toBe('1 condition');
-    expect(getFooterConditionLabel(2)).toBe('2 conditions');
+    expect(getFooterConditionLabel(1)).toBe('1 Condition');
+    expect(getFooterConditionLabel(2)).toBe('2 Conditions');
+    expect(getFooterConditionLabel(3)).toBe('3 Conditions');
   });
 
-  test('summarizes active conditions for rendering inside the existing pill', () => {
-    expect(getFooterConditionSummary([])).toMatchObject({ empty: true, label: 'No conditions' });
-    expect(getFooterConditionSummary([{ id: 'rage', icon: '🔥', name: 'Rage' }])).toMatchObject({
-      empty: false,
-      label: 'Rage',
-      primaryCondition: { id: 'rage', icon: '🔥', name: 'Rage' },
-      overflowCount: 0,
-    });
-    expect(getFooterConditionSummary([{ id: 'rage', icon: '🔥', name: 'Rage' }, { id: 'poisoned', name: 'Poisoned' }])).toMatchObject({ label: 'Rage +1', overflowCount: 1 });
-    expect(getFooterConditionSummary([{ id: 'rage', icon: '🔥', name: 'Rage' }, { id: 'poisoned', name: 'Poisoned' }, { id: 'frightened', name: 'Frightened' }])).toMatchObject({ label: 'Rage +2', overflowCount: 2 });
+  test('summarizes active conditions as a count from the shared collection', () => {
+    expect(getFooterConditionSummary([])).toMatchObject({ empty: true, label: 'No conditions', activeStatusCount: 0, conditions: [] });
+    const one = [{ id: 'rage', icon: '🔥', name: 'Rage' }];
+    const two = [...one, { id: 'poisoned', name: 'Poisoned' }];
+    const three = [...two, { id: 'frightened', name: 'Frightened' }];
+
+    expect(getFooterConditionSummary(one)).toMatchObject({ empty: false, label: '1 Condition', activeStatusCount: 1, conditions: one });
+    expect(getFooterConditionSummary(two)).toMatchObject({ label: '2 Conditions', activeStatusCount: 2, conditions: two });
+    expect(getFooterConditionSummary(three)).toMatchObject({ label: '3 Conditions', activeStatusCount: 3, conditions: three });
   });
 });
 
@@ -212,7 +212,14 @@ test('active conditions sparkle opens modal with shared active entries and close
 
   render(<ZombiesCharacterSheet />);
 
-  expect(await screen.findByText('Rage +2')).toBeInTheDocument();
+  const statPills = await screen.findByLabelText('Defenses and conditions');
+  const activeConditionsBadge = within(statPills).getByLabelText('Active conditions');
+  expect(activeConditionsBadge).toHaveTextContent('3 Conditions');
+  expect(activeConditionsBadge).not.toHaveTextContent('Rage');
+  expect(activeConditionsBadge).not.toHaveTextContent('Reckless Attack');
+  expect(activeConditionsBadge).not.toHaveTextContent('Poisoned');
+  expect(activeConditionsBadge).not.toHaveTextContent(/\+1|\+2/);
+  expect(activeConditionsBadge.querySelector('.combat-hud-condition__icon')).toBeNull();
 
   const trigger = await screen.findByRole('button', { name: /view active conditions/i });
   expect(trigger.querySelector('svg')).not.toBeNull();
@@ -401,7 +408,8 @@ test('combat HUD proficiency badge uses centralized proficiency calculation and 
 
   const statPills = await screen.findByLabelText('Defenses and conditions');
   expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Pro +4');
-  expect(statPills).toHaveTextContent(/AC 11\s*Pro \+4.*Rage/);
+  expect(statPills).toHaveTextContent(/AC 11\s*Pro \+4.*1 Condition/);
+  expect(within(statPills).getByLabelText('Active conditions')).not.toHaveTextContent('Rage');
 });
 
 beforeEach(() => {

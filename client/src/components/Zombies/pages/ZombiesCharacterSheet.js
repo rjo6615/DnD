@@ -554,25 +554,18 @@ const SPELLCASTING_CLASSES = {
 export const getFooterConditionLabel = (count) => {
   const numericCount = Number(count) || 0;
   if (numericCount <= 0) return 'No conditions';
-  return `${numericCount} ${numericCount === 1 ? 'condition' : 'conditions'}`;
+  return `${numericCount} ${numericCount === 1 ? 'Condition' : 'Conditions'}`;
 };
 
 export const getFooterConditionSummary = (conditions) => {
   const activeConditions = Array.isArray(conditions) ? conditions.filter(Boolean) : [];
-  if (activeConditions.length === 0) {
-    return { empty: true, label: 'No conditions', conditions: [] };
-  }
-
-  const [firstCondition, ...remainingConditions] = activeConditions;
-  const name = firstCondition?.name || firstCondition?.label || firstCondition?.id || 'Condition';
-  const overflowCount = remainingConditions.length;
+  const activeStatusCount = activeConditions.length;
 
   return {
-    empty: false,
-    label: overflowCount > 0 ? `${name} +${overflowCount}` : name,
+    empty: activeStatusCount === 0,
+    label: getFooterConditionLabel(activeStatusCount),
     conditions: activeConditions,
-    primaryCondition: firstCondition,
-    overflowCount,
+    activeStatusCount,
   };
 };
 
@@ -5910,14 +5903,7 @@ export default function ZombiesCharacterSheet() {
                       ) : (
                         <Sparkles size={16} aria-hidden="true" />
                       )}
-                      {footerConditionSummary.empty ? (
-                        footerConditionSummary.label
-                      ) : (
-                        <span className="combat-hud-condition" style={{ '--hud-condition-accent': footerConditionSummary.primaryCondition?.color }} title={footerConditionSummary.conditions.map((condition) => condition?.name || condition?.label || condition?.id || 'Condition').join(', ')}>
-                          <span className="combat-hud-condition__icon" aria-hidden="true">{footerConditionSummary.primaryCondition?.icon || '✦'}</span>
-                          <span className="combat-hud-condition__label">{footerConditionSummary.label}</span>
-                        </span>
-                      )}
+                      <span className="combat-hud-condition__label">{footerConditionSummary.label}</span>
                     </span>
                   </div>
                 </Panel>
