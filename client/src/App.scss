@@ -7816,6 +7816,11 @@ h1 {
   font-weight: 800;
   line-height: 1;
   color: rgba(247, 239, 224, 0.74);
+  text-align: center;
+}
+
+.combat-hud-resource-tile__name-line {
+  display: block;
 }
 
 .combat-hud-resource-tile__value {

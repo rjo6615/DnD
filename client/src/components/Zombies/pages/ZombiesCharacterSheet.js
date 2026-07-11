@@ -571,7 +571,7 @@ export const buildFooterConditions = (character, normalizeCollection) => {
   const conditions = normalize(character?.conditions || character?.statusConditions);
   const recklessActive = getRecklessAttackState(character).active;
   const withReckless = recklessActive && !conditions.some((condition) => String(condition?.name || condition?.label || condition?.id || '').toLowerCase() === 'reckless attack')
-    ? [{ id: 'reckless-attack-effect', icon: '⚔️', name: 'Reckless Attack', color: '#f59e0b' }, ...conditions]
+    ? [{ id: 'reckless-attack-effect', icon: '⚔️', name: 'Reckless Attack', displayLines: ['Reckless', 'Attack'], color: '#f59e0b' }, ...conditions]
     : conditions;
   if (!getRageState(character).active) {
     return withReckless;
@@ -5319,7 +5319,7 @@ export default function ZombiesCharacterSheet() {
     const rageState = getRageState(form);
     pushResource({ id: 'rage', icon: '🔥', name: 'Rage', current: rageState.current, max: rageState.max, color: '#f0733f', active: rageState.active });
     const recklessState = getRecklessAttackState(form);
-    if (getBarbarianLevel(form) >= 2) pushResource({ id: 'reckless-attack', icon: '⚔️', name: 'Reckless Attack', current: recklessState.active ? 'On' : 'Off', max: '∞', color: '#f59e0b', active: recklessState.active, disabled: recklessState.firstAttackMade && !recklessState.active });
+    if (getBarbarianLevel(form) >= 2 && recklessState.active) pushResource({ id: 'reckless-attack', icon: '⚔️', name: 'Reckless Attack', displayLines: ['Reckless', 'Attack'], current: recklessState.active ? 'On' : 'Off', max: '∞', color: '#f59e0b', active: recklessState.active });
     if (classLevels.bard) pushResource({ id: 'bardic-inspiration', icon: '🎵', name: 'Bardic Inspiration', current: abilityModifier(form?.cha), max: abilityModifier(form?.cha), color: '#d7b46a' });
     if (classLevels.sorcerer) pushResource({ id: 'sorcery-points', icon: '✦', name: 'Sorcery Points', current: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, max: classLevels.sorcerer >= 2 ? classLevels.sorcerer : 0, color: '#b85cff' });
     if (classLevels.cleric) pushResource({ id: 'channel-divinity', icon: '☀', name: 'Channel Divinity', current: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, max: classLevels.cleric >= 18 ? 3 : classLevels.cleric >= 6 ? 2 : classLevels.cleric >= 2 ? 1 : 0, color: '#f3d98a' });
@@ -5967,8 +5967,10 @@ export default function ZombiesCharacterSheet() {
                             disabled={(!isFocusResource && !isRageResource && !isRecklessAttackResource) || resource.disabled || (isRageResource && !resource.active && (Number(resource.current) <= 0 || hasHeavyArmorEquipped(form)))}
                           >
                             <span className="combat-hud-resource-tile__icon" aria-hidden="true">{resource.icon}</span>
-                            <span className="combat-hud-resource-tile__name">{resource.name}</span>
-                            <span className="combat-hud-resource-tile__value">{resource.current ?? '—'}/{resource.max ?? '—'}</span>
+                            <span className="combat-hud-resource-tile__name">{(Array.isArray(resource.displayLines) && resource.displayLines.length > 0 ? resource.displayLines : [resource.name]).map((line, lineIndex) => (<span className="combat-hud-resource-tile__name-line" key={`${resource.id || resource.name}-line-${lineIndex}`}>{line}</span>))}</span>
+                            {!Array.isArray(resource.displayLines) && (
+                              <span className="combat-hud-resource-tile__value">{resource.current ?? '—'}/{resource.max ?? '—'}</span>
+                            )}
                           </button>
                         );
                       })}
