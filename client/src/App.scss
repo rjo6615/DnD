@@ -7818,6 +7818,11 @@ h1 {
   color: rgba(247, 239, 224, 0.74);
 }
 
+.combat-hud-resource-tile__name-line {
+  display: block;
+  text-align: center;
+}
+
 .combat-hud-resource-tile__value {
   padding-bottom: 0;
 }
