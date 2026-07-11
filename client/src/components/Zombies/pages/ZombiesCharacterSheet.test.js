@@ -387,7 +387,9 @@ test('combat HUD restores proficiency badge between AC and conditions using deri
   expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Proficiency +4');
   expect(within(statPills).getByLabelText('Active conditions')).toHaveTextContent('No conditions');
   expect(within(statPills).getByLabelText('Movement speed')).toHaveTextContent('Move: 30 ft');
-  expect(statPills).toHaveTextContent(/AC 11\s*Proficiency \+4\s*Move: 30 ft\s*No conditions/);
+  expect(within(statPills).getByLabelText('Initiative modifier')).toHaveTextContent('Int: +1');
+  expect(within(statPills).getByLabelText('Passive Perception')).toHaveTextContent('Passive Perception: 10');
+  expect(statPills).toHaveTextContent(/AC 11\s*Proficiency \+4\s*Move: 30 ft\s*Int: \+1\s*No conditions\s*Passive Perception: 10/);
 });
 
 
@@ -416,6 +418,32 @@ test('combat HUD movement badge uses centralized derived speed and preserves com
   expect(within(statPills).getByText(/AC 11/)).toBeInTheDocument();
   expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Proficiency +2');
   expect(within(statPills).getByLabelText('Active conditions')).toHaveTextContent('No conditions');
+  expect(within(statPills).getByLabelText('Initiative modifier')).toHaveTextContent('Int: +1');
+  expect(within(statPills).getByLabelText('Passive Perception')).toHaveTextContent('Passive Perception: 10');
+});
+
+test('combat HUD displays initiative and passive perception from derived stats', async () => {
+  const character = {
+    _id: '1', characterId: '1', characterName: 'Scout', campaign: 'test-campaign',
+    health: 20, currentHp: 20, speed: 30, str: 10, dex: 16, con: 10, int: 10, wis: 14, cha: 10,
+    occupation: [{ Name: 'Rogue', Level: 5 }], conditions: [], classState: {},
+    feat: [{ initiative: 1 }], equipment: {}, skills: { perception: { proficient: true, expertise: true } },
+  };
+
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/characters/1')) {
+      return Promise.resolve({ ok: true, json: async () => character });
+    }
+    return defaultApiFetchImplementation(url);
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  const statPills = await screen.findByLabelText('Defenses and conditions');
+  expect(within(statPills).getByLabelText('Movement speed')).toHaveTextContent('Move: 30 ft');
+  expect(within(statPills).getByLabelText('Initiative modifier')).toHaveTextContent('Int: +4');
+  expect(within(statPills).getByLabelText('Active conditions')).toHaveTextContent('No conditions');
+  expect(within(statPills).getByLabelText('Passive Perception')).toHaveTextContent('Passive Perception: 18');
 });
 
 test('combat HUD movement badge displays zero feet from centralized derived speed', async () => {
@@ -459,7 +487,7 @@ test('combat HUD proficiency badge uses centralized proficiency calculation and 
   const statPills = await screen.findByLabelText('Defenses and conditions');
   expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Proficiency +4');
   expect(within(statPills).getByLabelText('Movement speed')).toHaveTextContent('Move: 30 ft');
-  expect(statPills).toHaveTextContent(/AC 11\s*Proficiency \+4\s*Move: 30 ft.*1 Condition/);
+  expect(statPills).toHaveTextContent(/AC 11\s*Proficiency \+4\s*Move: 30 ft\s*Int: \+1.*1 Condition.*Passive Perception: 10/);
   expect(within(statPills).getByLabelText('Active conditions')).not.toHaveTextContent('Rage');
 });
 

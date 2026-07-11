@@ -1,3 +1,4 @@
+import proficiencyBonus from '../../../utils/proficiencyBonus';
 import { SKILLS } from '../skillSchema';
 
 export const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
@@ -162,19 +163,13 @@ const getHighestOverride = (candidates) => {
   }, null);
 };
 
-export const calculateCharacterInitiative = (character) => {
-  if (!character || typeof character !== 'object') {
+export const calculateAbilityModifier = (character, abilityKey) => {
+  if (!character || typeof character !== 'object' || !STAT_KEYS.includes(abilityKey)) {
     return 0;
   }
 
-  const baseStats = STAT_KEYS.reduce((acc, key) => {
-    acc[key] = toNumber(character[key]);
-    return acc;
-  }, {});
-
-  const { bonuses: itemBonuses, overrides: itemOverrides } = aggregateStatEffects(
-    character?.item
-  );
+  const base = toNumber(character[abilityKey]);
+  const { bonuses: itemBonuses, overrides: itemOverrides } = aggregateStatEffects(character?.item);
   const accessorySource = Array.isArray(character?.accessories)
     ? character.accessories
     : Array.isArray(character?.accessory)
@@ -184,21 +179,87 @@ export const calculateCharacterInitiative = (character) => {
     accessorySource
   );
   const featAbilityBonuses = collectFeatAbilityBonuses(character?.feat);
-  const raceAbilityBonuses = STAT_KEYS.reduce((acc, key) => {
-    acc[key] = toNumber(character?.race?.abilities?.[key]);
-    return acc;
-  }, createEmptyStatMap());
+  const raceAbilityBonus = toNumber(character?.race?.abilities?.[abilityKey]);
 
-  const totalDex =
-    baseStats.dex +
-    itemBonuses.dex +
-    accessoryBonuses.dex +
-    featAbilityBonuses.dex +
-    raceAbilityBonuses.dex;
+  const total =
+    base +
+    itemBonuses[abilityKey] +
+    accessoryBonuses[abilityKey] +
+    featAbilityBonuses[abilityKey] +
+    raceAbilityBonus;
+  const override = getHighestOverride([itemOverrides?.[abilityKey], accessoryOverrides?.[abilityKey]]);
+  const effective = override !== null && override > total ? override : total;
 
-  const dexOverride = getHighestOverride([itemOverrides?.dex, accessoryOverrides?.dex]);
-  const effectiveDex = dexOverride !== null && dexOverride > totalDex ? dexOverride : totalDex;
-  const dexMod = Math.floor((effectiveDex - 10) / 2);
+  return Math.floor((effective - 10) / 2);
+};
+
+const getCharacterTotalLevel = (character) =>
+  (character?.occupation || []).reduce((sum, occupation) => sum + (Number(occupation?.Level) || 0), 0);
+
+const getSkillState = (character, skillKey) => {
+  const characterSkill = character?.skills?.[skillKey] || {};
+  const raceSkill = character?.race?.skills?.[skillKey] || {};
+  const backgroundSkill = character?.background?.skills?.[skillKey] || {};
+
+  const proficient = Boolean(
+    characterSkill.proficient || raceSkill.proficient || backgroundSkill.proficient
+  );
+  const expertise = Boolean(
+    characterSkill.expertise || raceSkill.expertise || backgroundSkill.expertise
+  );
+
+  return { proficient, expertise };
+};
+
+export const calculateCharacterSkillModifier = (character, skillKey, totalLevel) => {
+  const skill = SKILLS.find((entry) => entry.key === skillKey);
+  if (!skill) {
+    return 0;
+  }
+
+  const resolvedTotalLevel = Number.isFinite(Number(totalLevel))
+    ? Number(totalLevel)
+    : getCharacterTotalLevel(character);
+  const providedProficiency = Number(character?.proficiencyBonus);
+  const profBonus = Number.isFinite(providedProficiency)
+    ? providedProficiency
+    : proficiencyBonus(resolvedTotalLevel);
+  const { proficient, expertise } = getSkillState(character, skillKey);
+  const proficiencyMultiplier = expertise ? 2 : proficient ? 1 : 0;
+
+  const equippedItems = character?.equipment && typeof character.equipment === 'object'
+    ? Object.values(character.equipment).filter(Boolean)
+    : Array.isArray(character?.item)
+      ? character.item.filter(Boolean)
+      : [];
+  const itemBonus = equippedItems.reduce(
+    (sum, item) => sum + toNumber(item?.skillBonuses?.[skillKey]),
+    0
+  );
+  const featBonus = (Array.isArray(character?.feat) ? character.feat : []).reduce(
+    (sum, feat) => sum + toNumber(feat?.[skillKey]),
+    0
+  );
+  const raceBonus = toNumber(character?.race?.[skillKey]);
+
+  return (
+    calculateAbilityModifier(character, skill.ability) +
+    profBonus * proficiencyMultiplier +
+    itemBonus +
+    featBonus +
+    raceBonus
+  );
+};
+
+export const calculatePassivePerception = (character, totalLevel) =>
+  10 + calculateCharacterSkillModifier(character, 'perception', totalLevel);
+
+export const calculateCharacterInitiative = (character) => {
+  if (!character || typeof character !== 'object') {
+    return 0;
+  }
+
+  const dexMod = calculateAbilityModifier(character, 'dex');
 
   const featNumericBonuses = collectFeatNumericBonuses(character?.feat);
 

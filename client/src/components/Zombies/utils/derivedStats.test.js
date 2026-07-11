@@ -1,4 +1,4 @@
-import { calculateCharacterInitiative } from './derivedStats';
+import { calculateCharacterInitiative, calculatePassivePerception } from './derivedStats';
 
 describe('calculateCharacterInitiative', () => {
   it('combines dexterity modifier with feat initiative bonuses', () => {
@@ -40,5 +40,31 @@ describe('calculateCharacterInitiative', () => {
 
     // Only the owned accessory should contribute, resulting in dex 12 -> modifier +1
     expect(calculateCharacterInitiative(character)).toBe(1);
+  });
+});
+
+
+describe('calculatePassivePerception', () => {
+  it('uses wisdom modifier and perception proficiency from the shared skill modifier system', () => {
+    const character = {
+      wis: 16,
+      occupation: [{ Level: 5 }],
+      skills: { perception: { proficient: true } },
+    };
+
+    expect(calculatePassivePerception(character)).toBe(16);
+  });
+
+  it('respects perception expertise and skill bonuses automatically', () => {
+    const character = {
+      wis: 14,
+      proficiencyBonus: 3,
+      skills: { perception: { proficient: true, expertise: true } },
+      equipment: { amulet: { skillBonuses: { perception: 1 } } },
+      feat: [{ perception: 2 }],
+      race: { perception: 1 },
+    };
+
+    expect(calculatePassivePerception(character)).toBe(22);
   });
 });
