@@ -15,6 +15,7 @@ import {
   resolveSavingThrowRollMode,
   declareRecklessAttack,
   endRecklessAttack,
+  getRecklessAttackAdvantageSources,
   getRecklessAttackState,
   markBarbarianAttackRoll,
   resolveAttackRollMode,
@@ -226,14 +227,15 @@ describe("barbarian level 2 features", () => {
     expect(resolveSavingThrowRollMode(barbarian2(), "dex", { advantageSources: ["Help"] })).toMatchObject({ mode: "advantage", advantageSources: ["Help", "Danger Sense"] });
   });
 
-  it("declares Reckless Attack before the first attack, does not spend rage, and resets", () => {
+  it("toggles Reckless Attack manually, does not spend rage, and does not track first attacks", () => {
     const declared = declareRecklessAttack(barbarian2());
     expect(getRecklessAttackState(declared)).toMatchObject({ active: true, declared: true, firstAttackMade: false });
     expect(getRageState(declared).current).toBe(2);
     const attacked = markBarbarianAttackRoll(declared);
-    expect(getRecklessAttackState(attacked).firstAttackMade).toBe(true);
+    expect(attacked).toBe(declared);
+    expect(getRecklessAttackState(attacked).firstAttackMade).toBe(false);
+    expect(getRecklessAttackAdvantageSources(attacked, { ability: "str", type: "weapon attack" })).toEqual(["Reckless Attack"]);
     const reset = endRecklessAttack(attacked);
-    expect(declareRecklessAttack(markBarbarianAttackRoll(barbarian2()))).toMatchObject(markBarbarianAttackRoll(barbarian2()));
     expect(getRecklessAttackState(reset)).toMatchObject({ active: false, firstAttackMade: false });
   });
 
