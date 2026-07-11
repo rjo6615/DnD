@@ -115,7 +115,7 @@ jest.mock('../attributes/Features', () => (props) => {
   return null;
 });
 
-import ZombiesCharacterSheet, { buildFooterConditions, getFooterConditionLabel, getFooterConditionSummary } from './ZombiesCharacterSheet';
+import ZombiesCharacterSheet, { buildFooterConditions, getFooterConditionLabel, getFooterConditionSummary, resolveFooterProficiencyBonus } from './ZombiesCharacterSheet';
 
 describe('footer condition helpers', () => {
   const normalize = (value) => (Array.isArray(value) ? value : []);
@@ -348,6 +348,61 @@ const defaultApiFetchImplementation = (url) => {
 
   return Promise.reject(new Error(`Unexpected apiFetch call: ${url}`));
 };
+
+
+test('footer proficiency value updates from centralized level calculation as character level changes', () => {
+  expect(resolveFooterProficiencyBonus({}, 4)).toBe(2);
+  expect(resolveFooterProficiencyBonus({}, 5)).toBe(3);
+  expect(resolveFooterProficiencyBonus({}, 9)).toBe(4);
+  expect(resolveFooterProficiencyBonus({}, 13)).toBe(5);
+  expect(resolveFooterProficiencyBonus({}, 17)).toBe(6);
+});
+
+test('combat HUD restores proficiency badge between AC and conditions using derived character stats', async () => {
+  const character = {
+    _id: '1', characterId: '1', characterName: 'Hero', campaign: 'test-campaign',
+    health: 20, currentHp: 20, str: 10, dex: 12, con: 10, int: 10, wis: 10, cha: 10,
+    occupation: [{ Name: 'Fighter', Level: 1 }], conditions: [], classState: {}, feat: [], equipment: {},
+    proficiencyBonus: 4,
+  };
+
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/characters/1')) {
+      return Promise.resolve({ ok: true, json: async () => character });
+    }
+    return defaultApiFetchImplementation(url);
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  const statPills = await screen.findByLabelText('Defenses and conditions');
+  expect(within(statPills).getByText(/AC 11/)).toBeInTheDocument();
+  expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Pro +4');
+  expect(within(statPills).getByLabelText('Active conditions')).toHaveTextContent('No conditions');
+  expect(statPills).toHaveTextContent(/AC 11\s*Pro \+4\s*No conditions/);
+});
+
+test('combat HUD proficiency badge uses centralized proficiency calculation and preserves active conditions layout', async () => {
+  const character = {
+    _id: '1', characterId: '1', characterName: 'Hero', campaign: 'test-campaign',
+    health: 20, currentHp: 20, str: 10, dex: 12, con: 10, int: 10, wis: 10, cha: 10,
+    occupation: [{ Name: 'Barbarian', Level: 9 }], conditions: [],
+    classState: { barbarian: { rage: { active: true, current: 1 } } }, feat: [], equipment: {},
+  };
+
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/characters/1')) {
+      return Promise.resolve({ ok: true, json: async () => character });
+    }
+    return defaultApiFetchImplementation(url);
+  });
+
+  render(<ZombiesCharacterSheet />);
+
+  const statPills = await screen.findByLabelText('Defenses and conditions');
+  expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Pro +4');
+  expect(statPills).toHaveTextContent(/AC 11\s*Pro \+4.*Rage/);
+});
 
 beforeEach(() => {
   apiFetch.mockReset();
