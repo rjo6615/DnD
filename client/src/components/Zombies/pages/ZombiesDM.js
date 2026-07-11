@@ -7016,7 +7016,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                               return (
                                 <tr
                                   key={resolvedRowId || playerName}
-                                  className={isActive ? 'table-success text-dark' : undefined}
+                                  className={isActive ? 'table-success text-dark combat-tracker__active-row' : undefined}
                                   {...rowDataAttributes}
                                 >
                                   <td className="fw-semibold">{displayName}</td>

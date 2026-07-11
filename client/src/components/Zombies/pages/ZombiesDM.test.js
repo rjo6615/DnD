@@ -1914,6 +1914,10 @@ describe('ZombiesDM AI generation', () => {
         screen.getByRole('status', { name: /Current Turn: Hero/i })
       ).toBeInTheDocument(),
     );
+    await waitFor(() =>
+      expect(heroRow).toHaveClass('combat-tracker__active-row')
+    );
+    expect(heroSetTurnButton).toHaveClass('btn-success');
 
     const nextTurnButton = screen.getByRole('button', { name: /Next Turn/i });
     await userEvent.click(nextTurnButton);
