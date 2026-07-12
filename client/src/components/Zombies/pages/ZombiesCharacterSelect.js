@@ -263,11 +263,22 @@ const CharacterCreationWizard = ({ form, updateForm, races, backgrounds, occupat
     return true;
   };
   const goNext = () => { if (validateStep()) setStep(Math.min(step + 1, MANUAL_STEPS.length - 1)); };
-  const submit = (e) => { e.preventDefault(); if (validateStep() && !Object.keys(errors).length) onSubmit(e); else setTouched((p) => ({...p, ...Object.fromEntries(Object.keys(errors).map((k) => [k, true]))})); };
+  const createCharacter = (e) => {
+    e.preventDefault();
+    if (current.id !== "review") {
+      goNext();
+      return;
+    }
+    if (validateStep() && !Object.keys(errors).length) {
+      onSubmit(e);
+    } else {
+      setTouched((p) => ({ ...p, ...Object.fromEntries(Object.keys(errors).map((k) => [k, true])) }));
+    }
+  };
   const selectRaceKey = Object.keys(races).find((key) => races[key]?.name === form.race?.name) || "";
   const selectBackgroundKey = Object.keys(backgrounds).find((key) => backgrounds[key]?.name === form.background?.name) || "";
 
-  return <form className="character-wizard" onSubmit={submit} noValidate>
+  return <form className="character-wizard" onSubmit={(e) => e.preventDefault()} noValidate>
     <header className="character-wizard__header"><div><p className="character-select-kicker">Hero Forge</p><h2>Create Character</h2><span>Step {step + 1} of {MANUAL_STEPS.length} · {current.title}</span></div><button type="button" onClick={onClose} aria-label="Close character creator">×</button><div className="character-wizard__mobile-progress"><span style={{ width: `${((step + 1) / MANUAL_STEPS.length) * 100}%` }} /></div></header>
     <div className="character-wizard__shell"><aside className="character-wizard__sidebar"><div className="character-wizard__portrait">{(form.characterName || "RT").slice(0,2).toUpperCase()}</div><nav aria-label="Character creation steps">{MANUAL_STEPS.map((s, i) => <button type="button" key={s.id} className={`${i===step ? "is-current" : ""} ${i<step ? "is-complete" : ""} ${stepHasError(s.id) ? "has-error" : ""}`} onClick={() => i <= step ? setStep(i) : null}><span>{i < step ? "✓" : i + 1}</span><strong>{s.title}</strong><small>{s.helper}</small></button>)}</nav><div className="character-wizard__summary"><strong>{form.characterName || "Unnamed Hero"}</strong><span>{form.race?.name || "Ancestry pending"}</span><span>{selectedOccupation?.name || "Class pending"}</span></div></aside>
     <main className="character-wizard__content"><section className="character-wizard-step"><p className="character-select-kicker">{current.title}</p><h3>{current.helper}</h3>{Object.keys(errors).some((k) => stepFields[current.id].includes(k) && touched[k]) && <div className="character-wizard-error-summary">Review the highlighted fields before continuing.</div>}
@@ -278,7 +289,7 @@ const CharacterCreationWizard = ({ form, updateForm, races, backgrounds, occupat
       {current.id === "physical" && <div className="character-wizard-fields-grid"><CharacterFormField id="manual-age" label="Age" error={touched.age && errors.age}><input id="manual-age" name="age" type="number" min="0" value={form.age || ""} onChange={(e)=>updateForm({age:e.target.value})} onBlur={()=>setTouched((p)=>({...p,age:true}))} /></CharacterFormField><CharacterFormField id="manual-sex" label="Sex / Gender" helper="Free text to match your table." ><input id="manual-sex" name="sex" value={form.sex || ""} onChange={(e)=>updateForm({sex:e.target.value})} /></CharacterFormField><CharacterFormField id="manual-size" label="Size" error={touched.size && errors.size}><select id="manual-size" name="size" value={form.size || ""} onChange={(e)=>updateForm({size:e.target.value})} onBlur={()=>setTouched((p)=>({...p,size:true}))}><option value="" disabled>Select size</option>{sizeOptions.map((o)=><option key={o} value={o}>{o}</option>)}</select></CharacterFormField><CharacterFormField id="manual-weight" label="Weight" error={touched.weight && errors.weight}><input id="manual-weight" name="weight" type="number" min="0" value={form.weight || ""} onChange={(e)=>updateForm({weight:e.target.value})} onBlur={()=>setTouched((p)=>({...p,weight:true}))} /></CharacterFormField></div>}
       {current.id === "abilities" && <div className="ability-score-grid">{STATS.map((stat)=><AbilityScoreCard key={stat.key} stat={stat} value={form[stat.key] || ""} error={touched[stat.key] && errors[stat.key]} onChange={(value)=>updateForm({[stat.key]:value})} />)}</div>}
       {current.id === "review" && <div className="character-review"><h4>{form.characterName || "Unnamed Hero"}</h4>{[["Ancestry", form.race?.name], ["Class", selectedOccupation?.name], ["Background", form.background?.name], ["Size", form.size], ["Age", form.age || "—"], ["Sex / Gender", form.sex || "—"], ["Weight", form.weight || "—"]].map(([label,value])=><div key={label}><span>{label}</span><strong>{value || "Missing"}</strong></div>)}<div className="character-review__abilities">{STATS.map((s)=><span key={s.key}>{s.key.toUpperCase()} <strong>{form[s.key] || "—"}</strong></span>)}</div>{Object.keys(errors).length > 0 && <div className="character-wizard-error-summary">Complete missing sections before creating this character.</div>}</div>}
-    </section></main></div><footer className="character-wizard__actions"><Button type="button" variant="secondary" onClick={() => step ? setStep(step - 1) : onClose()}>{step ? "Back" : "Cancel"}</Button>{step < MANUAL_STEPS.length - 1 ? <Button type="button" onClick={goNext}>Continue</Button> : <Button type="submit" disabled={Object.keys(errors).length > 0}>Create Character</Button>}</footer></form>;
+    </section></main></div><footer className="character-wizard__actions"><Button type="button" variant="secondary" onClick={() => step ? setStep(step - 1) : onClose()}>{step ? "Back" : "Cancel"}</Button>{step < MANUAL_STEPS.length - 1 ? <Button type="button" onClick={goNext}>Continue</Button> : <Button type="button" onClick={createCharacter} disabled={Object.keys(errors).length > 0}>Create Character</Button>}</footer></form>;
 };
 
 export default function RecordList() {
