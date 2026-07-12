@@ -18,6 +18,11 @@ import {
   getRecklessAttackState,
   markBarbarianAttackRoll,
   resolveAttackRollMode,
+  getAvailableBarbarianSubclasses,
+  getActiveBarbarianSubclassFeatures,
+  canUsePrimalKnowledgeForSkill,
+  getFrenzyDamageDice,
+  markFrenzyUsed,
 } from "./barbarian";
 
 const barbarian = (extra = {}) => ({
@@ -247,5 +252,47 @@ describe("barbarian level 2 features", () => {
     expect(resolveAttackRollMode(declared, { ability: "str", type: "weapon attack" }, { disadvantageSources: ["Prone"] }).mode).toBe("normal");
     expect(resolveAttackRollMode(declared, { ability: "str", type: "weapon attack" }, { advantageSources: ["Help"] }).mode).toBe("advantage");
     expect(resolveAttackRollMode(endRecklessAttack(declared), { ability: "str", type: "weapon attack" }).mode).toBe("normal");
+  });
+});
+
+describe("barbarian level 3 features", () => {
+  const barbarian3 = (extra = {}) => barbarian({
+    occupation: [{ Name: "Barbarian", Level: 3 }],
+    classState: { barbarian: { subclass: { id: "path-of-the-berserker", name: "Path of the Berserker" } } },
+    ...extra,
+  });
+
+  it("gates subclass selection and active subclass features by Barbarian level", () => {
+    expect(getAvailableBarbarianSubclasses(barbarian({ occupation: [{ Name: "Barbarian", Level: 2 }] }))).toEqual([]);
+    expect(getAvailableBarbarianSubclasses(barbarian3()).map((s) => s.name)).toContain("Path of the Berserker");
+    expect(getActiveBarbarianSubclassFeatures(barbarian3()).map((f) => f.name)).toEqual(["Frenzy"]);
+    expect(getAvailableBarbarianFeatures(barbarian3()).map((f) => f.name)).toEqual(expect.arrayContaining(["Primal Knowledge", "Barbarian Subclass", "Frenzy"]));
+    expect(getActiveBarbarianSubclassFeatures(barbarian({ occupation: [{ Name: "Barbarian", Level: 5 }], classState: { barbarian: { subclass: { id: "path-of-the-berserker" } } } })).map((f) => f.name)).not.toContain("Mindless Rage");
+  });
+
+  it("exposes Primal Knowledge alternate checks only for eligible raging skills", () => {
+    const raging = barbarian3({ classState: { barbarian: { rage: { active: true, current: 1 }, subclass: { id: "path-of-the-berserker" } } } });
+    expect(canUsePrimalKnowledgeForSkill(raging, "stealth")).toBe(true);
+    expect(canUsePrimalKnowledgeForSkill(raging, "perception")).toBe(true);
+    expect(canUsePrimalKnowledgeForSkill(raging, "athletics")).toBe(false);
+    expect(canUsePrimalKnowledgeForSkill(barbarian3(), "stealth")).toBe(false);
+    expect(canUsePrimalKnowledgeForSkill(barbarian({ occupation: [{ Name: "Barbarian", Level: 2 }], classState: { barbarian: { rage: { active: true, current: 1 } } } }), "stealth")).toBe(false);
+  });
+
+  it("resolves Frenzy eligibility and per-turn reset", () => {
+    const ragingReckless = declareRecklessAttack(activateRage(barbarian3()));
+    expect(getFrenzyDamageDice(ragingReckless, { ability: "str", type: "weapon attack", dealsDamage: true })).toMatchObject({ label: "Reckless Attack", count: 2, sides: 6 });
+    expect(getFrenzyDamageDice(ragingReckless, { ability: "dex", type: "weapon attack", dealsDamage: true })).toBeNull();
+    expect(getFrenzyDamageDice(ragingReckless, { ability: "str", type: "spell attack", isSpellAttack: true })).toBeNull();
+    expect(getFrenzyDamageDice(ragingReckless, { ability: "str", type: "weapon attack", hit: false, dealsDamage: true })).toBeNull();
+    expect(getFrenzyDamageDice(markFrenzyUsed(ragingReckless), { ability: "str", type: "weapon attack", dealsDamage: true })).toBeNull();
+    expect(getFrenzyDamageDice(endRecklessAttack(markFrenzyUsed(ragingReckless)), { ability: "str", type: "weapon attack", dealsDamage: true })).toBeNull();
+  });
+
+  it("rejects Frenzy for non-Berserkers and before level 3", () => {
+    const nonBerserker = declareRecklessAttack(activateRage(barbarian({ occupation: [{ Name: "Barbarian", Level: 3 }], classState: { barbarian: { subclass: { id: "other" } } } })));
+    expect(getFrenzyDamageDice(nonBerserker, { ability: "str", type: "weapon attack", dealsDamage: true })).toBeNull();
+    const lowLevel = declareRecklessAttack(activateRage(barbarian({ occupation: [{ Name: "Barbarian", Level: 2 }], classState: { barbarian: { subclass: { id: "path-of-the-berserker" } } } })));
+    expect(getFrenzyDamageDice(lowLevel, { ability: "str", type: "weapon attack", dealsDamage: true })).toBeNull();
   });
 });
