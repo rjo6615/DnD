@@ -10822,49 +10822,53 @@ body.character-select-scroll-enabled {
   }
 }
 
-/* DM map viewport parity: match the character-sheet background map sizing. */
+/* DM map viewport parity: match the character sheet's full-width map surface without stretching. */
 .zombies-dm-page__map-surface {
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
 }
 
 .zombies-dm-page__map-board.campaign-map-board {
-  position: absolute;
-  top: 50%;
-  left: 50%;
+  position: relative;
   display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-  width: max(100vw, calc(100dvh * var(--campaign-map-stage-ratio-number, 1)));
-  height: max(100dvh, calc(100vw / var(--campaign-map-stage-ratio-number, 1)));
-  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  min-height: 100dvh;
   padding: 0;
-  transform: translate(-50%, -50%);
   overflow: hidden;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .zombies-dm-page__map-board .campaign-map-board__stage {
   position: relative;
-  left: auto;
-  flex: 1 1 auto;
-  width: 100%;
+  flex: 0 0 auto;
+  width: max(100vw, calc(100dvh * var(--campaign-map-stage-ratio-number, 1)));
   max-width: none;
-  height: 100% !important;
+  height: auto !important;
   min-height: 0 !important;
   margin: 0;
-  transform: none;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .zombies-dm-page__map-board .campaign-map-board__image-wrapper {
+  flex: 0 0 auto;
   width: 100%;
-  height: 100% !important;
+  height: auto !important;
   min-height: 0 !important;
-  aspect-ratio: auto;
+  aspect-ratio: var(--campaign-map-stage-aspect-ratio, 1 / 1);
   border-radius: 0;
+  background: transparent;
 }
 
 .zombies-dm-page__map-board .campaign-map-board__image {
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
 }
 
