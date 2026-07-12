@@ -422,6 +422,39 @@ test('combat HUD movement badge uses centralized derived speed and preserves com
   expect(within(statPills).queryByLabelText('Passive Perception')).not.toBeInTheDocument();
 });
 
+test('combat HUD movement badge reflects Barbarian Fast Movement and heavy armor suppression', async () => {
+  const baseCharacter = {
+    _id: '1', characterId: '1', characterName: 'Sprinter', campaign: 'test-campaign',
+    health: 20, currentHp: 20, speed: 30, str: 10, dex: 12, con: 10, int: 10, wis: 10, cha: 10,
+    occupation: [{ Name: 'Barbarian', Level: 5 }], conditions: [], classState: {},
+    feat: [], equipment: {},
+  };
+  const heavyArmorCharacter = {
+    ...baseCharacter,
+    equipment: { chest: { name: 'Plate', category: 'Heavy Armor', source: 'armor', acBonus: 8, maxDex: 0 } },
+  };
+  let currentCharacter = baseCharacter;
+
+  apiFetch.mockImplementation((url) => {
+    if (typeof url === 'string' && url.includes('/characters/1')) {
+      return Promise.resolve({ ok: true, json: async () => currentCharacter });
+    }
+    return defaultApiFetchImplementation(url);
+  });
+
+  const { unmount } = render(<ZombiesCharacterSheet />);
+
+  let statPills = await screen.findByLabelText('Defenses and conditions');
+  expect(within(statPills).getByLabelText('Movement speed')).toHaveTextContent('Move: 40 ft');
+
+  unmount();
+  currentCharacter = heavyArmorCharacter;
+  render(<ZombiesCharacterSheet />);
+
+  statPills = await screen.findByLabelText('Defenses and conditions');
+  expect(within(statPills).getByLabelText('Movement speed')).toHaveTextContent('Move: 30 ft');
+});
+
 test('combat HUD displays initiative from derived stats without passive perception', async () => {
   const character = {
     _id: '1', characterId: '1', characterName: 'Scout', campaign: 'test-campaign',
@@ -486,8 +519,8 @@ test('combat HUD proficiency badge uses centralized proficiency calculation and 
 
   const statPills = await screen.findByLabelText('Defenses and conditions');
   expect(within(statPills).getByLabelText('Proficiency bonus')).toHaveTextContent('Proficiency +4');
-  expect(within(statPills).getByLabelText('Movement speed')).toHaveTextContent('Move: 30 ft');
-  expect(statPills).toHaveTextContent(/AC 11\s*Proficiency \+4\s*Move: 30 ft\s*Initiative: \+1.*1 Condition/);
+  expect(within(statPills).getByLabelText('Movement speed')).toHaveTextContent('Move: 40 ft');
+  expect(statPills).toHaveTextContent(/AC 11\s*Proficiency \+4\s*Move: 40 ft\s*Initiative: \+1.*1 Condition/);
   expect(within(statPills).getByLabelText('Active conditions')).not.toHaveTextContent('Rage');
 });
 

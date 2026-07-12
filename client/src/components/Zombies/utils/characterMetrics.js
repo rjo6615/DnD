@@ -115,6 +115,37 @@ const collectMovementSpeedBonus = (value) => {
   );
 };
 
+const isHeavyArmorItem = (item) => {
+  if (!item || isExplicitlyUnowned(item)) {
+    return false;
+  }
+
+  if (Array.isArray(item)) {
+    const category = String(item[3] ?? '').toLowerCase();
+    return category === 'heavy' || category.includes('heavy armor');
+  }
+
+  if (typeof item !== 'object') {
+    return false;
+  }
+
+  const armorClassification = String(
+    item.category ?? item.type ?? item.armorType ?? ''
+  ).toLowerCase();
+
+  return armorClassification === 'heavy' || armorClassification.includes('heavy armor');
+};
+
+const calculateClassMovementSpeedBonus = (character, equipmentEntries) => {
+  const barbarianLevel = getBarbarianLevel(character);
+  if (barbarianLevel < 5) {
+    return 0;
+  }
+
+  const hasHeavyArmorEquipped = equipmentEntries.some((item) => isHeavyArmorItem(item));
+  return hasHeavyArmorEquipped ? 0 : 10;
+};
+
 export const calculateCharacterMovementSpeed = (character, overrides = {}) => {
   if (!character || typeof character !== 'object') {
     return 0;
@@ -130,10 +161,12 @@ export const calculateCharacterMovementSpeed = (character, overrides = {}) => {
   const normalizedEquipment = normalizeEquipmentMap(character?.equipment);
   const equipmentEntries = Object.values(normalizedEquipment || {}).filter(Boolean);
   const accessoryEntries = normalizeAccessoryCollection(character);
+  const classMovementSpeedBonus = calculateClassMovementSpeedBonus(character, equipmentEntries);
 
   const total =
     baseSpeed +
     featBonuses +
+    classMovementSpeedBonus +
     collectMovementSpeedBonus(character?.race) +
     collectMovementSpeedBonus(character?.classState) +
     collectMovementSpeedBonus(character?.features) +
