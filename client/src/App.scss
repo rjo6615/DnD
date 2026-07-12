@@ -83,7 +83,6 @@
     scale(var(--map-modal-background-scale, 1));
   transform-origin: center center;
   cursor: default;
-  touch-action: none;
   pointer-events: auto;
 }
 
@@ -1040,7 +1039,6 @@
   z-index: 5;
   opacity: 0.4;
   transition: opacity 0.2s ease;
-  touch-action: none;
 }
 
 .docked-modal--left::after {
@@ -5354,8 +5352,7 @@ h1 {
     pointer-events: auto;
     z-index: 2;
     cursor: grab;
-    touch-action: none;
-    transform: translate(
+      transform: translate(
       var(--campaign-map-pan-x, 0),
       var(--campaign-map-pan-y, 0)
     )
@@ -5391,8 +5388,7 @@ h1 {
     justify-content: flex-end;
     gap: clamp(1px, calc(var(--figurine-base-size) * 0.05), 0.25rem);
     outline: none;
-    touch-action: none;
-    width: var(--figurine-base-size);
+      width: var(--figurine-base-size);
     height: calc(var(--figurine-base-size) * 1.6);
     isolation: isolate;
   }
@@ -7505,7 +7501,6 @@ h1 {
   min-height: 38px;
   width: 132px;
   cursor: ew-resize;
-  touch-action: none;
   user-select: none;
   border: 1px solid rgba(122, 166, 255, 0.42);
   background:
@@ -8937,7 +8932,6 @@ h1 {
 .campaign-map-board,
 .campaign-map-board__stage,
 .campaign-map-board__image-wrapper {
-  touch-action: none;
   overscroll-behavior: contain;
 }
 
@@ -11586,5 +11580,44 @@ body.character-select-scroll-enabled {
 
   .character-option-grid--classes {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+
+html.character-creation-modal-open,
+body.character-creation-modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+@media (max-width: 900px) {
+  body.character-creation-modal-open .manual-character-modal {
+    position: fixed;
+    inset: 0;
+    overflow: hidden !important;
+  }
+
+  body.character-creation-modal-open .manual-character-modal .modal-dialog,
+  body.character-creation-modal-open .manual-character-modal .modal-content {
+    max-height: 100dvh;
+    overflow: hidden !important;
+  }
+
+  body.character-creation-modal-open .character-wizard__shell {
+    height: calc(100dvh - 96px - 78px - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - 96px - 78px - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.character-creation-modal-open .character-wizard__actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1065;
+    transform: translateZ(0);
+    padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
   }
 }

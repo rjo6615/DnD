@@ -1098,6 +1098,34 @@ const [manualStep, setManualStep] = useState(0);
 const [manualTouched, setManualTouched] = useState({});
 const [showUnsavedManualDialog, setShowUnsavedManualDialog] = useState(false);
 const initialManualSnapshot = useRef(null);
+const shouldLockCharacterCreationScroll = show5 || showUnsavedManualDialog || showAbilitySkillModal;
+useEffect(() => {
+  if (!shouldLockCharacterCreationScroll) {
+    document.body.classList.remove("character-creation-modal-open");
+    document.documentElement.classList.remove("character-creation-modal-open");
+    return undefined;
+  }
+
+  const scrollY = window.scrollY || window.pageYOffset || 0;
+  const previousBodyPosition = document.body.style.position;
+  const previousBodyTop = document.body.style.top;
+  const previousBodyWidth = document.body.style.width;
+
+  document.body.classList.add("character-creation-modal-open");
+  document.documentElement.classList.add("character-creation-modal-open");
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${scrollY}px`;
+  document.body.style.width = "100%";
+
+  return () => {
+    document.body.classList.remove("character-creation-modal-open");
+    document.documentElement.classList.remove("character-creation-modal-open");
+    document.body.style.position = previousBodyPosition;
+    document.body.style.top = previousBodyTop;
+    document.body.style.width = previousBodyWidth;
+    window.scrollTo(0, scrollY);
+  };
+}, [shouldLockCharacterCreationScroll]);
 const handleClose5 = useCallback(() => setShow5(false), []);
 const handleShow5 = () => {
   const freshForm = { ...createDefaultForm(params.campaign), token: user?.username || form.token || "" };
