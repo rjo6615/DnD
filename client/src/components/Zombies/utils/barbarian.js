@@ -226,6 +226,27 @@ export const getActiveBarbarianSubclassFeatures = (character) => {
 };
 
 export const hasPrimalKnowledge = (character) => getBarbarianLevel(character) >= 3;
+export const hasFeralInstinct = (character) => getBarbarianLevel(character) >= 7;
+
+export const getFeralInstinctInitiativeSources = (character) =>
+  hasFeralInstinct(character) ? ["Feral Instinct"] : [];
+
+export const resolveInitiativeRollMode = (character, options = {}) => {
+  const advantageSources = Array.isArray(options.advantageSources)
+    ? [...options.advantageSources]
+    : [];
+  const disadvantageSources = Array.isArray(options.disadvantageSources)
+    ? [...options.disadvantageSources]
+    : [];
+
+  advantageSources.push(...getFeralInstinctInitiativeSources(character));
+
+  return {
+    mode: resolveD20RollMode({ advantageSources, disadvantageSources }),
+    advantageSources,
+    disadvantageSources,
+  };
+};
 export const isPrimalKnowledgeSkill = (skillKey) =>
   PRIMAL_KNOWLEDGE_SKILLS.includes(normalize(skillKey));
 export const canUsePrimalKnowledgeForSkill = (character, skillKey) =>
@@ -279,6 +300,26 @@ export const BARBARIAN_FEATURES = [
     level: 3,
     type: "configuration",
     description: "Choose a Barbarian subclass. Path of the Berserker is currently available.",
+  },
+  {
+    id: "feral-instinct",
+    name: "Feral Instinct",
+    class: "Barbarian",
+    classId: "barbarian",
+    level: 7,
+    type: "passive",
+    description:
+      "Your instincts are so honed that you have Advantage on Initiative rolls.",
+  },
+  {
+    id: "instinctive-pounce",
+    name: "Instinctive Pounce",
+    class: "Barbarian",
+    classId: "barbarian",
+    level: 7,
+    type: "passive",
+    description:
+      "As part of the Bonus Action you take to enter your Rage, you can move up to half your Speed.",
   },
   {
     id: "reckless-attack",
