@@ -2087,15 +2087,15 @@ const getAvailableSkillOptions = (index) => {
      </div>      
       </Modal>
        {/* ---------------------------Create Character (Manual)------------------------------------------------------- */}
-    <Modal className="dnd-modal" centered show={show5} onHide={handleClose5}>
+    <Modal className="dnd-modal manual-character-modal" dialogClassName="manual-character-modal__dialog" centered show={show5} onHide={handleClose5}>
        <div className="text-center">
-        <Card className="dnd-background">
+        <Card className="dnd-background manual-character-modal__card">
           <Card.Title>Create Manual</Card.Title>
-        <Card.Body>   
+        <Card.Body className="manual-character-modal__body">   
         <div className="text-center">
       <Form 
       onSubmit={onSubmitManual} 
-      className="px-5">
+      className="px-5 manual-character-modal__form">
       <Form.Group className="mb-3 pt-3">
        <Form.Label className="text-light">Character Name</Form.Label>
        <Form.Control className="mb-2" onChange={(e) => updateForm({ characterName: e.target.value })}
@@ -2286,7 +2286,7 @@ const getAvailableSkillOptions = (index) => {
           </React.Fragment>
         ))}
      </Form.Group>
-     <div className="text-center">
+     <div className="text-center manual-character-modal__actions">
      <Button variant="primary" type="submit">
             Create
           </Button>
