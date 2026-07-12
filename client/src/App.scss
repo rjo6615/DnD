@@ -11562,3 +11562,29 @@ body.character-select-scroll-enabled {
     padding-inline: 0.85rem;
   }
 }
+
+/* Desktop wizard sizing refinements: keep long sidebars and card grids reachable. */
+@media (min-width: 901px) {
+  .manual-character-modal__dialog {
+    width: min(1280px, calc(100vw - 24px));
+    max-width: 1280px;
+  }
+
+  .character-wizard {
+    height: min(940px, calc(100dvh - 16px));
+  }
+
+  .character-wizard__sidebar {
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 1.5rem;
+  }
+
+  .character-wizard__content {
+    padding: 2rem 2rem 3rem;
+  }
+
+  .character-option-grid--classes {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}

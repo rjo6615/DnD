@@ -1065,11 +1065,11 @@ useEffect(() => {
       const { insertedId } = await response.json();
       handleClose();
       setRecords((prev) => [...prev, { ...newCharacter, _id: insertedId }]);
-      setForm(createDefaultForm(params.campaign));
+      setForm((prev) => ({ ...createDefaultForm(params.campaign), token: user?.username || prev.token || "" }));
     } catch (error) {
       notify(error.toString());
     }
-}, [form, params.campaign, handleClose, setRecords, setForm, createDefaultForm, attachSelectedAncestryToRace]);
+}, [form, params.campaign, handleClose, setRecords, setForm, createDefaultForm, attachSelectedAncestryToRace, user]);
 
 //--------------------------------------------Create Character (Manual)---------------------
 const [show5, setShow5] = useState(false);
@@ -1079,7 +1079,11 @@ const [showUnsavedManualDialog, setShowUnsavedManualDialog] = useState(false);
 const initialManualSnapshot = useRef(null);
 const handleClose5 = useCallback(() => setShow5(false), []);
 const handleShow5 = () => {
-  initialManualSnapshot.current = JSON.stringify(form);
+  const freshForm = { ...createDefaultForm(params.campaign), token: user?.username || form.token || "" };
+  setForm(freshForm);
+  setSelectedOccupation(null);
+  setIsOccupationConfirmed(false);
+  initialManualSnapshot.current = JSON.stringify(freshForm);
   setManualStep(0);
   setManualTouched({});
   setShow5(true);
@@ -1092,11 +1096,13 @@ const requestCloseManual = useCallback(() => {
   }
   handleClose5();
 }, [handleClose5, hasManualChanges]);
-const discardManualChanges = useCallback(() => {
+const discardManualChanges = () => {
   setShowUnsavedManualDialog(false);
   handleClose5();
-  setForm(createDefaultForm(params.campaign));
-}, [createDefaultForm, handleClose5, params.campaign, setForm]);
+  setForm((prev) => ({ ...createDefaultForm(params.campaign), token: user?.username || prev.token || "" }));
+  setSelectedOccupation(null);
+  setIsOccupationConfirmed(false);
+};
 
 const [selectedOccupation, setSelectedOccupation] = useState(null);
 const selectedAddOccupationRef = useRef();
@@ -1932,11 +1938,11 @@ const [isOccupationConfirmed, setIsOccupationConfirmed] = useState(false);
 
 const handleConfirmOccupation = useCallback(() => {
   if (selectedOccupation && !isOccupationConfirmed) {
-    const selectedAddOccupation = selectedAddOccupationRef.current?.value || selectedOccupation.name;
+    const selectedAddOccupation = selectedOccupation.name;
     const occupationExists = form.occupation.some(
       (occupation) => occupation.Occupation === selectedOccupation.name
     );
-    const selectedAddOccupationObject = getOccupation.find(
+    const selectedAddOccupationObject = selectedOccupation || getOccupation.find(
       (occupation) => occupation.name === selectedAddOccupation
     );
 
@@ -2009,7 +2015,7 @@ const handleConfirmOccupation = useCallback(() => {
     }
   }
   return form;
-}, [selectedOccupation, isOccupationConfirmed, form, getOccupation, selectedAddOccupationRef, setForm]);
+}, [selectedOccupation, isOccupationConfirmed, form, getOccupation, setForm]);
 
 const sendManualToDb = useCallback(async (characterData) => {
   const baseCharacter = characterData ?? form;
@@ -2064,17 +2070,25 @@ const sendManualToDb = useCallback(async (characterData) => {
       body: JSON.stringify(newCharacter),
     });
     if (!response.ok) {
-      notify(`An error occurred: ${response.statusText}`);
+      let message = response.statusText;
+      try {
+        const errorBody = await response.json();
+        const validationMessages = errorBody?.errors?.map((error) => error.msg || error.path).filter(Boolean).join(", ");
+        message = validationMessages || errorBody?.message || message;
+      } catch (_) {
+        // Keep the HTTP status text when the response body is not JSON.
+      }
+      notify(`An error occurred: ${message}`);
       return;
     }
     const { insertedId } = await response.json();
     handleClose5();
     setRecords((prev) => [...prev, { ...newCharacter, _id: insertedId }]);
-    setForm(createDefaultForm(params.campaign));
+    setForm((prev) => ({ ...createDefaultForm(params.campaign), token: user?.username || prev.token || "" }));
   } catch (error) {
     notify(error.toString());
   }
-}, [form, params.campaign, handleClose5, setRecords, setForm, createDefaultForm, attachSelectedAncestryToRace]);
+}, [form, params.campaign, handleClose5, setRecords, setForm, createDefaultForm, attachSelectedAncestryToRace, user]);
 
 // Function to handle submission for manual character creation.
 const onSubmitManual = async (e) => {
