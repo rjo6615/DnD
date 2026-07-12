@@ -22,6 +22,7 @@ import useUser from '../../../hooks/useUser';
 import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
 import { calculateCharacterInitiative, calculatePassivePerception } from '../utils/derivedStats';
+import { resolveInitiativeRollMode } from '../utils/barbarian';
 import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
@@ -109,6 +110,17 @@ const toTitleCase = (value) => {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+};
+
+export const rollInitiativeD20 = ({ rollD20 = () => Math.floor(Math.random() * 20) + 1, mode = 'normal' } = {}) => {
+  const first = rollD20();
+  if (mode !== 'advantage' && mode !== 'disadvantage') {
+    return { rolls: [first], kept: first, mode: 'normal' };
+  }
+
+  const second = rollD20();
+  const kept = mode === 'advantage' ? Math.max(first, second) : Math.min(first, second);
+  return { rolls: [first, second], kept, mode };
 };
 
 const formatSignedModifier = (value) => {
@@ -3751,6 +3763,20 @@ export default function ZombiesDM() {
       [calculateCharacterInitiative]
     );
 
+    const characterInitiativeRollModeMap = useMemo(() => {
+      const map = new Map();
+      if (Array.isArray(combinedRecords)) {
+        combinedRecords.forEach((entity) => {
+          const id = getEntityId(entity);
+          if (!id || entity?.entityType === 'enemy') {
+            return;
+          }
+          map.set(id, resolveInitiativeRollMode(entity));
+        });
+      }
+      return map;
+    }, [combinedRecords, getEntityId]);
+
     const characterInitiativeMap = useMemo(() => {
       const map = new Map();
       if (Array.isArray(combinedRecords)) {
@@ -3902,11 +3928,19 @@ export default function ZombiesDM() {
             : Number.isFinite(Number(baseInitiative))
               ? Number(baseInitiative)
               : 0;
-          const roll = Math.floor(Math.random() * 20) + 1;
+          const rollMode = characterInitiativeRollModeMap.get(participant.characterId);
+          const initiativeRoll = rollInitiativeD20({ mode: rollMode?.mode || 'normal' });
 
           return {
             ...participant,
-            initiative: numericBase + roll,
+            initiative: numericBase + initiativeRoll.kept,
+            initiativeRoll: {
+              ...initiativeRoll,
+              modifier: numericBase,
+              total: numericBase + initiativeRoll.kept,
+              sources: rollMode?.advantageSources || [],
+              disadvantageSources: rollMode?.disadvantageSources || [],
+            },
           };
         })
         .filter(Boolean);
@@ -3942,7 +3976,7 @@ export default function ZombiesDM() {
 
       setCombatState(nextState);
       persistCombatState(nextState);
-    }, [combatState, characterInitiativeMap, persistCombatState]);
+    }, [combatState, characterInitiativeMap, characterInitiativeRollModeMap, persistCombatState]);
 
     const handleAdvanceTurn = useCallback(
       (direction) => {

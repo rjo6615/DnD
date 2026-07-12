@@ -219,7 +219,11 @@ A Rage can last for up to 10 minutes.`
   7: [
     {
       name: 'Feral Instinct',
-      description: 'You have advantage on initiative rolls.'
+      description: 'Your instincts are so honed that you have Advantage on Initiative rolls.'
+    },
+    {
+      name: 'Instinctive Pounce',
+      description: 'As part of the Bonus Action you take to enter your Rage, you can move up to half your Speed.'
     }
   ],
   8: [ASI],

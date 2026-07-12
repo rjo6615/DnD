@@ -23,6 +23,8 @@ import {
   canUsePrimalKnowledgeForSkill,
   getFrenzyDamageDice,
   markFrenzyUsed,
+  hasFeralInstinct,
+  resolveInitiativeRollMode,
 } from "./barbarian";
 
 const barbarian = (extra = {}) => ({
@@ -308,5 +310,58 @@ describe("barbarian level 3 features", () => {
     expect(getFrenzyDamageDice(nonBerserker, { ability: "str", type: "weapon attack", dealsDamage: true })).toBeNull();
     const lowLevel = declareRecklessAttack(activateRage(barbarian({ occupation: [{ Name: "Barbarian", Level: 2 }], classState: { barbarian: { subclass: { id: "path-of-the-berserker" } } } })));
     expect(getFrenzyDamageDice(lowLevel, { ability: "str", type: "weapon attack", dealsDamage: true })).toBeNull();
+  });
+});
+
+
+describe("barbarian level 7 features", () => {
+  it("gates Feral Instinct and Instinctive Pounce at Barbarian level 7", () => {
+    const level6 = barbarian({ occupation: [{ Name: "Barbarian", Level: 6 }] });
+    const level7 = barbarian({ occupation: [{ Name: "Barbarian", Level: 7 }] });
+    const level10 = barbarian({ occupation: [{ Name: "Barbarian", Level: 10 }] });
+
+    expect(hasFeralInstinct(level6)).toBe(false);
+    expect(hasFeralInstinct(level7)).toBe(true);
+    expect(hasFeralInstinct(level10)).toBe(true);
+    expect(getAvailableBarbarianFeatures(level6).map((f) => f.name)).not.toEqual(
+      expect.arrayContaining(["Feral Instinct", "Instinctive Pounce"])
+    );
+    expect(getAvailableBarbarianFeatures(level7)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "Feral Instinct",
+          level: 7,
+          description: "Your instincts are so honed that you have Advantage on Initiative rolls.",
+        }),
+        expect.objectContaining({
+          name: "Instinctive Pounce",
+          level: 7,
+          description: "As part of the Bonus Action you take to enter your Rage, you can move up to half your Speed.",
+        }),
+      ])
+    );
+  });
+
+  it("uses only Barbarian levels for Feral Instinct in multiclass builds", () => {
+    expect(resolveInitiativeRollMode({ occupation: [{ Name: "Barbarian", Level: 6 }, { Name: "Rogue", Level: 10 }] }).mode).toBe("normal");
+    expect(resolveInitiativeRollMode({ occupation: [{ Name: "Barbarian", Level: 7 }, { Name: "Fighter", Level: 3 }] })).toMatchObject({
+      mode: "advantage",
+      advantageSources: ["Feral Instinct"],
+    });
+    expect(resolveInitiativeRollMode({ occupation: [{ Name: "Barbarian", Level: 12 }, { Name: "Wizard", Level: 2 }] }).mode).toBe("advantage");
+  });
+
+  it("centralizes initiative advantage stacking and cancellation", () => {
+    const level7 = barbarian({ occupation: [{ Name: "Barbarian", Level: 7 }] });
+
+    expect(resolveInitiativeRollMode(level7, { advantageSources: ["Other source"] })).toMatchObject({
+      mode: "advantage",
+      advantageSources: ["Other source", "Feral Instinct"],
+    });
+    expect(resolveInitiativeRollMode(level7, { disadvantageSources: ["Hampered"] })).toMatchObject({
+      mode: "normal",
+      advantageSources: ["Feral Instinct"],
+      disadvantageSources: ["Hampered"],
+    });
   });
 });
