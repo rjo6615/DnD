@@ -1059,15 +1059,25 @@ useEffect(() => {
         body: JSON.stringify(newCharacter),
       });
       if (!response.ok) {
-        notify(`An error occurred: ${response.statusText}`);
-        return;
+        let message = response.statusText;
+        try {
+          const errorBody = await response.json();
+          const validationMessages = errorBody?.errors?.map((error) => error.msg || error.path).filter(Boolean).join(", ");
+          message = validationMessages || errorBody?.message || message;
+        } catch (_) {
+          // Keep the HTTP status text when the response body is not JSON.
+        }
+        notify(`An error occurred: ${message}`);
+        return false;
       }
       const { insertedId } = await response.json();
       handleClose();
       setRecords((prev) => [...prev, { ...newCharacter, _id: insertedId }]);
       setForm((prev) => ({ ...createDefaultForm(params.campaign), token: user?.username || prev.token || "" }));
+      return true;
     } catch (error) {
       notify(error.toString());
+      return false;
     }
 }, [form, params.campaign, handleClose, setRecords, setForm, createDefaultForm, attachSelectedAncestryToRace, user]);
 
@@ -2079,14 +2089,16 @@ const sendManualToDb = useCallback(async (characterData) => {
         // Keep the HTTP status text when the response body is not JSON.
       }
       notify(`An error occurred: ${message}`);
-      return;
+      return false;
     }
     const { insertedId } = await response.json();
     handleClose5();
     setRecords((prev) => [...prev, { ...newCharacter, _id: insertedId }]);
     setForm((prev) => ({ ...createDefaultForm(params.campaign), token: user?.username || prev.token || "" }));
+    return true;
   } catch (error) {
     notify(error.toString());
+    return false;
   }
 }, [form, params.campaign, handleClose5, setRecords, setForm, createDefaultForm, attachSelectedAncestryToRace, user]);
 
@@ -2104,8 +2116,8 @@ const onSubmitManual = async (e) => {
   await sendManualToDb(updatedForm);
 };
 
-const handleAbilitySkillConfirm = () => {
-  const raceObj = { ...form.race };
+const handleAbilitySkillConfirm = async () => {
+  const raceObj = { ...form.race, abilities: { ...(form.race?.abilities || {}) } };
   let updatedSkills = { ...(form.skills || {}) };
 
   if (raceObj.abilityChoices) {
@@ -2157,14 +2169,20 @@ const handleAbilitySkillConfirm = () => {
   }
 
   setForm(updatedForm);
+  if (show5) {
+    const saved = await sendManualToDb(updatedForm);
+    if (!saved) {
+      return;
+    }
+  } else {
+    const saved = await sendToDb(updatedForm);
+    if (!saved) {
+      return;
+    }
+  }
   setShowAbilitySkillModal(false);
   setAbilitySelections([]);
   setSkillSelections([]);
-  if (show5) {
-    sendManualToDb(updatedForm);
-  } else {
-    sendToDb(updatedForm);
-  }
 };
 
 const getAvailableAbilityOptions = (index) => {
