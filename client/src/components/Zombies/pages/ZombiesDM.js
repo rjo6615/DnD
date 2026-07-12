@@ -23,7 +23,7 @@ import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
 import { calculateCharacterInitiative, calculatePassivePerception } from '../utils/derivedStats';
 import { resolveInitiativeRollMode } from '../utils/barbarian';
-import { calculateCharacterHitPoints } from '../utils/characterMetrics';
+import { calculateCharacterHitPoints, calculateCharacterMovementSpeed } from '../utils/characterMetrics';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
 import DamageDiceCanvas from '../attributes/DamageDiceCanvas';
@@ -296,6 +296,52 @@ const formatSensesDisplay = (senses) => {
   });
 
   return entries.length > 0 ? entries.join(', ') : '—';
+};
+
+
+const hasMovementSpeedSource = (entity) => {
+  if (!entity || typeof entity !== 'object') {
+    return false;
+  }
+
+  return [
+    entity.speed,
+    entity?.race?.speed,
+    entity?.movementSpeed,
+    entity?.walkingSpeed,
+  ].some((value) => toFiniteNumberOrNull(value) !== null);
+};
+
+const getEntityMovementSpeed = (entity) => {
+  if (!entity || typeof entity !== 'object') {
+    return null;
+  }
+
+  if (entity.entityType !== 'enemy') {
+    if (!hasMovementSpeedSource(entity)) {
+      return null;
+    }
+
+    const movementSpeed = calculateCharacterMovementSpeed(entity);
+    return Number.isFinite(movementSpeed) ? movementSpeed : null;
+  }
+
+  const directCandidates = [
+    entity.speed,
+    entity.movementSpeed,
+    entity.walkingSpeed,
+    entity.speed?.walk,
+    entity.speed?.walking,
+  ];
+
+  for (const candidate of directCandidates) {
+    const value = toFiniteNumberOrNull(candidate);
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return null;
 };
 
 const getEntityPassivePerception = (entity) => {
@@ -4073,6 +4119,7 @@ export default function ZombiesDM() {
             rowId,
             participantInfo,
             passivePerception: getEntityPassivePerception(entity),
+            movementSpeed: getEntityMovementSpeed(entity),
             initiativeValue,
             sortInitiative: numericInitiative,
             recordIndex,
@@ -6970,6 +7017,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                           <th scope="col">Character</th>
                           <th scope="col">Player</th>
                           <th scope="col" className="text-center">In Combat</th>
+                          <th scope="col" className="text-center">Movespeed</th>
                           <th scope="col" className="text-center">Passive Perception</th>
                           <th scope="col" className="text-center">Initiative</th>
                           <th scope="col" className="text-center">Actions</th>
@@ -6983,6 +7031,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                               rowId,
                               participantInfo,
                               passivePerception,
+                              movementSpeed,
                               initiativeValue,
                               recordIndex,
                             }) => {
@@ -6995,6 +7044,10 @@ const resolveIcon = (category, iconMap, fallback) => {
                               const displayPassivePerception =
                                 passivePerception !== undefined && passivePerception !== null
                                   ? passivePerception
+                                  : '—';
+                              const displayMovementSpeed =
+                                movementSpeed !== undefined && movementSpeed !== null
+                                  ? `${movementSpeed} ft`
                                   : '—';
                               const isActive =
                                 isParticipant &&
@@ -7066,6 +7119,9 @@ const resolveIcon = (category, iconMap, fallback) => {
                                       aria-label={`Toggle ${checkboxLabel} in combat`}
                                     />
                                   </td>
+                                  <td className="text-center" style={{ width: '110px' }}>
+                                    {displayMovementSpeed}
+                                  </td>
                                   <td className="text-center" style={{ width: '150px' }}>
                                     {displayPassivePerception}
                                   </td>
@@ -7092,7 +7148,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                           )
                         ) : (
                           <tr>
-                            <td colSpan={6} className="text-center text-muted py-3">
+                            <td colSpan={7} className="text-center text-muted py-3">
                               No characters available.
                             </td>
                           </tr>

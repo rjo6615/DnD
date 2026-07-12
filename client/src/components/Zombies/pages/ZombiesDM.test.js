@@ -1819,9 +1819,27 @@ describe('ZombiesDM AI generation', () => {
         characterName: 'Hero',
         token: 'Player1',
         dex: 14,
+        speed: 30,
         feat: [{ initiative: 1 }],
       },
-      { _id: 'char2', characterName: 'Rogue', token: 'Player2', dex: 12 },
+      {
+        _id: 'char2',
+        characterName: 'Rogue',
+        token: 'Player2',
+        dex: 12,
+        speed: 30,
+        occupation: [{ Occupation: 'Barbarian', Level: 5 }],
+      },
+      {
+        _id: 'char3',
+        characterName: 'Armored Barbarian',
+        token: 'Player3',
+        dex: 10,
+        speed: 30,
+        occupation: [{ Occupation: 'Barbarian', Level: 5 }],
+        equipment: { chest: { name: 'Plate', category: 'Heavy Armor' } },
+      },
+      { _id: 'char4', characterName: 'Mystery', token: 'Player4', dex: 10 },
     ];
     let combatState = { participants: [], activeTurn: null };
     const combatUpdates = [];
@@ -1863,6 +1881,7 @@ describe('ZombiesDM AI generation', () => {
     expect(socketInstance).toBeDefined();
     expect(socketInstance.emit).toHaveBeenCalledWith('campaign:join', 'Camp1');
 
+    await openResourceCard('Characters', 'resource-characters-card');
     await screen.findByRole('heading', { name: /Combat Tracker/i });
 
     const combatTurnOrder = await screen.findByRole('group', {
@@ -1875,14 +1894,33 @@ describe('ZombiesDM AI generation', () => {
       throw new Error('Combat tracker table not found');
     }
 
+    const headers = within(combatTable).getAllByRole('columnheader').map((header) => header.textContent);
+    expect(headers).toEqual([
+      'Character',
+      'Player',
+      'In Combat',
+      'Movespeed',
+      'Passive Perception',
+      'Initiative',
+      'Actions',
+    ]);
+
     const heroRow = (await within(combatTable).findByText('Hero')).closest('tr');
     if (!heroRow) {
       throw new Error('Hero row not found in combat table');
     }
 
+    const rogueRow = (await within(combatTable).findByText('Rogue')).closest('tr');
+    const armoredBarbarianRow = (await within(combatTable).findByText('Armored Barbarian')).closest('tr');
+    const mysteryRow = (await within(combatTable).findByText('Mystery')).closest('tr');
+
     const cells = within(heroRow).getAllByRole('cell');
-    const initiativeCell = cells[3];
-    expect(initiativeCell).toHaveTextContent('3');
+    expect(cells).toHaveLength(headers.length);
+    expect(cells[3]).toHaveTextContent('30 ft');
+    expect(cells[5]).toHaveTextContent('3');
+    expect(within(rogueRow).getAllByRole('cell')[3]).toHaveTextContent('40 ft');
+    expect(within(armoredBarbarianRow).getAllByRole('cell')[3]).toHaveTextContent('30 ft');
+    expect(within(mysteryRow).getAllByRole('cell')[3]).toHaveTextContent('—');
 
     const heroCheckbox = within(heroRow).getByRole('checkbox', {
       name: /Toggle Hero in combat/i,
@@ -1910,9 +1948,7 @@ describe('ZombiesDM AI generation', () => {
     expect(combatUpdates[1].activeTurn).toBe(0);
 
     await waitFor(() =>
-      expect(
-        screen.getByRole('status', { name: /Current Turn: Hero/i })
-      ).toBeInTheDocument(),
+      expect(screen.getByText(/Current Turn:/i).closest('[role="status"]')).toHaveTextContent('Hero'),
     );
     await waitFor(() =>
       expect(heroRow).toHaveClass('combat-tracker__active-row')
