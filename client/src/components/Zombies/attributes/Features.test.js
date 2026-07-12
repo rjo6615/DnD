@@ -1994,6 +1994,86 @@ test('features are sorted by class then level', async () => {
   expect(order).toEqual(['Second Wind', 'Action Surge', 'Arcane Recovery']);
 });
 
+
+test('barbarian Berserker subclass features render subclass metadata and Mindless Rage details', async () => {
+  apiFetch.mockImplementation((url) => {
+    const levelMatch = url.match(/features\/(\d+)/);
+    const level = levelMatch ? parseInt(levelMatch[1], 10) : 0;
+    const features = [];
+    if (level === 3) {
+      features.push({ name: 'Primal Path', description: 'Placeholder path.' });
+    }
+    if (level === 5) {
+      features.push({ name: 'Extra Attack', description: 'Attack twice.' });
+    }
+    if (level === 6) {
+      features.push({ name: 'Primal Path Feature', description: 'Placeholder feature.' });
+    }
+    return Promise.resolve({ ok: true, json: async () => ({ features }) });
+  });
+
+  const renderBerserker = (level) => render(
+    <Features
+      form={{
+        occupation: [{ Name: 'Barbarian', Level: level }],
+        classState: {
+          barbarian: {
+            subclass: { id: 'path-of-the-berserker', name: 'Path of the Berserker' },
+          },
+        },
+      }}
+      showFeatures={true}
+      handleCloseFeatures={() => {}}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const levelFive = renderBerserker(5);
+  expect(await screen.findByText('Frenzy')).toBeInTheDocument();
+  expect(screen.queryByText('Mindless Rage')).not.toBeInTheDocument();
+  levelFive.unmount();
+
+  renderBerserker(6);
+
+  const subclassTitle = await screen.findByText('Barbarian Subclass');
+  const subclassCard = subclassTitle.closest('.feature-card');
+  expect(subclassCard).not.toBeNull();
+  expect(within(subclassCard).getByText('Barbarian')).toBeInTheDocument();
+  expect(within(subclassCard).getByText('Level 3')).toBeInTheDocument();
+  expect(within(subclassCard).getByText('Path of the Berserker')).toBeInTheDocument();
+
+  for (const featureName of ['Frenzy', 'Mindless Rage']) {
+    const title = await screen.findByText(featureName);
+    const card = title.closest('.feature-card');
+    expect(card).not.toBeNull();
+    expect(within(card).getByText('Path of the Berserker')).toBeInTheDocument();
+  }
+
+  const extraAttackCard = (await screen.findByText('Extra Attack')).closest('.feature-card');
+  expect(extraAttackCard).not.toBeNull();
+  expect(within(extraAttackCard).getByText('Barbarian')).toBeInTheDocument();
+  expect(within(extraAttackCard).getByText('Level 5')).toBeInTheDocument();
+  expect(within(extraAttackCard).queryByText('Path of the Berserker')).not.toBeInTheDocument();
+
+  expect(screen.queryByText('Primal Path')).not.toBeInTheDocument();
+  expect(screen.queryByText('Primal Path Feature')).not.toBeInTheDocument();
+
+  const mindlessRageCard = screen.getByText('Mindless Rage').closest('.feature-card');
+  await act(async () => {
+    await userEvent.click(within(mindlessRageCard).getByRole('button', { name: /view feature/i }));
+  });
+
+  await screen.findByText(
+    'You have Immunity to the Charmed and Frightened conditions while your Rage is active. If you’re Charmed or Frightened when you enter your Rage, the condition ends on you.'
+  );
+  expect(Array.from(document.querySelectorAll('.modern-modal .modal-title')).some((node) => node.textContent === 'Mindless Rage')).toBe(true);
+  expect(
+    screen.getByText(
+      'You have Immunity to the Charmed and Frightened conditions while your Rage is active. If you’re Charmed or Frightened when you enter your Rage, the condition ends on you.'
+    )
+  ).toBeInTheDocument();
+});
+
 describe('barbarian weapon mastery feature UI', () => {
   const weapons = {
     club: { name: 'Club', type: 'club', category: 'simple melee', mastery: 'slow' },

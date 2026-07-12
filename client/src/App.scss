@@ -1739,6 +1739,10 @@ body.docked-modal--resizing {
   color: rgba(255, 255, 255, 0.7);
 }
 
+.feature-card-subclass {
+  flex-basis: 100%;
+}
+
 .feature-card-actions {
   display: flex;
   align-items: center;

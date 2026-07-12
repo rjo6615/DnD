@@ -1317,6 +1317,7 @@ export default function Features({
         `${String(feature?.class || '').toLowerCase()}:${String(feature?.name || '').toLowerCase()}`
       )
     );
+    const hiddenBarbarianFeatureNames = new Set(['primal path', 'primal path feature']);
     const generatedBarbarianFeatures = getAvailableBarbarianFeatures(form)
       .filter((feature) => !existingKeys.has('barbarian:' + String(feature.name || '').toLowerCase()))
       .map((feature) => ({
@@ -1325,7 +1326,11 @@ export default function Features({
         isWeaponMasteryConfig: feature.id === 'barbarian-weapon-mastery',
         isRecklessAttackToggle: feature.id === 'reckless-attack',
       }));
-    return [...features, ...generatedBarbarianFeatures].sort(
+    const visibleFeatures = features.filter((feature) => {
+      if (String(feature?.class || '').toLowerCase() !== 'barbarian') return true;
+      return !hiddenBarbarianFeatureNames.has(String(feature?.name || '').toLowerCase());
+    });
+    return [...visibleFeatures, ...generatedBarbarianFeatures].sort(
       (a, b) =>
         (a.class || '').localeCompare(b.class || '') ||
         (a.level || 0) - (b.level || 0)
@@ -1714,6 +1719,9 @@ export default function Features({
                                   {feat.class && <span>{feat.class}</span>}
                                   {feat.level != null && (
                                     <span>Level {feat.level}</span>
+                                  )}
+                                  {feat.subclass && (
+                                    <span className="feature-card-subclass">{feat.subclass}</span>
                                   )}
                                 </>
                               )}
