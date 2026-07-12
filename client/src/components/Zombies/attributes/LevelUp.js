@@ -313,7 +313,7 @@ export default function LevelUp({ show, handleClose, form }) {
                 className="action-btn save-btn"
                 type="submit"
                 form="level-up-form"
-                disabled={!chosenOccupation || (chosenOccupation === 'Barbarian' && form.occupation.find((occupation) => occupation.Occupation === 'Barbarian') && Number(form.occupation.find((occupation) => occupation.Occupation === 'Barbarian').Level || 0) + 1 === 3 && !primalKnowledgeSkill)
+                disabled={!chosenOccupation || (chosenOccupation === 'Barbarian' && form.occupation.find((occupation) => occupation.Occupation === 'Barbarian') && Number(form.occupation.find((occupation) => occupation.Occupation === 'Barbarian').Level || 0) + 1 === 3 && !primalKnowledgeSkill)}
               >
                 Level Up
               </Button>
