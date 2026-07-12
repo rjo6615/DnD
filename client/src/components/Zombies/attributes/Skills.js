@@ -17,7 +17,7 @@ import {
   normalizeDiceColor,
   applyDiceFaceColor,
 } from '../../../utils/diceColors';
-import { getRageBenefits } from '../utils/barbarian';
+import { canUsePrimalKnowledgeForSkill, getRageBenefits } from '../utils/barbarian';
 
 const EMPTY_OBJECT = Object.freeze({});
 
@@ -186,6 +186,9 @@ export default function Skills({
   const [error, setError] = useState('');
   const [showSkillInfo, setShowSkillInfo] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState(null);
+  const [modifierPrompt, setModifierPrompt] = useState(null);
+  const [selectedModifierAbility, setSelectedModifierAbility] = useState('');
+  const [isRollingSkill, setIsRollingSkill] = useState(false);
   const raceProficiencies = useMemo(() => {
     return new Set(
       Object.entries(form?.race?.skills || {})
@@ -428,7 +431,7 @@ export default function Skills({
     updateSkill(skill, updated);
   };
 
-  const handleRoll = async (skillKey, ability, proficient, expertise) => {
+  const executeSkillRoll = async (skillKey, ability, proficient, expertise, labelSuffix = '') => {
     const skill = SKILLS.find((s) => s.key === skillKey);
     const skillLabel = skill?.label || skill?.name || skillKey;
     const armorPenalty = skill?.armorPenalty || 0;
@@ -444,14 +447,19 @@ export default function Skills({
     const abilityLabel =
       ABILITY_LABELS[ability] || ability?.toUpperCase?.() || ability || 'Ability';
 
-    if (!isDocked) {
+    if (!isDocked && !labelSuffix) {
       handleCloseSkill?.();
     }
 
-    const { result, d20 } = await rollSkillWithDiceBox(bonus, {
+    const rollModeResult = resolveAbilityCheckRollMode(safeForm, ability);
+    const { result, d20, rolledD20s, keptD20, rollMode } = await rollSkillWithDiceBox(bonus, {
       diceColor: diceFaceColor,
+      rollMode: rollModeResult.mode,
     });
-    const breakdownParts = [`${d20} (d20)`];
+    const actualRollMode = rollMode || rollModeResult.mode;
+    const breakdownParts = [actualRollMode === 'advantage' || actualRollMode === 'disadvantage'
+      ? `${keptD20 ?? d20} (d20) (Rolled ${(rolledD20s || [d20]).join(' and ')})`
+      : `${d20} (d20)`];
 
     const segments = [
       formatAdjustmentSegment(modMap[ability], `${abilityLabel} Modifier`),
@@ -484,14 +492,61 @@ export default function Skills({
         detail: {
           value: result,
           breakdown: breakdownParts.join(' '),
-          source: skillLabel,
+          source: labelSuffix ? `${abilityLabel} (${skillLabel}) ${labelSuffix}` : skillLabel,
           rollLabel: 'Skill Roll',
           critical: d20 === 20,
           fumble: d20 === 1,
           diceRolls,
+          rollMode: actualRollMode,
+          advantageSources: rollModeResult.advantageSources,
+          disadvantageSources: rollModeResult.disadvantageSources,
         },
       })
     );
+  };
+
+  const handleRoll = async (skillKey, ability, proficient, expertise) => {
+    if (isRollingSkill || modifierPrompt) return;
+    if (canUsePrimalKnowledgeForSkill(safeForm, skillKey)) {
+      setModifierPrompt({ skillKey, ability, proficient, expertise });
+      setSelectedModifierAbility(ability);
+      return;
+    }
+    setIsRollingSkill(true);
+    try {
+      await executeSkillRoll(skillKey, ability, proficient, expertise);
+    } finally {
+      setIsRollingSkill(false);
+    }
+  };
+
+  const confirmModifierPrompt = async () => {
+    if (!modifierPrompt || isRollingSkill) return;
+    const ability = selectedModifierAbility || modifierPrompt.ability;
+    const suffix = ability === 'str' && ability !== modifierPrompt.ability ? '— Primal Knowledge' : '';
+    setIsRollingSkill(true);
+    try {
+      await executeSkillRoll(
+        modifierPrompt.skillKey,
+        ability,
+        modifierPrompt.proficient,
+        modifierPrompt.expertise,
+        suffix
+      );
+      setModifierPrompt(null);
+      setSelectedModifierAbility('');
+      if (!isDocked) {
+        handleCloseSkill?.();
+      }
+    } finally {
+      setIsRollingSkill(false);
+    }
+  };
+
+  const closeModifierPrompt = () => {
+    if (isRollingSkill) return;
+    setModifierPrompt(null);
+    setSelectedModifierAbility('');
   };
 
   const handleView = (skill) => {
@@ -641,6 +696,46 @@ export default function Skills({
               onClick={() => handleCloseSkill()}
               className="action-btn close-btn flex-fill"
             >Close</Button>
+          </Card.Footer>
+        </Card>
+      </Modal>
+      <Modal
+        className="dnd-modal modern-modal"
+        show={Boolean(modifierPrompt)}
+        onHide={closeModifierPrompt}
+        centered
+        restoreFocus
+        enforceFocus
+      >
+        <Card className="modern-card text-center">
+          <Card.Header className="modal-header">
+            <Card.Title className="modal-title">Choose Modifier</Card.Title>
+          </Card.Header>
+          <Card.Body>
+            <Form.Group className="mb-3 mx-5" controlId="primal-knowledge-modifier">
+              <Form.Label className="text-light">Modifier:</Form.Label>
+              <Form.Select
+                value={selectedModifierAbility}
+                onChange={(event) => setSelectedModifierAbility(event.target.value)}
+                autoFocus
+              >
+                {modifierPrompt && [modifierPrompt.ability, 'str']
+                  .filter((value, index, array) => array.indexOf(value) === index)
+                  .map((abilityKey) => (
+                    <option key={abilityKey} value={abilityKey}>
+                      {ABILITY_LABELS[abilityKey] || abilityKey.toUpperCase()} ({modMap[abilityKey] >= 0 ? '+' : ''}{modMap[abilityKey]}){abilityKey === 'str' && abilityKey !== modifierPrompt.ability ? ' — Primal Knowledge' : ''}
+                    </option>
+                  ))}
+              </Form.Select>
+            </Form.Group>
+          </Card.Body>
+          <Card.Footer className="modal-footer">
+            <Button className="action-btn close-btn" onClick={closeModifierPrompt} disabled={isRollingSkill}>
+              Cancel
+            </Button>
+            <Button className="action-btn save-btn" onClick={confirmModifierPrompt} disabled={isRollingSkill}>
+              Roll
+            </Button>
           </Card.Footer>
         </Card>
       </Modal>

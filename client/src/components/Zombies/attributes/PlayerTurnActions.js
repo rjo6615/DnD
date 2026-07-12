@@ -35,7 +35,7 @@ import {
   normalizeDiceColor,
   resolveDamageTypeColor,
 } from '../../../utils/diceColors';
-import { getRageDamageBonus, markBarbarianAttackRoll, resolveAttackRollMode } from '../utils/barbarian';
+import { getFrenzyDamageDice, getRageDamageBonus, markBarbarianAttackRoll, markFrenzyUsed, resolveAttackRollMode } from '../utils/barbarian';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -388,12 +388,32 @@ export function calculateDamage(
     results.push({ value: rageBonus, type: 'Rage' });
   }
 
+  const frenzyDice = getFrenzyDamageDice(options?.character, options?.attack);
+  let frenzyApplied = false;
+  if (frenzyDice?.count > 0) {
+    const inheritedType = results.find((entry) => entry.type && entry.type !== 'Rage')?.type || options?.attack?.damageType || '';
+    const baseFrenzyRolls = normalizeRollArray(roll(frenzyDice.count, frenzyDice.sides), frenzyDice.count);
+    let frenzyValue = baseFrenzyRolls.reduce((sum, value) => sum + value, 0);
+    recordDiceRolls(baseFrenzyRolls, frenzyDice.sides, inheritedType, 'frenzy');
+    if (crit) {
+      const critFrenzyRolls = normalizeRollArray(roll(frenzyDice.count, frenzyDice.sides), frenzyDice.count);
+      frenzyValue += critFrenzyRolls.reduce((sum, value) => sum + value, 0);
+      recordDiceRolls(critFrenzyRolls, frenzyDice.sides, inheritedType, 'critical-frenzy');
+    }
+    results.push({ value: frenzyValue, type: `${frenzyDice.label}${inheritedType ? ` ${inheritedType}` : ''}` });
+    frenzyApplied = true;
+  }
+
   const total = results.reduce((sum, r) => sum + r.value, 0);
   return {
     total,
     breakdown: formatDamageRolls(results),
     diceRolls,
-    modifiers: rageBonus > 0 ? [{ label: 'Rage', value: rageBonus }] : [],
+    modifiers: [
+      ...(rageBonus > 0 ? [{ label: 'Rage', value: rageBonus }] : []),
+      ...(frenzyApplied ? [{ label: 'Reckless Attack', value: results[results.length - 1].value }] : []),
+    ],
+    frenzyApplied,
   };
 }
 
@@ -1761,6 +1781,10 @@ const manualCriticalRef = useRef(false);
         ],
       };
 
+      if (result.frenzyApplied) {
+        onCharacterChange?.((previous) => markFrenzyUsed(previous || form));
+      }
+
       updateDamageValueWithAnimation(
         result.total,
         result.breakdown,
@@ -1776,6 +1800,7 @@ const manualCriticalRef = useRef(false);
       form,
       isCritical,
       isUnarmedAttack,
+      onCharacterChange,
       rollDamageExpression,
     ],
   );

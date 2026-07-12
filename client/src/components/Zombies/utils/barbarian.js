@@ -153,6 +153,72 @@ const hasCondition = (character, conditionName) => {
   );
 };
 
+export const BARBARIAN_SUBCLASSES = [
+  {
+    id: "path-of-the-berserker",
+    name: "Path of the Berserker",
+    classId: "barbarian",
+    level: 3,
+    features: [
+      { id: "berserker-frenzy", name: "Frenzy", level: 3 },
+      { id: "berserker-mindless-rage", name: "Mindless Rage", level: 6 },
+      { id: "berserker-retaliation", name: "Retaliation", level: 10 },
+      { id: "berserker-intimidating-presence", name: "Intimidating Presence", level: 14 },
+    ],
+  },
+];
+
+export const BARBARIAN_LEVEL_1_SKILLS = [
+  "animalHandling",
+  "athletics",
+  "intimidation",
+  "nature",
+  "perception",
+  "survival",
+];
+
+export const PRIMAL_KNOWLEDGE_SKILLS = [
+  "acrobatics",
+  "intimidation",
+  "perception",
+  "stealth",
+  "survival",
+];
+
+export const getBarbarianSubclass = (character) =>
+  character?.classState?.barbarian?.subclass ||
+  character?.subclasses?.barbarian ||
+  character?.barbarian?.subclass ||
+  null;
+
+export const getAvailableBarbarianSubclasses = (character) =>
+  getBarbarianLevel(character) >= 3 ? BARBARIAN_SUBCLASSES : [];
+
+export const isPathOfTheBerserker = (character) => {
+  const subclass = getBarbarianSubclass(character);
+  const id = normalize(subclass?.id ?? subclass?.key ?? subclass?.name ?? subclass);
+  return id === "path-of-the-berserker" || id === "path of the berserker" || id === "berserker";
+};
+
+export const getActiveBarbarianSubclassFeatures = (character) => {
+  const level = getBarbarianLevel(character);
+  const selected = getBarbarianSubclass(character);
+  if (!selected || level < 3) return [];
+  const selectedId = normalize(selected?.id ?? selected?.key ?? selected?.name ?? selected);
+  const subclass = BARBARIAN_SUBCLASSES.find((entry) => {
+    const entryId = normalize(entry.id);
+    const entryName = normalize(entry.name);
+    return selectedId === entryId || selectedId === entryName || selectedId === "berserker";
+  });
+  return (subclass?.features || []).filter((feature) => level >= feature.level);
+};
+
+export const hasPrimalKnowledge = (character) => getBarbarianLevel(character) >= 3;
+export const isPrimalKnowledgeSkill = (skillKey) =>
+  PRIMAL_KNOWLEDGE_SKILLS.includes(normalize(skillKey));
+export const canUsePrimalKnowledgeForSkill = (character, skillKey) =>
+  hasPrimalKnowledge(character) && isRageActive(character) && isPrimalKnowledgeSkill(skillKey);
+
 export const BARBARIAN_FEATURES = [
   {
     id: "barbarian-rage",
@@ -184,6 +250,25 @@ export const BARBARIAN_FEATURES = [
     hideUseButton: true,
   },
   {
+    id: "barbarian-primal-knowledge",
+    name: "Primal Knowledge",
+    class: "Barbarian",
+    classId: "barbarian",
+    level: 3,
+    type: "configuration",
+    description:
+      "You gain proficiency in one additional Barbarian skill. While raging, you can use Strength for Acrobatics, Intimidation, Perception, Stealth, and Survival checks.",
+  },
+  {
+    id: "barbarian-subclass",
+    name: "Barbarian Subclass",
+    class: "Barbarian",
+    classId: "barbarian",
+    level: 3,
+    type: "configuration",
+    description: "Choose a Barbarian subclass. Path of the Berserker is currently available.",
+  },
+  {
     id: "reckless-attack",
     name: "Reckless Attack",
     class: "Barbarian",
@@ -197,7 +282,16 @@ export const BARBARIAN_FEATURES = [
 
 export const getAvailableBarbarianFeatures = (character) => {
   const barbarianLevel = getBarbarianLevel(character);
-  return BARBARIAN_FEATURES.filter((feature) => barbarianLevel >= feature.level);
+  return [
+    ...BARBARIAN_FEATURES.filter((feature) => barbarianLevel >= feature.level),
+    ...getActiveBarbarianSubclassFeatures(character).map((feature) => ({
+      ...feature,
+      class: "Barbarian",
+      classId: "barbarian",
+      subclass: "Path of the Berserker",
+      type: "passive",
+    })),
+  ];
 };
 
 export const hasDangerSense = (character) => getBarbarianLevel(character) >= 2;
@@ -390,7 +484,7 @@ export const declareRecklessAttack = (character) => {
 export const endRecklessAttack = (character) => {
   const state = getRecklessAttackState(character);
   if (!state.active && !state.firstAttackMade && !state.declared) return character;
-  return withRecklessAttack(character, { active: false, declared: false, firstAttackMade: false });
+  return resetFrenzyTurn(withRecklessAttack(character, { active: false, declared: false, firstAttackMade: false }));
 };
 
 export const markBarbarianAttackRoll = (character) => character;
@@ -424,4 +518,43 @@ export const resolveAttackRollMode = (character, attack = {}, options = {}) => {
     advantageSources,
     disadvantageSources,
   };
+};
+
+
+export const getFrenzyState = (character) => ({
+  usedThisTurn: Boolean(character?.classState?.barbarian?.frenzy?.usedThisTurn),
+});
+
+export const markFrenzyUsed = (character) => ({
+  ...character,
+  classState: {
+    ...(character?.classState || {}),
+    barbarian: {
+      ...(character?.classState?.barbarian || {}),
+      frenzy: { usedThisTurn: true },
+    },
+  },
+});
+
+export const resetFrenzyTurn = (character) => {
+  if (!getFrenzyState(character).usedThisTurn) return character;
+  return {
+    ...character,
+    classState: {
+      ...(character?.classState || {}),
+      barbarian: {
+        ...(character?.classState?.barbarian || {}),
+        frenzy: { usedThisTurn: false },
+      },
+    },
+  };
+};
+
+export const getFrenzyDamageDice = (character, attack = {}) => {
+  if (getBarbarianLevel(character) < 3 || !isPathOfTheBerserker(character)) return null;
+  if (!isRageActive(character) || !getRecklessAttackState(character).active) return null;
+  if (getFrenzyState(character).usedThisTurn) return null;
+  if (attack.hit === false || attack.dealsDamage === false) return null;
+  if (getRageDamageBonus(character, attack) <= 0) return null;
+  return { label: "Reckless Attack", count: getRageDamageBonus(character, attack), sides: 6 };
 };

@@ -3,6 +3,8 @@ import apiFetch from '../../../utils/apiFetch';
 import { Card, Modal, Button, Form, Alert } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import useUser from '../../../hooks/useUser';
+import { BARBARIAN_LEVEL_1_SKILLS, BARBARIAN_SUBCLASSES } from '../utils/barbarian';
+import { SKILLS } from '../skillSchema';
 
 export default function LevelUp({ show, handleClose, form }) {
   //--------------------------------------------Level Up--------------------------------------------------------------------------------------------------------------------------------------------
@@ -49,6 +51,13 @@ export default function LevelUp({ show, handleClose, form }) {
       health: newHealth,
     };
 
+    if (selectedOccupation === 'Barbarian' && newLevel >= 3) {
+      updatedLevelForm.barbarianSubclass = barbarianSubclass;
+      if (newLevel === 3) {
+        updatedLevelForm.primalKnowledgeSkill = primalKnowledgeSkill;
+      }
+    }
+
     try {
       await apiFetch(`/characters/update-level/${params.id}`, {
         method: "PUT",
@@ -72,6 +81,8 @@ export default function LevelUp({ show, handleClose, form }) {
   const [notification, setNotification] = useState('');
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [barbarianSubclass, setBarbarianSubclass] = useState('path-of-the-berserker');
+  const [primalKnowledgeSkill, setPrimalKnowledgeSkill] = useState('');
 
   const handleAddOccupationClick = () => {
     setShowAddClassModal(true);
@@ -255,6 +266,43 @@ export default function LevelUp({ show, handleClose, form }) {
                     ))}
                   </Form.Select>
                 </Form.Group>
+                {chosenOccupation === 'Barbarian' && (() => {
+                  const barbarian = form.occupation.find((occupation) => occupation.Occupation === 'Barbarian');
+                  const nextLevel = Number(barbarian?.Level || 0) + 1;
+                  if (nextLevel < 3) return null;
+                  const skillLabels = Object.fromEntries(SKILLS.map((skill) => [skill.key, skill.label]));
+                  const currentSkills = form.skills || {};
+                  const alreadyProficient = new Set([
+                    ...Object.entries(currentSkills).filter(([, info]) => info?.proficient).map(([key]) => key),
+                    ...Object.entries(form.race?.skills || {}).filter(([, info]) => info?.proficient).map(([key]) => key),
+                    ...Object.entries(form.background?.skills || {}).filter(([, info]) => info?.proficient).map(([key]) => key),
+                  ]);
+                  const availablePrimalSkills = BARBARIAN_LEVEL_1_SKILLS.filter((skill) => !alreadyProficient.has(skill));
+                  return (
+                    <>
+                      <Form.Group className="mb-3 mx-5">
+                        <Form.Label className="text-light">Barbarian Subclass</Form.Label>
+                        <Form.Select value={barbarianSubclass} onChange={(event) => setBarbarianSubclass(event.target.value)}>
+                          {BARBARIAN_SUBCLASSES.map((subclass) => (
+                            <option key={subclass.id} value={subclass.id}>{subclass.name}</option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                      {nextLevel === 3 && (
+                        <Form.Group className="mb-3 mx-5">
+                          <Form.Label className="text-light">Primal Knowledge Skill</Form.Label>
+                          <Form.Select value={primalKnowledgeSkill} onChange={(event) => setPrimalKnowledgeSkill(event.target.value)}>
+                            <option value="" disabled>Select one skill</option>
+                            {availablePrimalSkills.map((skill) => (
+                              <option key={skill} value={skill}>{skillLabels[skill] || skill}</option>
+                            ))}
+                          </Form.Select>
+                        </Form.Group>
+                      )}
+                    </>
+                  );
+                })()}
+
               </Form>
             </Card.Body>
             <Card.Footer className="modal-footer">
@@ -265,7 +313,7 @@ export default function LevelUp({ show, handleClose, form }) {
                 className="action-btn save-btn"
                 type="submit"
                 form="level-up-form"
-                disabled={!chosenOccupation}
+                disabled={!chosenOccupation || (chosenOccupation === 'Barbarian' && form.occupation.find((occupation) => occupation.Occupation === 'Barbarian') && Number(form.occupation.find((occupation) => occupation.Occupation === 'Barbarian').Level || 0) + 1 === 3 && !primalKnowledgeSkill)
               >
                 Level Up
               </Button>

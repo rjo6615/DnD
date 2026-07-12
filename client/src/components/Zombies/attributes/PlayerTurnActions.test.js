@@ -138,6 +138,33 @@ describe('calculateDamage parser', () => {
     expect(calculateDamage('1d10 Fire', 3, false, fixedRoll, undefined, 0, { character: activeLevel3, attack: { ability: 'str', kind: 'spell', isSpellAttack: true, dealsDamage: true } }).total).toBe(4);
   });
 
+
+  test('applies Berserker Frenzy dice once using inherited damage type and crit doubling', () => {
+    const berserker = {
+      occupation: [{ Name: 'Barbarian', Level: 3 }],
+      classState: {
+        barbarian: {
+          rage: { active: true, current: 1 },
+          recklessAttack: { active: true, declared: true },
+          subclass: { id: 'path-of-the-berserker', name: 'Path of the Berserker' },
+        },
+      },
+    };
+    const attack = { ability: 'str', kind: 'weapon', isWeaponAttack: true, dealsDamage: true };
+    expect(calculateDamage('1d12 Slashing', 3, false, fixedRoll, undefined, 0, { character: berserker, attack })).toMatchObject({
+      total: 8,
+      breakdown: '4 Slashing + 2 Rage + 2 Reckless Attack Slashing',
+      frenzyApplied: true,
+    });
+    expect(calculateDamage('1d12 Slashing', 3, true, fixedRoll, undefined, 0, { character: berserker, attack })).toMatchObject({
+      total: 11,
+      breakdown: '5 Slashing + 2 Rage + 4 Reckless Attack Slashing',
+      frenzyApplied: true,
+    });
+    expect(calculateDamage('1d12 Slashing', 3, false, fixedRoll, undefined, 0, { character: { ...berserker, classState: { barbarian: { ...berserker.classState.barbarian, frenzy: { usedThisTurn: true } } } }, attack }).frenzyApplied).toBe(false);
+    expect(calculateDamage('1d12 Slashing', 3, false, fixedRoll, undefined, 0, { character: berserker, attack: { ...attack, ability: 'dex' } }).frenzyApplied).toBe(false);
+  });
+
   test('scales rage damage from barbarian class level', () => {
     const raging = (barbarianLevel, otherLevel = 0) => ({
       occupation: [

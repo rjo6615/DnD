@@ -13,6 +13,7 @@ const {
 const proficiencyBonus = require('../../utils/proficiency');
 const collectAllowedSkills = require('../../utils/collectAllowedSkills');
 const collectAllowedExpertise = require('../../utils/collectAllowedExpertise');
+const classes = require('../../data/classes');
 const { normalizeEquipmentMap } = require('../../constants/equipmentSlots');
 const {
   emitCharacterMetadataUpdate,
@@ -543,12 +544,20 @@ module.exports = (router) => {
       const selectedOccupation = req.body.selectedOccupation;
       const { level, health } = matchedData(req, { locations: ['body'] });
 
-      const updateOperation = {
-        $set: {
-          'occupation.$.Level': level,
-          health,
-        },
+      const setUpdate = {
+        'occupation.$.Level': level,
+        health,
       };
+      const updateOperation = { $set: setUpdate };
+      const isBarbarianLevel3 = selectedOccupation === 'Barbarian' && level >= 3;
+      const primalKnowledgeSkill = req.body.primalKnowledgeSkill;
+      const barbarianSubclass = req.body.barbarianSubclass;
+      if (isBarbarianLevel3 && barbarianSubclass) {
+        setUpdate['classState.barbarian.subclass'] = {
+          id: barbarianSubclass,
+          name: barbarianSubclass === 'path-of-the-berserker' ? 'Path of the Berserker' : barbarianSubclass,
+        };
+      }
 
       try {
         const result = await db_connect
@@ -571,9 +580,33 @@ module.exports = (router) => {
             ? updatedChar.occupation.reduce((sum, o) => sum + (o.Level || 0), 0)
             : 0;
           const profBonus = proficiencyBonus(totalLevel);
+          const followupSet = { proficiencyBonus: profBonus };
+          const barbarian = Array.isArray(updatedChar.occupation)
+            ? updatedChar.occupation.find((o) => o.Occupation === 'Barbarian')
+            : null;
+          if (selectedOccupation === 'Barbarian' && level === 3 && primalKnowledgeSkill) {
+            const allowed = classes.barbarian.proficiencies.skills.options;
+            const already = Boolean(
+              updatedChar.skills?.[primalKnowledgeSkill]?.proficient ||
+              updatedChar.race?.skills?.[primalKnowledgeSkill]?.proficient ||
+              updatedChar.background?.skills?.[primalKnowledgeSkill]?.proficient
+            );
+            const alreadyChosen = Boolean(updatedChar.classState?.barbarian?.primalKnowledge?.skill);
+            if (allowed.includes(primalKnowledgeSkill) && !already && !alreadyChosen) {
+              followupSet[`skills.${primalKnowledgeSkill}`] = {
+                ...(updatedChar.skills?.[primalKnowledgeSkill] || skillFields[primalKnowledgeSkill] || {}),
+                proficient: true,
+                expertise: Boolean(updatedChar.skills?.[primalKnowledgeSkill]?.expertise),
+              };
+              followupSet['classState.barbarian.primalKnowledge.skill'] = primalKnowledgeSkill;
+              followupSet['occupation.$[barbarian].proficiencyPoints'] = Number(barbarian?.proficiencyPoints || 0) + 1;
+            }
+          }
+          const usesBarbarianArrayFilter = Object.keys(followupSet).some((key) => key.includes('$[barbarian]'));
           await db_connect.collection('Characters').updateOne(
             { _id: ObjectId(req.params.id) },
-            { $set: { proficiencyBonus: profBonus } }
+            { $set: followupSet },
+            usesBarbarianArrayFilter ? { arrayFilters: [{ 'barbarian.Occupation': 'Barbarian' }] } : undefined
           );
           logger.info(`Character updated for Occupation: ${selectedOccupation}`);
           res.json({ message: 'Update complete', proficiencyBonus: profBonus });
