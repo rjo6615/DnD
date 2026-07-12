@@ -160,8 +160,20 @@ export const BARBARIAN_SUBCLASSES = [
     classId: "barbarian",
     level: 3,
     features: [
-      { id: "berserker-frenzy", name: "Frenzy", level: 3 },
-      { id: "berserker-mindless-rage", name: "Mindless Rage", level: 6 },
+      {
+        id: "berserker-frenzy",
+        name: "Frenzy",
+        level: 3,
+        description:
+          "If you use Reckless Attack while your Rage is active, you deal extra damage to the first target you hit on your turn with a Strength-based attack.",
+      },
+      {
+        id: "berserker-mindless-rage",
+        name: "Mindless Rage",
+        level: 6,
+        description:
+          "You have Immunity to the Charmed and Frightened conditions while your Rage is active. If you’re Charmed or Frightened when you enter your Rage, the condition ends on you.",
+      },
       { id: "berserker-retaliation", name: "Retaliation", level: 10 },
       { id: "berserker-intimidating-presence", name: "Intimidating Presence", level: 14 },
     ],
@@ -282,8 +294,17 @@ export const BARBARIAN_FEATURES = [
 
 export const getAvailableBarbarianFeatures = (character) => {
   const barbarianLevel = getBarbarianLevel(character);
+  const selectedSubclass = getBarbarianSubclass(character);
+  const selectedSubclassName =
+    typeof selectedSubclass === "object" && selectedSubclass !== null
+      ? selectedSubclass.name || selectedSubclass.label || selectedSubclass.id
+      : selectedSubclass;
   return [
-    ...BARBARIAN_FEATURES.filter((feature) => barbarianLevel >= feature.level),
+    ...BARBARIAN_FEATURES.filter((feature) => barbarianLevel >= feature.level).map((feature) =>
+      feature.id === "barbarian-subclass" && selectedSubclassName
+        ? { ...feature, subclass: selectedSubclassName }
+        : feature
+    ),
     ...getActiveBarbarianSubclassFeatures(character).map((feature) => ({
       ...feature,
       class: "Barbarian",

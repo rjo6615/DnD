@@ -266,8 +266,22 @@ describe("barbarian level 3 features", () => {
     expect(getAvailableBarbarianSubclasses(barbarian({ occupation: [{ Name: "Barbarian", Level: 2 }] }))).toEqual([]);
     expect(getAvailableBarbarianSubclasses(barbarian3()).map((s) => s.name)).toContain("Path of the Berserker");
     expect(getActiveBarbarianSubclassFeatures(barbarian3()).map((f) => f.name)).toEqual(["Frenzy"]);
-    expect(getAvailableBarbarianFeatures(barbarian3()).map((f) => f.name)).toEqual(expect.arrayContaining(["Primal Knowledge", "Barbarian Subclass", "Frenzy"]));
-    expect(getActiveBarbarianSubclassFeatures(barbarian({ occupation: [{ Name: "Barbarian", Level: 5 }], classState: { barbarian: { subclass: { id: "path-of-the-berserker" } } } })).map((f) => f.name)).not.toContain("Mindless Rage");
+    const level3Features = getAvailableBarbarianFeatures(barbarian3());
+    expect(level3Features.map((f) => f.name)).toEqual(expect.arrayContaining(["Primal Knowledge", "Barbarian Subclass", "Frenzy"]));
+    expect(level3Features.find((f) => f.name === "Barbarian Subclass")?.subclass).toBe("Path of the Berserker");
+    expect(level3Features.find((f) => f.name === "Frenzy")?.subclass).toBe("Path of the Berserker");
+
+    const level5Features = getActiveBarbarianSubclassFeatures(barbarian({ occupation: [{ Name: "Barbarian", Level: 5 }], classState: { barbarian: { subclass: { id: "path-of-the-berserker" } } } }));
+    expect(level5Features.map((f) => f.name)).not.toContain("Mindless Rage");
+
+    const level6Features = getAvailableBarbarianFeatures(barbarian({ occupation: [{ Name: "Barbarian", Level: 6 }], classState: { barbarian: { subclass: { id: "path-of-the-berserker", name: "Path of the Berserker" } } } }));
+    const mindlessRage = level6Features.find((f) => f.name === "Mindless Rage");
+    expect(mindlessRage).toMatchObject({
+      level: 6,
+      subclass: "Path of the Berserker",
+      description:
+        "You have Immunity to the Charmed and Frightened conditions while your Rage is active. If you’re Charmed or Frightened when you enter your Rage, the condition ends on you.",
+    });
   });
 
   it("exposes Primal Knowledge alternate checks only for eligible raging skills", () => {
