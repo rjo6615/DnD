@@ -10,6 +10,7 @@ jest.mock('react-bootstrap', () => {
   return {
     ...actual,
     Modal: ({ children, ...props }) => {
+      if (!props.show) return null;
       capturedModalProps = props;
       return <div data-testid="mock-modal">{children}</div>;
     },
@@ -57,6 +58,34 @@ const createProps = (overrides = {}) => ({
   onRollResult: jest.fn(),
   ...overrides,
 });
+
+const createPrimalKnowledgeProps = (overrides = {}) =>
+  createProps({
+    totalLevel: 5,
+    strMod: 4,
+    dexMod: 2,
+    form: {
+      ...createProps().form,
+      skills: {
+        stealth: { proficient: true, expertise: true },
+      },
+      occupation: [{ Name: 'Barbarian', Level: 5 }],
+      classState: {
+        barbarian: {
+          rage: { active: true, current: 1 },
+        },
+      },
+    },
+    ...overrides,
+  });
+
+const deferred = () => {
+  let resolve;
+  const promise = new Promise((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+};
 
 describe('Skills modal docking props', () => {
   beforeEach(() => {
@@ -144,6 +173,88 @@ describe('skill rolling behavior', () => {
       dispatchSpy.mockRestore();
     }
   });
+
+  it('closes both modals immediately before resolving a normal Primal Knowledge ability roll', async () => {
+    const handleCloseSkill = jest.fn();
+    const pendingRoll = deferred();
+    rollDiceWithBox.mockReturnValueOnce(pendingRoll.promise);
+
+    render(<Skills {...createPrimalKnowledgeProps({ handleCloseSkill })} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /roll stealth/i }));
+    expect(screen.getByText(/choose modifier/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /^roll$/i }));
+
+    expect(screen.queryByText(/choose modifier/i)).not.toBeInTheDocument();
+    expect(handleCloseSkill).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(rollDiceWithBox).toHaveBeenCalledTimes(1));
+
+    pendingRoll.resolve({ rolls: [[12, 12]] });
+    await waitFor(() => expect(rollDiceWithBox).toHaveBeenCalledTimes(1));
+  });
+
+  it('closes both modals immediately before resolving a Strength Primal Knowledge roll and preserves roll context', async () => {
+    const handleCloseSkill = jest.fn();
+    const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+    const pendingRoll = deferred();
+    rollDiceWithBox.mockReturnValueOnce(pendingRoll.promise);
+
+    render(<Skills {...createPrimalKnowledgeProps({ handleCloseSkill })} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /roll stealth/i }));
+    await userEvent.selectOptions(screen.getByLabelText(/modifier/i), 'str');
+    await userEvent.click(screen.getByRole('button', { name: /^roll$/i }));
+
+    expect(screen.queryByText(/choose modifier/i)).not.toBeInTheDocument();
+    expect(handleCloseSkill).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(rollDiceWithBox).toHaveBeenCalledTimes(1));
+
+    pendingRoll.resolve({ rolls: [[12, 12]] });
+
+    await waitFor(() => {
+      const rollEventCall = dispatchSpy.mock.calls.find(
+        ([event]) => event?.type === 'damage-roll'
+      );
+      expect(rollEventCall?.[0].detail).toEqual(
+        expect.objectContaining({
+          value: 22,
+          source: 'Strength (Stealth) — Primal Knowledge',
+        })
+      );
+      expect(rollEventCall?.[0].detail.breakdown).toContain('+ 4 Strength Modifier');
+      expect(rollEventCall?.[0].detail.breakdown).toContain('+ 6 Expertise Bonus');
+    });
+
+    dispatchSpy.mockRestore();
+  });
+
+  it('does not roll or close the parent Skills modal when cancelling the modifier prompt', async () => {
+    const handleCloseSkill = jest.fn();
+
+    render(<Skills {...createPrimalKnowledgeProps({ handleCloseSkill })} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /roll stealth/i }));
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(screen.queryByText(/choose modifier/i)).not.toBeInTheDocument();
+    expect(handleCloseSkill).not.toHaveBeenCalled();
+    expect(rollDiceWithBox).not.toHaveBeenCalled();
+  });
+
+  it('keeps existing eligible-skill checks by rolling ineligible Rage skills without the modifier prompt', async () => {
+    const handleCloseSkill = jest.fn();
+    rollDiceWithBox.mockResolvedValueOnce({ rolls: [[11, 11]] });
+
+    render(<Skills {...createPrimalKnowledgeProps({ handleCloseSkill })} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /roll athletics/i }));
+
+    expect(screen.queryByText(/choose modifier/i)).not.toBeInTheDocument();
+    expect(handleCloseSkill).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(rollDiceWithBox).toHaveBeenCalledTimes(1));
+  });
+
   it('applies the player dice color before rolling', async () => {
     rollDiceWithBox.mockResolvedValueOnce({ rolls: [[8]] });
 

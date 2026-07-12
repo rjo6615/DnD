@@ -431,7 +431,8 @@ export default function Skills({
     updateSkill(skill, updated);
   };
 
-  const executeSkillRoll = async (skillKey, ability, proficient, expertise, labelSuffix = '') => {
+  const executeSkillRoll = async (skillKey, ability, proficient, expertise, labelSuffix = '', options = {}) => {
+    const { closeParentBeforeRoll = true } = options;
     const skill = SKILLS.find((s) => s.key === skillKey);
     const skillLabel = skill?.label || skill?.name || skillKey;
     const armorPenalty = skill?.armorPenalty || 0;
@@ -447,7 +448,7 @@ export default function Skills({
     const abilityLabel =
       ABILITY_LABELS[ability] || ability?.toUpperCase?.() || ability || 'Ability';
 
-    if (!isDocked && !labelSuffix) {
+    if (closeParentBeforeRoll && !isDocked) {
       handleCloseSkill?.();
     }
 
@@ -522,11 +523,15 @@ export default function Skills({
 
   const confirmModifierPrompt = async () => {
     if (!modifierPrompt || isRollingSkill) return;
-    const prompt = modifierPrompt;
+    const prompt = { ...modifierPrompt };
     const ability = selectedModifierAbility || prompt.ability;
     const suffix = ability === 'str' && ability !== prompt.ability ? '— Primal Knowledge' : '';
 
     closeModifierPrompt();
+    if (!isDocked) {
+      handleCloseSkill?.();
+    }
+
     setIsRollingSkill(true);
     try {
       await executeSkillRoll(
@@ -534,11 +539,9 @@ export default function Skills({
         ability,
         prompt.proficient,
         prompt.expertise,
-        suffix
+        suffix,
+        { closeParentBeforeRoll: false }
       );
-      if (!isDocked) {
-        handleCloseSkill?.();
-      }
     } finally {
       setIsRollingSkill(false);
     }
