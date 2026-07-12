@@ -522,19 +522,20 @@ export default function Skills({
 
   const confirmModifierPrompt = async () => {
     if (!modifierPrompt || isRollingSkill) return;
-    const ability = selectedModifierAbility || modifierPrompt.ability;
-    const suffix = ability === 'str' && ability !== modifierPrompt.ability ? '— Primal Knowledge' : '';
+    const prompt = modifierPrompt;
+    const ability = selectedModifierAbility || prompt.ability;
+    const suffix = ability === 'str' && ability !== prompt.ability ? '— Primal Knowledge' : '';
+
+    closeModifierPrompt();
     setIsRollingSkill(true);
     try {
       await executeSkillRoll(
-        modifierPrompt.skillKey,
+        prompt.skillKey,
         ability,
-        modifierPrompt.proficient,
-        modifierPrompt.expertise,
+        prompt.proficient,
+        prompt.expertise,
         suffix
       );
-      setModifierPrompt(null);
-      setSelectedModifierAbility('');
       if (!isDocked) {
         handleCloseSkill?.();
       }
