@@ -312,7 +312,7 @@ const hasMovementSpeedSource = (entity) => {
   ].some((value) => toFiniteNumberOrNull(value) !== null);
 };
 
-const getEntityMovementSpeed = (entity) => {
+export const getEntityMovementSpeed = (entity) => {
   if (!entity || typeof entity !== 'object') {
     return null;
   }
@@ -342,6 +342,19 @@ const getEntityMovementSpeed = (entity) => {
   }
 
   return null;
+};
+
+export const getEntityMovementSpeedDisplay = (entity) => {
+  if (!entity || typeof entity !== 'object') {
+    return '—';
+  }
+
+  if (entity.entityType === 'enemy') {
+    return formatMovementSpeed(entity.speed);
+  }
+
+  const movementSpeed = getEntityMovementSpeed(entity);
+  return movementSpeed !== null ? `${movementSpeed} ft` : '—';
 };
 
 const getEntityPassivePerception = (entity) => {
@@ -419,6 +432,96 @@ const formatXpDisplay = (xp) => {
 };
 
 const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
+
+
+const trimTrailingPunctuation = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value.trim().replace(/[.\s]+$/g, '');
+};
+
+const formatSpeedValue = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? `${value} ft` : null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = trimTrailingPunctuation(value);
+    if (!trimmed) {
+      return null;
+    }
+
+    const numeric = Number(trimmed);
+    if (Number.isFinite(numeric)) {
+      return `${numeric} ft`;
+    }
+
+    return trimmed.replace(/\bfeet\b/gi, 'ft');
+  }
+
+  return null;
+};
+
+export const formatMovementSpeed = (speedData) => {
+  if (speedData === undefined || speedData === null || speedData === '') {
+    return '—';
+  }
+
+  if (typeof speedData === 'number') {
+    return Number.isFinite(speedData) ? `${speedData} ft` : '—';
+  }
+
+  if (typeof speedData === 'string') {
+    const trimmed = trimTrailingPunctuation(speedData);
+    if (!trimmed) {
+      return '—';
+    }
+
+    const modeMatch = trimmed.match(/^([a-z][a-z\s_-]*):\s*(.+)$/i);
+    if (modeMatch) {
+      const value = formatSpeedValue(modeMatch[2]);
+      return value ? `${toTitleCase(modeMatch[1])}: ${value}` : '—';
+    }
+
+    const value = formatSpeedValue(trimmed);
+    return value || '—';
+  }
+
+  if (Array.isArray(speedData)) {
+    const entries = speedData
+      .map((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return null;
+        }
+
+        const mode = entry.type || entry.mode || entry.name;
+        const value = formatSpeedValue(entry.value ?? entry.speed ?? entry.distance);
+        return mode && value ? `${toTitleCase(String(mode))}: ${value}` : null;
+      })
+      .filter(Boolean);
+
+    return entries.length > 0 ? entries.join(', ') : '—';
+  }
+
+  if (typeof speedData === 'object') {
+    const entries = Object.entries(speedData)
+      .map(([mode, value]) => {
+        const formattedValue = formatSpeedValue(value);
+        return formattedValue ? `${toTitleCase(mode)}: ${formattedValue}` : null;
+      })
+      .filter(Boolean);
+
+    return entries.length > 0 ? entries.join(', ') : '—';
+  }
+
+  return '—';
+};
 
 const toFiniteNumberOrNull = (value) => {
   if (value === null || value === undefined || value === '') {
@@ -4119,7 +4222,7 @@ export default function ZombiesDM() {
             rowId,
             participantInfo,
             passivePerception: getEntityPassivePerception(entity),
-            movementSpeed: getEntityMovementSpeed(entity),
+            movementSpeedDisplay: getEntityMovementSpeedDisplay(entity),
             initiativeValue,
             sortInitiative: numericInitiative,
             recordIndex,
@@ -4170,29 +4273,7 @@ export default function ZombiesDM() {
       return parts.length > 0 ? parts.join(', ') : '—';
     }, []);
 
-    const formatSpeed = useCallback((speed) => {
-      if (!speed) {
-        return '—';
-      }
-
-      if (typeof speed === 'string') {
-        return speed;
-      }
-
-      if (typeof speed === 'object') {
-        const entries = Object.entries(speed)
-          .map(([mode, value]) => {
-            if (value === undefined || value === null || value === '') {
-              return null;
-            }
-            return `${mode}: ${value}`;
-          })
-          .filter(Boolean);
-        return entries.length > 0 ? entries.join(', ') : '—';
-      }
-
-      return '—';
-    }, []);
+    const formatSpeed = useCallback(formatMovementSpeed, []);
 
     const formatAbilityScore = useCallback((key, value) => {
       const label = STAT_LABELS[key] || key.toUpperCase();
@@ -7017,7 +7098,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                           <th scope="col">Character</th>
                           <th scope="col">Player</th>
                           <th scope="col" className="text-center">In Combat</th>
-                          <th scope="col" className="text-center">Movespeed</th>
+                          <th scope="col" className="text-center combat-tracker-movespeed">Movespeed</th>
                           <th scope="col" className="text-center">Passive Perception</th>
                           <th scope="col" className="text-center">Initiative</th>
                           <th scope="col" className="text-center">Actions</th>
@@ -7031,7 +7112,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                               rowId,
                               participantInfo,
                               passivePerception,
-                              movementSpeed,
+                              movementSpeedDisplay,
                               initiativeValue,
                               recordIndex,
                             }) => {
@@ -7045,10 +7126,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                                 passivePerception !== undefined && passivePerception !== null
                                   ? passivePerception
                                   : '—';
-                              const displayMovementSpeed =
-                                movementSpeed !== undefined && movementSpeed !== null
-                                  ? `${movementSpeed} ft`
-                                  : '—';
+                              const displayMovementSpeed = movementSpeedDisplay || '—';
                               const isActive =
                                 isParticipant &&
                                 Number.isInteger(combatState.activeTurn) &&
@@ -7119,7 +7197,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                                       aria-label={`Toggle ${checkboxLabel} in combat`}
                                     />
                                   </td>
-                                  <td className="text-center" style={{ width: '110px' }}>
+                                  <td className="text-center combat-tracker-movespeed">
                                     {displayMovementSpeed}
                                   </td>
                                   <td className="text-center" style={{ width: '150px' }}>

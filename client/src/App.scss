@@ -430,6 +430,13 @@
   line-height: 1.2;
 }
 
+
+.combat-tracker-movespeed {
+  min-width: 9rem;
+  max-width: 14rem;
+  white-space: normal;
+}
+
 .zombies-dm-page__combat-header {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + clamp(3.5rem, 1vh, 6.75rem));

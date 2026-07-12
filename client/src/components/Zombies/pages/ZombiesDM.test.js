@@ -43,6 +43,8 @@ const {
   applyCharacterHealthUpdateToRecords,
   getCharacterCardMeta,
   getCombatRowMeta,
+  formatMovementSpeed,
+  getEntityMovementSpeedDisplay,
 } = require('./ZombiesDM');
 
 const armorSlotOptions = [
@@ -95,6 +97,42 @@ describe('ZombiesDM metadata helpers', () => {
     });
     expect(combatMeta.testId).toBe('combat-row-hero-1');
     expect(combatMeta.dataAttributes['data-current-hp']).toBe(12);
+  });
+
+  test('formats monster movement speed modes from normalized speed data', () => {
+    expect(formatMovementSpeed({ walk: '30 ft.' })).toBe('Walk: 30 ft');
+    expect(formatMovementSpeed({ walk: '50 ft.', burrow: '50 ft.' })).toBe(
+      'Walk: 50 ft, Burrow: 50 ft'
+    );
+    expect(
+      formatMovementSpeed({ walk: '40 ft.', fly: '80 ft.', swim: '40 ft.', climb: '30 ft.' })
+    ).toBe('Walk: 40 ft, Fly: 80 ft, Swim: 40 ft, Climb: 30 ft');
+    expect(formatMovementSpeed({ climb: '30 ft.' })).toBe('Climb: 30 ft');
+    expect(formatMovementSpeed('walk: 30 ft.')).toBe('Walk: 30 ft');
+    expect(formatMovementSpeed({ walk: undefined, fly: Number.NaN })).toBe('—');
+  });
+
+  test('combat tracker movement display preserves player speed and barbarian fast movement', () => {
+    expect(getEntityMovementSpeedDisplay({ speed: 30 })).toBe('30 ft');
+    expect(
+      getEntityMovementSpeedDisplay({
+        speed: 30,
+        occupation: [{ Name: 'Barbarian', Level: 5 }],
+        equipment: {},
+      })
+    ).toBe('40 ft');
+  });
+
+  test('combat tracker movement display uses enemy movement modes without monster-specific names', () => {
+    expect(getEntityMovementSpeedDisplay({ entityType: 'enemy', speed: { walk: '30 ft.' } })).toBe(
+      'Walk: 30 ft'
+    );
+    expect(
+      getEntityMovementSpeedDisplay({
+        entityType: 'enemy',
+        speed: { walk: '50 ft.', burrow: '50 ft.' },
+      })
+    ).toBe('Walk: 50 ft, Burrow: 50 ft');
   });
 
   test('combat row metadata prefers participant max hp over character health when no explicit current hp is present', () => {
