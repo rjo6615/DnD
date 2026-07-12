@@ -172,6 +172,115 @@ const CharacterGrid = ({ records, onContinue }) => (
   </div>
 );
 
+const abilityModifier = (score) => {
+  const value = Number(score);
+  if (!Number.isFinite(value)) return "—";
+  const modifier = Math.floor((value - 10) / 2);
+  return modifier >= 0 ? `+${modifier}` : `${modifier}`;
+};
+
+const MANUAL_STEPS = [
+  { id: "identity", title: "Identity", helper: "Name the hero who will enter this realm." },
+  { id: "ancestry", title: "Ancestry", helper: "Choose lineage traits and conditional heritage options." },
+  { id: "class", title: "Class", helper: "Select the first adventuring path and starting hit die." },
+  { id: "background", title: "Background", helper: "Anchor the character in the world." },
+  { id: "physical", title: "Physical Details", helper: "Capture concise table-facing details." },
+  { id: "abilities", title: "Ability Scores", helper: "Set the six core scores used by the existing character model." },
+  { id: "review", title: "Review & Create", helper: "Confirm the sheet before creating the character." },
+];
+
+const getManualErrors = (form, selectedOccupation) => {
+  const errors = {};
+  if (!form.characterName?.trim()) errors.characterName = "Enter a character name before continuing.";
+  if ((form.characterName || "").length > 12) errors.characterName = "Use 12 characters or fewer.";
+  if (/\d/.test(form.characterName || "")) errors.characterName = "Names cannot include numbers.";
+  if (!form.race) errors.race = "Choose a race.";
+  if (form.race?.dragonAncestries && !form.dragonAncestryKey) errors.dragonAncestryKey = "Choose a dragon ancestry.";
+  if (form.race?.giantAncestries && !form.giantAncestryKey) errors.giantAncestryKey = "Choose a giant ancestry.";
+  if (form.race?.elvenLineages && !form.elvenLineageKey) errors.elvenLineageKey = "Choose an elven lineage.";
+  if (form.elvenLineage?.spellcastingAbilities?.length && !form.elvenLineageAbility) errors.elvenLineageAbility = "Choose a spellcasting ability.";
+  if (form.race?.gnomeLineages && !form.gnomeLineageKey) errors.gnomeLineageKey = "Choose a gnome lineage.";
+  if (form.gnomeLineage?.spellcastingAbilities?.length && !form.gnomeLineageAbility) errors.gnomeLineageAbility = "Choose a spellcasting ability.";
+  if (form.race?.fiendishLegacies && !form.tieflingLegacyKey) errors.tieflingLegacyKey = "Choose a fiendish legacy.";
+  if (form.tieflingLegacy?.spellcastingAbilities?.length && !form.tieflingLegacyAbility) errors.tieflingLegacyAbility = "Choose a spellcasting ability.";
+  if (!selectedOccupation) errors.occupation = "Choose a class.";
+  if (!form.background) errors.background = "Choose a background.";
+  if (!form.size) errors.size = "Choose a size.";
+  if (form.age && Number(form.age) < 0) errors.age = "Age must be zero or higher.";
+  if (form.weight && Number(form.weight) < 0) errors.weight = "Weight must be zero or higher.";
+  STATS.forEach(({ key, label }) => {
+    if (form[key] === "" || form[key] == null) errors[key] = `Enter ${label}.`;
+    else if (Number(form[key]) < 1 || Number(form[key]) > 30) errors[key] = `${label} must be between 1 and 30.`;
+  });
+  return errors;
+};
+
+const CharacterFormField = ({ id, label, helper, error, children }) => (
+  <div className={`character-wizard-field${error ? " character-wizard-field--error" : ""}`}>
+    <label htmlFor={id}>{label}</label>
+    {helper && <p>{helper}</p>}
+    {children}
+    {error && <span className="character-wizard-error" id={`${id}-error`}>{error}</span>}
+  </div>
+);
+
+const CharacterSelectCard = ({ selected, title, meta, detail, onClick, name }) => (
+  <button type="button" className={`character-option-card${selected ? " character-option-card--selected" : ""}`} onClick={onClick} aria-pressed={selected} name={name}>
+    <span className="character-option-card__sigil">✦</span><strong>{title}</strong>{meta && <small>{meta}</small>}{detail && <span>{detail}</span>}
+  </button>
+);
+
+const AbilityScoreCard = ({ stat, value, onChange, error }) => {
+  const numberValue = Number(value || 0);
+  const setScore = (next) => onChange(String(Math.min(30, Math.max(1, next))));
+  return <div className={`ability-score-card${error ? " ability-score-card--error" : ""}`}>
+    <div><strong>{stat.key.toUpperCase()}</strong><span>{stat.label}</span></div>
+    <div className="ability-score-card__stepper">
+      <button type="button" onClick={() => setScore(numberValue - 1)} aria-label={`Decrease ${stat.label}`}>−</button>
+      <input id={`manual-${stat.key}`} type="number" min="1" max="30" value={value} onChange={(e) => onChange(e.target.value)} aria-describedby={error ? `manual-${stat.key}-error` : undefined} />
+      <button type="button" onClick={() => setScore(numberValue + 1)} aria-label={`Increase ${stat.label}`}>+</button>
+    </div>
+    <small>Modifier: {abilityModifier(value)} • Range 1–30</small>
+    {error && <span className="character-wizard-error" id={`manual-${stat.key}-error`}>{error}</span>}
+  </div>;
+};
+
+const CharacterCreationWizard = ({ form, updateForm, races, backgrounds, occupations, selectedOccupation, selectedAddOccupationRef, sizeOptions, step, setStep, touched, setTouched, onClose, onSubmit, onRaceChange, onClassChange, onSelectClass, onBackgroundChange, onDragonAncestryChange, onGiantAncestryChange, onElvenLineageChange, onElvenLineageAbilityChange, onGnomeLineageChange, onGnomeLineageAbilityChange, onTieflingLegacyChange, onTieflingLegacyAbilityChange }) => {
+  const errors = getManualErrors(form, selectedOccupation);
+  const stepFields = {
+    identity: ["characterName"], ancestry: ["race", "dragonAncestryKey", "giantAncestryKey", "elvenLineageKey", "elvenLineageAbility", "gnomeLineageKey", "gnomeLineageAbility", "tieflingLegacyKey", "tieflingLegacyAbility"], class: ["occupation"], background: ["background"], physical: ["age", "sex", "size", "weight"], abilities: STATS.map((s) => s.key), review: Object.keys(errors),
+  };
+  const current = MANUAL_STEPS[step];
+  const stepHasError = (id) => stepFields[id].some((field) => errors[field] && touched[field]);
+  const validateStep = () => {
+    const fields = stepFields[current.id];
+    setTouched((prev) => ({ ...prev, ...Object.fromEntries(fields.map((field) => [field, true])) }));
+    const firstInvalid = fields.find((field) => errors[field]);
+    if (firstInvalid) {
+      setTimeout(() => document.querySelector(`[name="${firstInvalid}"], #manual-${firstInvalid}`)?.focus(), 0);
+      return false;
+    }
+    return true;
+  };
+  const goNext = () => { if (validateStep()) setStep(Math.min(step + 1, MANUAL_STEPS.length - 1)); };
+  const submit = (e) => { e.preventDefault(); if (validateStep() && !Object.keys(errors).length) onSubmit(e); else setTouched((p) => ({...p, ...Object.fromEntries(Object.keys(errors).map((k) => [k, true]))})); };
+  const selectRaceKey = Object.keys(races).find((key) => races[key]?.name === form.race?.name) || "";
+  const selectBackgroundKey = Object.keys(backgrounds).find((key) => backgrounds[key]?.name === form.background?.name) || "";
+
+  return <form className="character-wizard" onSubmit={submit} noValidate>
+    <header className="character-wizard__header"><div><p className="character-select-kicker">Hero Forge</p><h2>Create Character</h2><span>Step {step + 1} of {MANUAL_STEPS.length} · {current.title}</span></div><button type="button" onClick={onClose} aria-label="Close character creator">×</button><div className="character-wizard__mobile-progress"><span style={{ width: `${((step + 1) / MANUAL_STEPS.length) * 100}%` }} /></div></header>
+    <div className="character-wizard__shell"><aside className="character-wizard__sidebar"><div className="character-wizard__portrait">{(form.characterName || "RT").slice(0,2).toUpperCase()}</div><nav aria-label="Character creation steps">{MANUAL_STEPS.map((s, i) => <button type="button" key={s.id} className={`${i===step ? "is-current" : ""} ${i<step ? "is-complete" : ""} ${stepHasError(s.id) ? "has-error" : ""}`} onClick={() => i <= step ? setStep(i) : null}><span>{i < step ? "✓" : i + 1}</span><strong>{s.title}</strong><small>{s.helper}</small></button>)}</nav><div className="character-wizard__summary"><strong>{form.characterName || "Unnamed Hero"}</strong><span>{form.race?.name || "Ancestry pending"}</span><span>{selectedOccupation?.name || "Class pending"}</span></div></aside>
+    <main className="character-wizard__content"><section className="character-wizard-step"><p className="character-select-kicker">{current.title}</p><h3>{current.helper}</h3>{Object.keys(errors).some((k) => stepFields[current.id].includes(k) && touched[k]) && <div className="character-wizard-error-summary">Review the highlighted fields before continuing.</div>}
+      {current.id === "identity" && <><CharacterFormField id="manual-characterName" label="Character Name" helper={`Choose a name up to 12 characters. ${(form.characterName || "").length}/12`} error={touched.characterName && errors.characterName}><input id="manual-characterName" name="characterName" value={form.characterName || ""} maxLength="12" onBlur={() => setTouched((p)=>({...p, characterName:true}))} onChange={(e)=>updateForm({characterName:e.target.value})} aria-describedby={errors.characterName ? "manual-characterName-error" : undefined} /></CharacterFormField><div className="identity-preview"><span>✦</span><strong>{form.characterName || "Your hero's name"}</strong><small>This preview updates as you build the character.</small></div></>}
+      {current.id === "ancestry" && <><div className="character-option-grid">{Object.entries(races).map(([key, race]) => <CharacterSelectCard key={key} name="race" selected={selectRaceKey===key} title={race.name} meta={getRaceSizeOptions(race).join(" / ") || "Size varies"} onClick={()=>{onRaceChange({target:{value:key}}); setTouched((p)=>({...p,race:true}));}} />)}</div>{touched.race && errors.race && <span className="character-wizard-error">{errors.race}</span>}<div className="conditional-lineage">{form.race?.dragonAncestries && <CharacterFormField id="manual-dragonAncestryKey" label="Dragon Ancestry" error={touched.dragonAncestryKey && errors.dragonAncestryKey}><select id="manual-dragonAncestryKey" name="dragonAncestryKey" value={form.dragonAncestryKey || ""} onChange={onDragonAncestryChange} onBlur={()=>setTouched((p)=>({...p,dragonAncestryKey:true}))}><option value="" disabled>Select ancestry</option>{Object.entries(form.race.dragonAncestries).map(([key,a])=><option key={key} value={key}>{a.label}</option>)}</select></CharacterFormField>}{form.race?.giantAncestries && <CharacterFormField id="manual-giantAncestryKey" label="Giant Ancestry" error={touched.giantAncestryKey && errors.giantAncestryKey}><select id="manual-giantAncestryKey" name="giantAncestryKey" value={form.giantAncestryKey || ""} onChange={onGiantAncestryChange}><option value="" disabled>Select ancestry</option>{Object.entries(form.race.giantAncestries).map(([key,a])=><option key={key} value={key}>{a.ancestryName || a.label || a.name}</option>)}</select></CharacterFormField>}{form.race?.elvenLineages && <CharacterFormField id="manual-elvenLineageKey" label="Elven Lineage" error={touched.elvenLineageKey && errors.elvenLineageKey}><select id="manual-elvenLineageKey" name="elvenLineageKey" value={form.elvenLineageKey || ""} onChange={onElvenLineageChange}><option value="" disabled>Select lineage</option>{Object.entries(form.race.elvenLineages).map(([key,a])=><option key={key} value={key}>{a.label || a.name}</option>)}</select></CharacterFormField>}{form.elvenLineage?.spellcastingAbilities?.length ? <CharacterFormField id="manual-elvenLineageAbility" label="Spellcasting Ability" error={touched.elvenLineageAbility && errors.elvenLineageAbility}><select id="manual-elvenLineageAbility" name="elvenLineageAbility" value={form.elvenLineageAbility || ""} onChange={onElvenLineageAbilityChange}><option value="" disabled>Select ability</option>{form.elvenLineage.spellcastingAbilities.map((a)=><option key={a} value={a}>{a}</option>)}</select></CharacterFormField> : null}{form.race?.gnomeLineages && <CharacterFormField id="manual-gnomeLineageKey" label="Gnome Lineage" error={touched.gnomeLineageKey && errors.gnomeLineageKey}><select id="manual-gnomeLineageKey" name="gnomeLineageKey" value={form.gnomeLineageKey || ""} onChange={onGnomeLineageChange}><option value="" disabled>Select lineage</option>{Object.entries(form.race.gnomeLineages).map(([key,a])=><option key={key} value={key}>{a.label || a.name}</option>)}</select></CharacterFormField>}{form.gnomeLineage?.spellcastingAbilities?.length ? <CharacterFormField id="manual-gnomeLineageAbility" label="Spellcasting Ability" error={touched.gnomeLineageAbility && errors.gnomeLineageAbility}><select id="manual-gnomeLineageAbility" name="gnomeLineageAbility" value={form.gnomeLineageAbility || ""} onChange={onGnomeLineageAbilityChange}><option value="" disabled>Select ability</option>{form.gnomeLineage.spellcastingAbilities.map((a)=><option key={a} value={a}>{a}</option>)}</select></CharacterFormField> : null}{form.race?.fiendishLegacies && <CharacterFormField id="manual-tieflingLegacyKey" label="Fiendish Legacy" error={touched.tieflingLegacyKey && errors.tieflingLegacyKey}><select id="manual-tieflingLegacyKey" name="tieflingLegacyKey" value={form.tieflingLegacyKey || ""} onChange={onTieflingLegacyChange}><option value="" disabled>Select legacy</option>{Object.entries(form.race.fiendishLegacies).map(([key,a])=><option key={key} value={key}>{a.label || a.name}</option>)}</select></CharacterFormField>}{form.tieflingLegacy?.spellcastingAbilities?.length ? <CharacterFormField id="manual-tieflingLegacyAbility" label="Spellcasting Ability" error={touched.tieflingLegacyAbility && errors.tieflingLegacyAbility}><select id="manual-tieflingLegacyAbility" name="tieflingLegacyAbility" value={form.tieflingLegacyAbility || ""} onChange={onTieflingLegacyAbilityChange}><option value="" disabled>Select ability</option>{form.tieflingLegacy.spellcastingAbilities.map((a)=><option key={a} value={a}>{a}</option>)}</select></CharacterFormField> : null}</div></>}
+      {current.id === "class" && <><select className="visually-hidden" ref={selectedAddOccupationRef} onChange={onClassChange} value={selectedOccupation?.name || ""}><option value="">Select class</option>{occupations.map((o)=><option key={o.name} value={o.name}>{o.name}</option>)}</select><div className="character-option-grid character-option-grid--classes">{occupations.map((o) => <CharacterSelectCard key={o.name} name="occupation" selected={selectedOccupation?.name===o.name} title={o.name} meta={o.hitDie ? `Hit Die d${o.hitDie}` : "Starting class"} detail={o.proficiencies?.savingThrows?.length ? `Saves: ${o.proficiencies.savingThrows.join(", ")}` : "Choose this path"} onClick={()=>{onSelectClass(o); setTouched((p)=>({...p,occupation:true}));}} />)}</div>{touched.occupation && errors.occupation && <span className="character-wizard-error">{errors.occupation}</span>}</>}
+      {current.id === "background" && <><div className="character-option-grid">{Object.entries(backgrounds).map(([key,bg]) => <CharacterSelectCard key={key} name="background" selected={selectBackgroundKey===key} title={bg.name} meta={bg.skills ? `Skills: ${Object.keys(bg.skills).join(", ")}` : "Background"} onClick={()=>{onBackgroundChange({target:{value:key}}); setTouched((p)=>({...p,background:true}));}} />)}</div>{touched.background && errors.background && <span className="character-wizard-error">{errors.background}</span>}</>}
+      {current.id === "physical" && <div className="character-wizard-fields-grid"><CharacterFormField id="manual-age" label="Age" error={touched.age && errors.age}><input id="manual-age" name="age" type="number" min="0" value={form.age || ""} onChange={(e)=>updateForm({age:e.target.value})} onBlur={()=>setTouched((p)=>({...p,age:true}))} /></CharacterFormField><CharacterFormField id="manual-sex" label="Sex / Gender" helper="Free text to match your table." ><input id="manual-sex" name="sex" value={form.sex || ""} onChange={(e)=>updateForm({sex:e.target.value})} /></CharacterFormField><CharacterFormField id="manual-size" label="Size" error={touched.size && errors.size}><select id="manual-size" name="size" value={form.size || ""} onChange={(e)=>updateForm({size:e.target.value})} onBlur={()=>setTouched((p)=>({...p,size:true}))}><option value="" disabled>Select size</option>{sizeOptions.map((o)=><option key={o} value={o}>{o}</option>)}</select></CharacterFormField><CharacterFormField id="manual-weight" label="Weight" error={touched.weight && errors.weight}><input id="manual-weight" name="weight" type="number" min="0" value={form.weight || ""} onChange={(e)=>updateForm({weight:e.target.value})} onBlur={()=>setTouched((p)=>({...p,weight:true}))} /></CharacterFormField></div>}
+      {current.id === "abilities" && <div className="ability-score-grid">{STATS.map((stat)=><AbilityScoreCard key={stat.key} stat={stat} value={form[stat.key] || ""} error={touched[stat.key] && errors[stat.key]} onChange={(value)=>updateForm({[stat.key]:value})} />)}</div>}
+      {current.id === "review" && <div className="character-review"><h4>{form.characterName || "Unnamed Hero"}</h4>{[["Ancestry", form.race?.name], ["Class", selectedOccupation?.name], ["Background", form.background?.name], ["Size", form.size], ["Age", form.age || "—"], ["Sex / Gender", form.sex || "—"], ["Weight", form.weight || "—"]].map(([label,value])=><div key={label}><span>{label}</span><strong>{value || "Missing"}</strong></div>)}<div className="character-review__abilities">{STATS.map((s)=><span key={s.key}>{s.key.toUpperCase()} <strong>{form[s.key] || "—"}</strong></span>)}</div>{Object.keys(errors).length > 0 && <div className="character-wizard-error-summary">Complete missing sections before creating this character.</div>}</div>}
+    </section></main></div><footer className="character-wizard__actions"><Button type="button" variant="secondary" onClick={() => step ? setStep(step - 1) : onClose()}>{step ? "Back" : "Cancel"}</Button>{step < MANUAL_STEPS.length - 1 ? <Button type="button" onClick={goNext}>Continue</Button> : <Button type="submit" disabled={Object.keys(errors).length > 0}>Create Character</Button>}</footer></form>;
+};
+
 export default function RecordList() {
   const params = useParams();
   const [records, setRecords] = useState([]);
@@ -964,8 +1073,30 @@ useEffect(() => {
 
 //--------------------------------------------Create Character (Manual)---------------------
 const [show5, setShow5] = useState(false);
+const [manualStep, setManualStep] = useState(0);
+const [manualTouched, setManualTouched] = useState({});
+const [showUnsavedManualDialog, setShowUnsavedManualDialog] = useState(false);
+const initialManualSnapshot = useRef(null);
 const handleClose5 = useCallback(() => setShow5(false), []);
-const handleShow5 = () => setShow5(true);
+const handleShow5 = () => {
+  initialManualSnapshot.current = JSON.stringify(form);
+  setManualStep(0);
+  setManualTouched({});
+  setShow5(true);
+};
+const hasManualChanges = useCallback(() => show5 && initialManualSnapshot.current && JSON.stringify(form) !== initialManualSnapshot.current, [form, show5]);
+const requestCloseManual = useCallback(() => {
+  if (hasManualChanges()) {
+    setShowUnsavedManualDialog(true);
+    return;
+  }
+  handleClose5();
+}, [handleClose5, hasManualChanges]);
+const discardManualChanges = useCallback(() => {
+  setShowUnsavedManualDialog(false);
+  handleClose5();
+  setForm(createDefaultForm(params.campaign));
+}, [createDefaultForm, handleClose5, params.campaign, setForm]);
 
 const [selectedOccupation, setSelectedOccupation] = useState(null);
 const selectedAddOccupationRef = useRef();
@@ -975,6 +1106,12 @@ const [getOccupation, setGetOccupation] = useState([]);
 const handleOccupationChange = (event) => {
   const selectedIndex = event.target.selectedIndex;
   setSelectedOccupation(getOccupation[selectedIndex - 1]); // Subtract 1 because the first option is empty
+  setIsOccupationConfirmed(false);
+};
+
+const selectOccupation = (occupation) => {
+  setSelectedOccupation(occupation);
+  setIsOccupationConfirmed(false);
 };
 
 const handleRaceChange = (e) => {
@@ -1795,7 +1932,7 @@ const [isOccupationConfirmed, setIsOccupationConfirmed] = useState(false);
 
 const handleConfirmOccupation = useCallback(() => {
   if (selectedOccupation && !isOccupationConfirmed) {
-    const selectedAddOccupation = selectedAddOccupationRef.current.value;
+    const selectedAddOccupation = selectedAddOccupationRef.current?.value || selectedOccupation.name;
     const occupationExists = form.occupation.some(
       (occupation) => occupation.Occupation === selectedOccupation.name
     );
@@ -2087,219 +2224,49 @@ const getAvailableSkillOptions = (index) => {
      </div>      
       </Modal>
        {/* ---------------------------Create Character (Manual)------------------------------------------------------- */}
-    <Modal className="dnd-modal manual-character-modal" dialogClassName="manual-character-modal__dialog" centered show={show5} onHide={handleClose5}>
-       <div className="text-center">
-        <Card className="dnd-background manual-character-modal__card">
-          <Card.Title>Create Manual</Card.Title>
-        <Card.Body className="manual-character-modal__body">   
-        <div className="text-center">
-      <Form 
-      onSubmit={onSubmitManual} 
-      className="px-5 manual-character-modal__form">
-      <Form.Group className="mb-3 pt-3">
-       <Form.Label className="text-light">Character Name</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ characterName: e.target.value })}
-        type="text" placeholder="Enter character name max 12 characters" pattern="^([^0-9]{0,12})$"/>        
-        <Form.Label className="text-light">Class</Form.Label>
-        <Form.Select
-              ref={selectedAddOccupationRef}
-              onChange={handleOccupationChange}
-              defaultValue=""
-            >
-              <option value="" disabled>Select your class</option>
-              {getOccupation.map((occupation, i) => (
-                <option key={i}>{occupation.name}</option>
-              ))}
-            </Form.Select>
-        <Form.Label className="text-light">Race</Form.Label>
-        <Form.Select onChange={handleRaceChange} defaultValue="">
-          <option value="" disabled>Select your race</option>
-          {Object.keys(races).map((key) => (
-            <option key={key} value={key}>{races[key].name}</option>
-          ))}
-        </Form.Select>
-        {form.race?.name === "Dragonborn" && (
-          <>
-            <Form.Label className="text-light">Dragon Ancestry</Form.Label>
-            <Form.Select
-              value={form.dragonAncestryKey || ""}
-              onChange={handleDragonAncestryChange}
-            >
-              <option value="" disabled>Select your dragon ancestry</option>
-              {Object.entries(form.race.dragonAncestries || {}).map(([key, ancestry]) => (
-                <option key={key} value={key}>{ancestry.label}</option>
-              ))}
-            </Form.Select>
-          </>
-        )}
-        {form.race?.name === "Goliath" && (
-          <>
-            <Form.Label className="text-light">Giant Ancestry</Form.Label>
-            <Form.Select
-              value={form.giantAncestryKey || ""}
-              onChange={handleGiantAncestryChange}
-            >
-              <option value="" disabled>Select your giant ancestry</option>
-              {Object.entries(form.race.giantAncestries || {}).map(([key, ancestry]) => (
-                <option key={key} value={key}>
-                  {ancestry.ancestryName || ancestry.label || ancestry.name || "Giant Ancestry"}
-                </option>
-              ))}
-            </Form.Select>
-          </>
-        )}
-        {form.race?.name === "Elf" && (
-          <>
-            <Form.Label className="text-light">Elven Lineage</Form.Label>
-            <Form.Select
-              value={form.elvenLineageKey || ""}
-              onChange={handleElvenLineageChange}
-            >
-              <option value="" disabled>Select your elven lineage</option>
-              {Object.entries(form.race.elvenLineages || {}).map(([key, lineage]) => (
-                <option key={key} value={key}>
-                  {lineage.label || lineage.name || "Elven Lineage"}
-                </option>
-              ))}
-            </Form.Select>
-            {form.elvenLineage?.spellcastingAbilities?.length ? (
-              <>
-                <Form.Label className="text-light">Spellcasting Ability</Form.Label>
-                <Form.Select
-                  value={form.elvenLineageAbility || ""}
-                  onChange={handleElvenLineageAbilityChange}
-                >
-                  <option value="" disabled>Select your spellcasting ability</option>
-                  {(form.elvenLineage?.spellcastingAbilities || []).map((ability) => (
-                    <option key={ability} value={ability}>
-                      {ability}
-                    </option>
-                  ))}
-                </Form.Select>
-              </>
-            ) : null}
-          </>
-        )}
-        {form.race?.name === "Gnome" && (
-          <>
-            <Form.Label className="text-light">Gnome Lineage</Form.Label>
-            <Form.Select
-              value={form.gnomeLineageKey || ""}
-              onChange={handleGnomeLineageChange}
-            >
-              <option value="" disabled>Select your gnome lineage</option>
-              {Object.entries(form.race.gnomeLineages || {}).map(([key, lineage]) => (
-                <option key={key} value={key}>
-                  {lineage.label || lineage.name || "Gnome Lineage"}
-                </option>
-              ))}
-            </Form.Select>
-            {form.gnomeLineage?.spellcastingAbilities?.length ? (
-              <>
-                <Form.Label className="text-light">Spellcasting Ability</Form.Label>
-                <Form.Select
-                  value={form.gnomeLineageAbility || ""}
-                  onChange={handleGnomeLineageAbilityChange}
-                >
-                  <option value="" disabled>Select your spellcasting ability</option>
-                  {(form.gnomeLineage?.spellcastingAbilities || []).map((ability) => (
-                    <option key={ability} value={ability}>
-                      {ability}
-                    </option>
-                  ))}
-                </Form.Select>
-              </>
-            ) : null}
-          </>
-        )}
-        {form.race?.name === "Tiefling" && (
-          <>
-            <Form.Label className="text-light">Fiendish Legacy</Form.Label>
-            <Form.Select
-              value={form.tieflingLegacyKey || ""}
-              onChange={handleTieflingLegacyChange}
-            >
-              <option value="" disabled>Select your fiendish legacy</option>
-              {Object.entries(form.race.fiendishLegacies || {}).map(([key, legacy]) => (
-                <option key={key} value={key}>
-                  {legacy.label || legacy.name || "Fiendish Legacy"}
-                </option>
-              ))}
-            </Form.Select>
-            {form.tieflingLegacy?.spellcastingAbilities?.length ? (
-              <>
-                <Form.Label className="text-light">Spellcasting Ability</Form.Label>
-                <Form.Select
-                  value={form.tieflingLegacyAbility || ""}
-                  onChange={handleTieflingLegacyAbilityChange}
-                >
-                  <option value="" disabled>Select your spellcasting ability</option>
-                  {(form.tieflingLegacy?.spellcastingAbilities || []).map((ability) => (
-                    <option key={ability} value={ability}>
-                      {ability}
-                    </option>
-                  ))}
-                </Form.Select>
-              </>
-            ) : null}
-          </>
-        )}
-        <Form.Label className="text-light">Background</Form.Label>
-        <Form.Select onChange={handleBackgroundChange} defaultValue="">
-          <option value="" disabled>Select your background</option>
-          {Object.keys(backgrounds).map((key) => (
-            <option key={key} value={key}>{backgrounds[key].name}</option>
-          ))}
-        </Form.Select>
-         <Form.Label className="text-light">Age</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ age: e.target.value })}
-        type="number" placeholder="Enter age" pattern="[0-9]*" />
-         <Form.Label className="text-light">Sex</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ sex: e.target.value })}
-        type="text"  placeholder="Enter sex" pattern="[^0-9]+" />
-        <Form.Label className="text-light">Size</Form.Label>
-        <Form.Select
-          className="mb-2"
-          value={form.size || ""}
-          onChange={(e) => updateForm({ size: e.target.value })}
-        >
-          <option value="" disabled>Select your size</option>
-          {sizeOptionsForManual.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </Form.Select>
-        <Form.Label className="text-light">Weight</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ weight: e.target.value })}
-        type="number" placeholder="Enter weight" pattern="[0-9]*" />
-        {STATS.map(({ key, label }) => (
-          <React.Fragment key={key}>
-            <Form.Label className="text-light">{label}</Form.Label>
-            <Form.Control
-              className="mb-2"
-              onChange={(e) => updateForm({ [key]: e.target.value })}
-              type="number"
-              placeholder={`Enter ${label.toLowerCase()}`}
-              pattern="[0-9]*"
-            />
-          </React.Fragment>
-        ))}
-     </Form.Group>
-     <div className="text-center manual-character-modal__actions">
-     <Button variant="primary" type="submit">
-            Create
-          </Button>
-          <Button className="ms-4" variant="secondary" onClick={handleClose5}>
-            Close
-          </Button>
+    <Modal className="dnd-modal manual-character-modal" dialogClassName="manual-character-modal__dialog" centered show={show5} onHide={requestCloseManual} backdrop="static" keyboard={false}>
+      <CharacterCreationWizard
+        form={form}
+        updateForm={updateForm}
+        races={races}
+        backgrounds={backgrounds}
+        occupations={getOccupation}
+        selectedOccupation={selectedOccupation}
+        selectedAddOccupationRef={selectedAddOccupationRef}
+        sizeOptions={sizeOptionsForManual}
+        step={manualStep}
+        setStep={setManualStep}
+        touched={manualTouched}
+        setTouched={setManualTouched}
+        onClose={requestCloseManual}
+        onSubmit={onSubmitManual}
+        onRaceChange={handleRaceChange}
+        onClassChange={handleOccupationChange}
+        onSelectClass={selectOccupation}
+        onBackgroundChange={handleBackgroundChange}
+        onDragonAncestryChange={handleDragonAncestryChange}
+        onGiantAncestryChange={handleGiantAncestryChange}
+        onElvenLineageChange={handleElvenLineageChange}
+        onElvenLineageAbilityChange={handleElvenLineageAbilityChange}
+        onGnomeLineageChange={handleGnomeLineageChange}
+        onGnomeLineageAbilityChange={handleGnomeLineageAbilityChange}
+        onTieflingLegacyChange={handleTieflingLegacyChange}
+        onTieflingLegacyAbilityChange={handleTieflingLegacyAbilityChange}
+      />
+    </Modal>
+    <Modal className="dnd-modal unsaved-character-modal" centered show={showUnsavedManualDialog} onHide={() => setShowUnsavedManualDialog(false)}>
+      <Card className="dnd-background unsaved-character-modal__card">
+        <Card.Body>
+          <p className="character-select-kicker">Unsaved hero</p>
+          <h2>Discard this character?</h2>
+          <p>Your current character creation progress will be lost if you leave now.</p>
+          <div className="unsaved-character-modal__actions">
+            <Button variant="secondary" onClick={discardManualChanges}>Discard</Button>
+            <Button variant="primary" onClick={() => setShowUnsavedManualDialog(false)}>Continue Editing</Button>
           </div>
-     </Form>
-     </div>
-      </Card.Body>
+        </Card.Body>
       </Card>
-      </div>
-      </Modal>
+    </Modal>
        <Modal className="dnd-modal" centered show={showAbilitySkillModal} onHide={() => setShowAbilitySkillModal(false)}>
        <div className="text-center">
         <Card className="dnd-background">
