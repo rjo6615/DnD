@@ -217,4 +217,80 @@ describe('calculateCharacterMovementSpeed', () => {
   it('clamps reduced movement at zero feet', () => {
     expect(calculateCharacterMovementSpeed({ speed: 25, conditions: [{ speedBonus: -40 }] })).toBe(0);
   });
+
+  it('applies Barbarian Fast Movement starting at Barbarian level 5', () => {
+    const base = { speed: 30, equipment: {} };
+
+    expect(calculateCharacterMovementSpeed({ ...base, occupation: [{ Name: 'Barbarian', Level: 4 }] })).toBe(30);
+    expect(calculateCharacterMovementSpeed({ ...base, occupation: [{ Name: 'Barbarian', Level: 5 }] })).toBe(40);
+    expect(calculateCharacterMovementSpeed({ ...base, occupation: [{ Name: 'Barbarian', Level: 10 }] })).toBe(40);
+  });
+
+  it('suppresses Barbarian Fast Movement only while heavy armor is equipped', () => {
+    const base = { speed: 30, occupation: [{ Name: 'Barbarian', Level: 5 }] };
+    const lightArmor = { name: 'Leather', category: 'Light Armor', source: 'armor' };
+    const mediumArmor = { name: 'Hide', category: 'Medium Armor', source: 'armor' };
+    const heavyArmor = { name: 'Plate', category: 'Heavy Armor', source: 'armor' };
+
+    expect(calculateCharacterMovementSpeed({ ...base, equipment: {} })).toBe(40);
+    expect(calculateCharacterMovementSpeed({ ...base, equipment: { chest: lightArmor } })).toBe(40);
+    expect(calculateCharacterMovementSpeed({ ...base, equipment: { chest: mediumArmor } })).toBe(40);
+    expect(calculateCharacterMovementSpeed({ ...base, equipment: { chest: heavyArmor } })).toBe(30);
+    expect(calculateCharacterMovementSpeed({ ...base, equipment: { chest: null }, armor: [heavyArmor] })).toBe(40);
+  });
+
+  it('uses armor classification rather than item name for Fast Movement heavy armor checks', () => {
+    const character = { speed: 30, occupation: [{ Name: 'Barbarian', Level: 5 }] };
+
+    expect(calculateCharacterMovementSpeed({
+      ...character,
+      equipment: { chest: { name: 'Ceremonial Plate', category: 'Light Armor', source: 'armor' } },
+    })).toBe(40);
+    expect(calculateCharacterMovementSpeed({
+      ...character,
+      equipment: { chest: { name: 'Silken Robe', armorType: 'Heavy Armor', source: 'armor' } },
+    })).toBe(30);
+  });
+
+  it('applies Barbarian Fast Movement based only on Barbarian levels when multiclassed', () => {
+    const base = { speed: 30, equipment: {} };
+
+    expect(calculateCharacterMovementSpeed({
+      ...base,
+      occupation: [{ Name: 'Barbarian', Level: 5 }, { Name: 'Fighter', Level: 5 }],
+    })).toBe(40);
+    expect(calculateCharacterMovementSpeed({
+      ...base,
+      occupation: [{ Name: 'Barbarian', Level: 4 }, { Name: 'Fighter', Level: 10 }],
+    })).toBe(30);
+    expect(calculateCharacterMovementSpeed({
+      ...base,
+      occupation: [{ Name: 'Barbarian', Level: 8 }, { Name: 'Rogue', Level: 5 }],
+    })).toBe(40);
+  });
+
+  it('stacks Barbarian Fast Movement with existing centralized movement bonuses', () => {
+    const character = {
+      speed: 30,
+      occupation: [{ Name: 'Barbarian', Level: 5 }],
+      feat: [{ speed: 5 }],
+      equipment: { feet: { name: 'Boots of Pace', speedBonus: 5 } },
+      conditions: [{ name: 'Slowed', movementSpeedBonus: -10 }],
+    };
+
+    expect(calculateCharacterMovementSpeed(character)).toBe(40);
+  });
+
+  it('recalculates Fast Movement after save/load, armor changes, and Barbarian level changes', () => {
+    const heavyArmor = { name: 'Plate', category: 'Heavy Armor', source: 'armor' };
+    const levelFour = { speed: 30, occupation: [{ Name: 'Barbarian', Level: 4 }], equipment: {} };
+    const levelFive = { ...levelFour, occupation: [{ Name: 'Barbarian', Level: 5 }] };
+    const savedAndLoaded = JSON.parse(JSON.stringify(levelFive));
+
+    expect(calculateCharacterMovementSpeed(levelFour)).toBe(30);
+    expect(calculateCharacterMovementSpeed(levelFive)).toBe(40);
+    expect(calculateCharacterMovementSpeed(savedAndLoaded)).toBe(40);
+    expect(calculateCharacterMovementSpeed({ ...levelFive, equipment: { chest: heavyArmor } })).toBe(30);
+    expect(calculateCharacterMovementSpeed({ ...levelFive, equipment: { chest: null } })).toBe(40);
+  });
 });
