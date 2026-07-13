@@ -1574,13 +1574,30 @@ export default function ZombiesCharacterSheet() {
     combatState.participants.length > 0;
 
 
+  useEffect(() => {
+    if (!characterId || activeTurnParticipantId !== characterId) return;
+    setForm((prev) => {
+      if (!prev?.deathState?.isDying || prev.deathState.isDead || !prev.deathState.rolledThisTurn) {
+        return prev;
+      }
+      return { ...prev, deathState: { ...prev.deathState, rolledThisTurn: false } };
+    });
+  }, [activeTurnParticipantId, characterId]);
+
   const handleRollDeathSave = useCallback(async () => {
     if (!characterId) return;
     try {
+      let animatedRoll = null;
+      try {
+        const { rolls } = await rollDiceWithBox([{ count: 1, sides: 20 }]);
+        animatedRoll = collectRollValues(rolls)[0] ?? null;
+      } catch (diceError) {
+        console.error('Failed to animate death save roll', diceError);
+      }
       const response = await apiFetch(`/characters/death-state/${characterId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'roll' }),
+        body: JSON.stringify({ action: 'roll', ...(animatedRoll ? { roll: animatedRoll } : {}) }),
       });
       if (!response.ok) throw new Error(response.statusText || 'Failed to roll death save.');
       const payload = await response.json();
@@ -5800,6 +5817,7 @@ export default function ZombiesCharacterSheet() {
         deathState={form?.deathState}
         isActiveTurn={isPlayersTurn}
         onRollDeathSave={handleRollDeathSave}
+        collapseDeathPanelSignal={mobileHudPanel}
       />
       <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
         <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
