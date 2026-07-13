@@ -39,6 +39,7 @@ const FooterCharacterSlot = ({
   onRollDeathSave,
   isActiveTurn,
   collapseDeathPanelSignal,
+  isCombatHudPanelOpen,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
@@ -47,6 +48,7 @@ const FooterCharacterSlot = ({
   const [damageHighlightClass, setDamageHighlightClass] = useState('');
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
   const [isDeathPanelOpen, setIsDeathPanelOpen] = useState(false);
+  const [deathDockBottomOffset, setDeathDockBottomOffset] = useState(null);
   const normalizedDeathState = useMemo(() => normalizeDeathState(deathState), [deathState]);
   const isDeathStateVisible = normalizedDeathState.isDying || normalizedDeathState.isDead;
 
@@ -370,8 +372,74 @@ const FooterCharacterSlot = ({
     setIsDeathPanelOpen(false);
   }, [collapseDeathPanelSignal]);
 
+  useEffect(() => {
+    if (!isDeathStateVisible || typeof window === 'undefined' || typeof document === 'undefined') {
+      setDeathDockBottomOffset(null);
+      return undefined;
+    }
+
+    const mobileQuery = window.matchMedia('(max-width: 900px)');
+    let animationFrameId = null;
+    let followUpTimeoutId = null;
+    let resizeObserver = null;
+
+    const updateDeathDockOffset = () => {
+      if (!mobileQuery.matches) {
+        setDeathDockBottomOffset(null);
+        return;
+      }
+
+      const combatDock = document.querySelector('.combat-hud-dock');
+      if (!combatDock) {
+        setDeathDockBottomOffset(null);
+        return;
+      }
+
+      const dockTop = combatDock.getBoundingClientRect().top;
+      setDeathDockBottomOffset(Math.max(0, Math.round(window.innerHeight - dockTop)));
+    };
+
+    const scheduleUpdate = () => {
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      animationFrameId = window.requestAnimationFrame(updateDeathDockOffset);
+    };
+
+    const combatDock = document.querySelector('.combat-hud-dock');
+    if (combatDock && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(scheduleUpdate);
+      resizeObserver.observe(combatDock);
+    }
+
+    scheduleUpdate();
+    followUpTimeoutId = window.setTimeout(scheduleUpdate, 220);
+    window.addEventListener('resize', scheduleUpdate);
+    mobileQuery.addEventListener?.('change', scheduleUpdate);
+
+    return () => {
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      if (followUpTimeoutId !== null) {
+        window.clearTimeout(followUpTimeoutId);
+      }
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', scheduleUpdate);
+      mobileQuery.removeEventListener?.('change', scheduleUpdate);
+    };
+  }, [isCombatHudPanelOpen, isDeathStateVisible]);
+
+  const deathDockStyle = deathDockBottomOffset === null
+    ? undefined
+    : { '--footer-death-dock-bottom': `${deathDockBottomOffset}px` };
+
   const deathDock = isDeathStateVisible ? (
-    <div className="footer-character-slot__death-dock" data-allow-pointer-events="true">
+    <div
+      className="footer-character-slot__death-dock"
+      style={deathDockStyle}
+      data-allow-pointer-events="true"
+    >
       <button
         type="button"
         className={`footer-character-slot__death-toggle ${isDeathPanelOpen ? 'is-open' : ''}`}
@@ -635,6 +703,7 @@ FooterCharacterSlot.propTypes = {
   onRollDeathSave: PropTypes.func,
   isActiveTurn: PropTypes.bool,
   collapseDeathPanelSignal: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
+  isCombatHudPanelOpen: PropTypes.bool,
 };
 
 FooterCharacterSlot.defaultProps = {
@@ -656,6 +725,7 @@ FooterCharacterSlot.defaultProps = {
   onRollDeathSave: null,
   isActiveTurn: false,
   collapseDeathPanelSignal: null,
+  isCombatHudPanelOpen: false,
 };
 
 export default FooterCharacterSlot;
