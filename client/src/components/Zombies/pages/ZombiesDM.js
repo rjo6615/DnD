@@ -1547,6 +1547,7 @@ export const applyCharacterHealthUpdateToRecords = ({ records, update }) => {
 
   const nextTempHealthValue = normalizeHealthValue(update.tempHealth);
   const nextHealthValue = normalizeHealthValue(update.health);
+  const nextDeathState = update.deathState && typeof update.deathState === 'object' ? update.deathState : undefined;
 
   let didUpdate = false;
 
@@ -1590,6 +1591,11 @@ export const applyCharacterHealthUpdateToRecords = ({ records, update }) => {
 
     if (nextHealthValue !== undefined && record?.health !== nextHealthValue) {
       updatedRecord.health = nextHealthValue;
+      recordUpdated = true;
+    }
+
+    if (nextDeathState !== undefined && record?.deathState !== nextDeathState) {
+      updatedRecord.deathState = nextDeathState;
       recordUpdated = true;
     }
 
@@ -3296,6 +3302,7 @@ export default function ZombiesDM() {
               ...(normalizedCharacterId ? { characterId: normalizedCharacterId } : {}),
               tempHealth: nextTempHealthValue,
               health: nextHealthValue,
+              ...(update.deathState ? { deathState: update.deathState } : {}),
             },
           })
         );
@@ -4332,6 +4339,7 @@ export default function ZombiesDM() {
 
       return DEFAULT_DICE_COLOR;
     }, [activeParticipant, characterLookup, records]);
+
 
     const activeTurnDisplayName = useMemo(() => {
       if (!activeParticipant) {
