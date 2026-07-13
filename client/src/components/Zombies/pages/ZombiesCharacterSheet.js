@@ -18,7 +18,6 @@ import {
   subscribeToDiceBoxAvailability,
   isDiceBoxReady as checkDiceBoxReady,
   hasDiceBoxFailed as checkDiceBoxFailed,
-  isDiceBoxInitializing as checkDiceBoxInitializing,
 } from '../../../utils/diceBoxManager';
 import {
   collectRollValues,
@@ -711,7 +710,6 @@ export default function ZombiesCharacterSheet() {
   const [diceBoxStatus, setDiceBoxStatus] = useState(() => ({
     ready: isTestEnvironment ? true : checkDiceBoxReady(),
     failed: isTestEnvironment ? false : checkDiceBoxFailed(),
-    loading: isTestEnvironment ? false : checkDiceBoxInitializing(),
   }));
 
   useEffect(() => {
@@ -723,7 +721,6 @@ export default function ZombiesCharacterSheet() {
       setDiceBoxStatus({
         ready: Boolean(ready),
         failed: !ready && checkDiceBoxFailed(),
-        loading: !ready && checkDiceBoxInitializing(),
       });
     });
 
@@ -733,7 +730,6 @@ export default function ZombiesCharacterSheet() {
   }, [
     setDiceBoxStatus,
     checkDiceBoxFailed,
-    checkDiceBoxInitializing,
     subscribeToDiceBoxAvailability,
     isTestEnvironment,
   ]);
@@ -5232,9 +5228,8 @@ export default function ZombiesCharacterSheet() {
   const isFormReady = Boolean(form);
   const diceBoxReady = diceBoxStatus.ready;
   const diceBoxFailed = diceBoxStatus.failed;
-  const diceBoxLoading = diceBoxStatus.loading;
   const shouldShowDiceLoadingOverlay =
-    isFormReady && !isTestEnvironment && !diceBoxReady && !diceBoxFailed && diceBoxLoading;
+    isFormReady && !isTestEnvironment && !diceBoxReady && !diceBoxFailed;
 
   const handleFooterQuickAction = useCallback(
     (action) => {
