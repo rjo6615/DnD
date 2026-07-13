@@ -5817,6 +5817,7 @@ export default function ZombiesCharacterSheet() {
         deathState={form?.deathState}
         isActiveTurn={isPlayersTurn}
         onRollDeathSave={handleRollDeathSave}
+        collapseDeathPanelSignal={mobileHudPanel}
       />
       <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
         <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>
