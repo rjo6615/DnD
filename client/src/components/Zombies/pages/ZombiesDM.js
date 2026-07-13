@@ -4342,27 +4342,6 @@ export default function ZombiesDM() {
     }, [activeParticipant, characterLookup, records]);
 
 
-    const handleDeathStateAction = useCallback(async (character, action) => {
-      const id = character?._id || character?.characterId;
-      if (!id) return;
-      try {
-        const body = action === 'roll'
-          ? { action, allowDuplicate: true }
-          : { action };
-        const response = await apiFetch(`/characters/death-state/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        if (!response.ok) throw new Error(response.statusText || 'Failed to update death saves.');
-        const payload = await response.json();
-        setRecords((prev) => applyCharacterHealthUpdateToRecords({ records: prev, update: { _id: character?._id, characterId: character?.characterId || character?._id, tempHealth: payload.tempHealth, deathState: payload.deathState } }));
-        setStatus(payload.message || 'Death save state updated.');
-      } catch (error) {
-        setStatus(error.message || 'Failed to update death saves.');
-      }
-    }, []);
-
     const activeTurnDisplayName = useMemo(() => {
       if (!activeParticipant) {
         return 'None';
