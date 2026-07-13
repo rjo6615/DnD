@@ -49,7 +49,6 @@ const DICEBOX_INIT_TIMEOUT_MS = 10000;
 const RETRY_DELAY_MS = 4000;
 const HOST_LAYOUT_TIMEOUT_MS = 2000;
 const HOST_LAYOUT_POLL_MS = 50;
-const HOST_REGISTRATION_TIMEOUT_MS = 750;
 
 const clearScheduledRetry = () => {
   if (retryTimeoutId) {
@@ -388,52 +387,6 @@ const waitForUsableHostLayout = (element, timeoutMs = HOST_LAYOUT_TIMEOUT_MS) =>
   });
 };
 
-const waitForDiceBoxTarget = (timeoutMs = HOST_REGISTRATION_TIMEOUT_MS) => {
-  const initialTarget = resolveDiceBoxTarget();
-  if (initialTarget.element || initialTarget.selector) {
-    return Promise.resolve(initialTarget);
-  }
-
-  return new Promise((resolve) => {
-    const startedAt = Date.now();
-    let frameId = null;
-    let timeoutId = null;
-
-    const cleanup = () => {
-      if (frameId !== null && typeof cancelAnimationFrame === 'function') {
-        cancelAnimationFrame(frameId);
-      }
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
-    };
-
-    const finish = (target) => {
-      cleanup();
-      resolve(target);
-    };
-
-    const check = () => {
-      frameId = null;
-      timeoutId = null;
-      const target = resolveDiceBoxTarget();
-
-      if (target.element || target.selector || Date.now() - startedAt >= timeoutMs) {
-        finish(target);
-        return;
-      }
-
-      if (typeof requestAnimationFrame === 'function') {
-        frameId = requestAnimationFrame(check);
-      } else {
-        timeoutId = setTimeout(check, HOST_LAYOUT_POLL_MS);
-      }
-    };
-
-    check();
-  });
-};
-
 const getDiceBoxConstructor = () => {
   if (modulePromise) {
     return modulePromise;
@@ -721,7 +674,7 @@ const refreshDiceBoxResolution = (instance) => {
   }
 };
 
-async function ensureDiceBox({ waitForTarget = false } = {}) {
+async function ensureDiceBox() {
   if (diceBoxInstance) {
     return diceBoxInstance;
   }
@@ -737,9 +690,7 @@ async function ensureDiceBox({ waitForTarget = false } = {}) {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return null;
   }
-  const { element: targetElement, selector } = waitForTarget
-    ? await waitForDiceBoxTarget()
-    : resolveDiceBoxTarget();
+  const { element: targetElement, selector } = resolveDiceBoxTarget();
   if (!targetElement && !selector) {
     scheduleRetry();
     return null;
@@ -773,10 +724,17 @@ async function ensureDiceBox({ waitForTarget = false } = {}) {
           if (diceBoxGeneration !== initGeneration) {
             return null;
           }
-          if (!hostReady && selector && typeof document !== 'undefined') {
-            const resolvedTarget = document.querySelector(selector);
-            if (resolvedTarget && resolvedTarget !== targetElement) {
-              target = resolvedTarget;
+          if (!hostReady) {
+            if (selector && typeof document !== 'undefined') {
+              const resolvedTarget = document.querySelector(selector);
+              if (resolvedTarget && resolvedTarget !== targetElement) {
+                target = resolvedTarget;
+              }
+            }
+
+            if (target === targetElement) {
+              scheduleRetry();
+              return null;
             }
           }
         }
@@ -1139,7 +1097,7 @@ export const rollDiceWithBox = (requests) => {
   }
 
   const executeRoll = async () => {
-    const instance = await ensureDiceBox({ waitForTarget: true });
+    const instance = await ensureDiceBox();
     const fallback = requests.map(({ count, sides }) => fallbackRoll(count, sides));
 
     if (!instance) {
