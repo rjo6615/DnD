@@ -39,6 +39,7 @@ const FooterCharacterSlot = ({
   onRollDeathSave,
   isActiveTurn,
   collapseDeathPanelSignal,
+  isCombatHudPanelOpen,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
@@ -370,8 +371,13 @@ const FooterCharacterSlot = ({
     setIsDeathPanelOpen(false);
   }, [collapseDeathPanelSignal]);
 
+  const deathDockClassName = [
+    'footer-character-slot__death-dock',
+    isCombatHudPanelOpen ? 'footer-character-slot__death-dock--hud-panel-open' : null,
+  ].filter(Boolean).join(' ');
+
   const deathDock = isDeathStateVisible ? (
-    <div className="footer-character-slot__death-dock" data-allow-pointer-events="true">
+    <div className={deathDockClassName} data-allow-pointer-events="true">
       <button
         type="button"
         className={`footer-character-slot__death-toggle ${isDeathPanelOpen ? 'is-open' : ''}`}
@@ -635,6 +641,7 @@ FooterCharacterSlot.propTypes = {
   onRollDeathSave: PropTypes.func,
   isActiveTurn: PropTypes.bool,
   collapseDeathPanelSignal: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
+  isCombatHudPanelOpen: PropTypes.bool,
 };
 
 FooterCharacterSlot.defaultProps = {
@@ -656,6 +663,7 @@ FooterCharacterSlot.defaultProps = {
   onRollDeathSave: null,
   isActiveTurn: false,
   collapseDeathPanelSignal: null,
+  isCombatHudPanelOpen: false,
 };
 
 export default FooterCharacterSlot;
