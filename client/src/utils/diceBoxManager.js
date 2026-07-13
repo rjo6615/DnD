@@ -68,6 +68,16 @@ const scheduleRetry = () => {
   }, RETRY_DELAY_MS);
 };
 
+const waitForAnimationFrame = () =>
+  new Promise((resolve) => {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => resolve());
+      return;
+    }
+
+    resolve();
+  });
+
 const clearScheduledResolution = () => {
   if (pendingResolutionFrame !== null && typeof cancelAnimationFrame === 'function') {
     cancelAnimationFrame(pendingResolutionFrame);
@@ -255,7 +265,21 @@ const ensureElementSelector = (element) => {
   const existingId =
     typeof element.id === 'string' && element.id.trim() ? element.id.trim() : null;
   if (existingId) {
-    return `#${existingId}`;
+    const selector = `#${existingId}`;
+    if (typeof document === 'undefined') {
+      return selector;
+    }
+
+    try {
+      const selectedElement = document.querySelector(selector);
+      const matchingElements = document.querySelectorAll(selector);
+      if (selectedElement === element && matchingElements.length === 1) {
+        return selector;
+      }
+    } catch {
+      // Fall through and assign a generated id if the existing id cannot be
+      // queried safely.
+    }
   }
 
   generatedHostId += 1;
@@ -537,16 +561,17 @@ const updateCanvasResolution = (canvas, pixelRatio) => {
 
 const refreshDiceBoxResolution = (instance) => {
   if (!instance || typeof window === 'undefined') {
-    return;
+    return Promise.resolve(false);
   }
 
   const pixelRatio = Number(window.devicePixelRatio) > 0 ? window.devicePixelRatio : 1;
   const renderer = instance.renderer || instance._renderer || null;
   const canvas = getRendererCanvas(renderer) || instance.canvas || null;
 
-  const performUpdate = () => {
+  const performUpdate = (resolve) => {
     pendingResolutionFrame = null;
     if (diceBoxInstance !== instance) {
+      resolve(false);
       return;
     }
 
@@ -564,20 +589,28 @@ const refreshDiceBoxResolution = (instance) => {
         }
       }
     }
+
+    resolve(true);
   };
 
   clearScheduledResolution();
 
-  if (typeof window.requestAnimationFrame === 'function') {
-    pendingResolutionFrame = window.requestAnimationFrame(performUpdate);
-  } else {
-    performUpdate();
-  }
+  return new Promise((resolve) => {
+    if (typeof window.requestAnimationFrame === 'function') {
+      pendingResolutionFrame = window.requestAnimationFrame(() => performUpdate(resolve));
+    } else {
+      performUpdate(resolve);
+    }
+  });
 };
 
 async function ensureDiceBox() {
   if (diceBoxInstance) {
     return diceBoxInstance;
+  }
+
+  if (diceBoxPromise) {
+    return diceBoxPromise;
   }
 
   if (diceBoxDisabled) {
@@ -607,88 +640,91 @@ async function ensureDiceBox() {
     markDiceBoxFailure({ fatal: true });
     return null;
   }
-  if (!diceBoxPromise) {
-    const initGeneration = diceBoxGeneration;
-    const pending = (async () => {
-      try {
-        const DiceBox = await getDiceBoxConstructor();
-        if (diceBoxGeneration !== initGeneration) {
-          return null;
-        }
-        const target = targetElement || selector;
-        if (!target) {
-          throw new Error('Dice box target was not available');
-        }
-
-        const normalizedPendingTheme = normalizeThemeName(pendingThemeName);
-        const normalizedActiveTheme = normalizeThemeName(activeThemeName);
-        const resolvedThemeName = normalizedPendingTheme || normalizedActiveTheme || DEFAULT_DICE_THEME;
-
-        const overrides = {};
-        if (pendingThemeColor) {
-          overrides.themeColor = pendingThemeColor;
-        }
-        if (resolvedThemeName) {
-          overrides.theme = resolvedThemeName;
-        }
-
-        const options = createDiceBoxConfig(
-          Object.keys(overrides).length > 0 ? overrides : null,
-        );
-
-        let instance = null;
-
-        try {
-          instance = new DiceBox(target, options);
-        } catch (error) {
-          if (selector && target !== selector) {
-            instance = new DiceBox(selector, options);
-          } else {
-            throw error;
-          }
-        }
-
-        await withTimeout(
-          instance.init(),
-          DICEBOX_INIT_TIMEOUT_MS,
-          () => new Error('Dice box initialization timed out'),
-        );
-        if (diceBoxGeneration !== initGeneration) {
-          destroyInstance(instance);
-          return null;
-        }
-        diceBoxInstance = instance;
-        diceBoxFailed = false;
-        diceBoxDisabled = false;
-        activeThemeName = resolvedThemeName || DEFAULT_DICE_THEME;
-        applyPendingThemeName(instance);
-        applyPendingThemeColor(instance);
-        refreshDiceBoxResolution(instance);
-        clearScheduledRetry();
-        setAvailability(true);
-        return instance;
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        if (diceBoxGeneration === initGeneration) {
-          console.error('Dice box initialization failed', error);
-          const fatal =
-            isSecurityPolicyViolation(error) ||
-            (workerSupportState === 'blocked' &&
-              typeof error?.message === 'string' &&
-              error.message.toLowerCase().includes('timed out')) ||
-            workerSupportState === 'unsupported';
-          markDiceBoxFailure({ fatal });
-        }
+  const initGeneration = diceBoxGeneration;
+  const pending = (async () => {
+    try {
+      const DiceBox = await getDiceBoxConstructor();
+      if (diceBoxGeneration !== initGeneration) {
         return null;
       }
-    })();
-    diceBoxPromise = pending;
-    pending.finally(() => {
-      if (diceBoxPromise === pending && diceBoxGeneration !== initGeneration) {
-        diceBoxPromise = null;
+      const target = selector || targetElement;
+      if (!target) {
+        throw new Error('Dice box target was not available');
       }
-    });
-  }
+
+      const normalizedPendingTheme = normalizeThemeName(pendingThemeName);
+      const normalizedActiveTheme = normalizeThemeName(activeThemeName);
+      const resolvedThemeName = normalizedPendingTheme || normalizedActiveTheme || DEFAULT_DICE_THEME;
+
+      const overrides = {};
+      if (pendingThemeColor) {
+        overrides.themeColor = pendingThemeColor;
+      }
+      if (resolvedThemeName) {
+        overrides.theme = resolvedThemeName;
+      }
+
+      const options = createDiceBoxConfig(
+        Object.keys(overrides).length > 0 ? overrides : null,
+      );
+
+      let instance = null;
+
+      try {
+        instance = new DiceBox(target, options);
+      } catch (error) {
+        if (selector && target !== selector) {
+          instance = new DiceBox(selector, options);
+        } else {
+          throw error;
+        }
+      }
+
+      await withTimeout(
+        instance.init(),
+        DICEBOX_INIT_TIMEOUT_MS,
+        () => new Error('Dice box initialization timed out'),
+      );
+      if (diceBoxGeneration !== initGeneration) {
+        destroyInstance(instance);
+        return null;
+      }
+      diceBoxInstance = instance;
+      diceBoxFailed = false;
+      diceBoxDisabled = false;
+      activeThemeName = resolvedThemeName || DEFAULT_DICE_THEME;
+      applyPendingThemeName(instance);
+      applyPendingThemeColor(instance);
+      await refreshDiceBoxResolution(instance);
+      await waitForAnimationFrame();
+      clearScheduledRetry();
+      setAvailability(true);
+      return instance;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      if (diceBoxGeneration === initGeneration) {
+        console.error('Dice box initialization failed', error);
+        const fatal =
+          isSecurityPolicyViolation(error) ||
+          (workerSupportState === 'blocked' &&
+            typeof error?.message === 'string' &&
+            error.message.toLowerCase().includes('timed out')) ||
+          workerSupportState === 'unsupported';
+        markDiceBoxFailure({ fatal });
+      }
+      return null;
+    }
+  })();
+  diceBoxPromise = pending;
+  pending.then((instance) => {
+    if (diceBoxPromise === pending && (!instance || diceBoxGeneration !== initGeneration)) {
+      diceBoxPromise = null;
+    }
+  }, () => {
+    if (diceBoxPromise === pending) {
+      diceBoxPromise = null;
+    }
+  });
   return diceBoxPromise;
 }
 
@@ -977,12 +1013,25 @@ export const rollDiceWithBox = (requests) => {
     const fallback = requests.map(({ count, sides }) => fallbackRoll(count, sides));
 
     if (!instance) {
+      if (typeof console !== 'undefined' && typeof console.error === 'function') {
+        const { element, selector } = resolveDiceBoxTarget();
+        console.error('Dice box unavailable; using fallback roll.', {
+          hasHost: Boolean(element || selector),
+          ready: diceBoxReady,
+          failed: diceBoxFailed,
+          disabled: diceBoxDisabled,
+          initializationInProgress: Boolean(diceBoxPromise),
+          workerSupportState,
+        });
+      }
       return {
         rolls: fallback,
         rawResults: null,
         usedFallback: true,
       };
     }
+
+    await refreshDiceBoxResolution(instance);
 
     return new Promise((resolve) => {
       const notations = requests.map(({ count, sides }) => `${count}d${sides}`);
