@@ -72,6 +72,7 @@ import { resolveFigurineImageData } from '../utils/figurineAssets';
 import TokenPickerModal from '../components/TokenPickerModal';
 import ActiveEnemyQuickList from '../components/ActiveEnemyQuickList';
 import CombatTurnHeader from '../components/CombatTurnHeader';
+import DyingStatePanel, { DeathStateBadge, DeathSaveTracker } from '../death/DyingStatePanel';
 import { buildEnemyTokenFilterScopeValues } from '../utils/enemyTokenFilters';
 import { sanitizeIdentifierForTestId } from '../utils/sanitizeIdentifierForTestId';
 
@@ -7192,7 +7193,13 @@ const resolveIcon = (category, iconMap, fallback) => {
                                   className={isActive ? 'table-success text-dark combat-tracker__active-row' : undefined}
                                   {...rowDataAttributes}
                                 >
-                                  <td className="fw-semibold">{displayName}</td>
+                                  <td className="fw-semibold">
+                                    {displayName}
+                                    <div className="mt-1">
+                                      <DeathStateBadge deathState={character?.deathState} />
+                                      {(character?.deathState?.isDying || character?.deathState?.isDead) ? <DeathSaveTracker deathState={character.deathState} /> : null}
+                                    </div>
+                                  </td>
                                   <td>{playerName}</td>
                                   <td className="text-center">
                                     <Form.Check
@@ -7226,6 +7233,17 @@ const resolveIcon = (category, iconMap, fallback) => {
                                       >
                                         Set Turn
                                       </Button>
+                                      {(character?.deathState?.isDying || character?.deathState?.isDead) ? (
+                                        <DyingStatePanel
+                                          compact
+                                          characterName={displayName}
+                                          currentHp={rowCurrentHp ?? 0}
+                                          deathState={character.deathState}
+                                          onRollDeathSave={() => handleDeathStateAction(character, 'roll')}
+                                          onDmAction={(action) => handleDeathStateAction(character, action)}
+                                          isActiveTurn={isActive}
+                                        />
+                                      ) : null}
                                     </div>
                                   </td>
                                 </tr>
