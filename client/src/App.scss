@@ -1935,7 +1935,7 @@ body.docked-modal--resizing {
   gap: 0.35rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--bs-body-color);
+  color: var(#fff);
 }
 
 .enemy-card__summary-line > :last-child,
@@ -2014,7 +2014,7 @@ body.docked-modal--resizing {
 .enemy-card__section-subtitle {
   font-size: 0.75rem;
   text-transform: uppercase;
-  color: rgba(33, 37, 41, 0.6);
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 700;
   letter-spacing: 0.04em;
 }

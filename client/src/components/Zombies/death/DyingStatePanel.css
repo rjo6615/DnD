@@ -313,6 +313,41 @@
 
   .footer-character-slot__death-panel {
     width: 100%;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .footer-character-slot__death-dock {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 132px);
+    width: min(94vw, 360px);
+  }
+
+  .footer-character-slot__death-toggle {
+    min-width: 0;
+    width: 100%;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .footer-character-slot__death-dock {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 246px);
+    width: min(94vw, 360px);
+  }
+
+  .footer-character-slot__death-toggle {
+    min-width: 0;
+    width: 100%;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .footer-character-slot__death-dock {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 246px);
+    width: min(94vw, 360px);
+  }
+
+  .footer-character-slot__death-toggle {
+    min-width: 0;
+    width: 100%;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 }
 
