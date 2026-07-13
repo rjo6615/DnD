@@ -78,9 +78,9 @@ const applyHealthChange = (character, nextHp, previousHp = character.tempHealth)
   const prev = Number(previousHp);
   const state = normalizeDeathState(character.deathState);
   const updated = { ...character, tempHealth: hp };
+  if (hp > 0 && (state.isDying || state.isDead)) return reviveCharacter(updated, hp, 'healed');
   if (state.isDead) return result({ ...updated, deathState: state }, 'none', null);
   if (hp <= 0 && canUseDeathSaves(character) && (!Number.isFinite(prev) || prev > 0 || !state.isDying)) return enterDyingState(updated);
-  if (hp > 0 && state.isDying) return reviveCharacter(updated, hp, 'healed');
   return result({ ...updated, deathState: state }, 'none', null);
 };
 
