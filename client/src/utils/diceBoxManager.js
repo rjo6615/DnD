@@ -1155,43 +1155,6 @@ export const clearDiceBoxResults = () => {
   }
 };
 
-const isKnownDiceBoxFaceMapMiss = (value) => {
-  const message =
-    value && typeof value === 'object' && typeof value.message === 'string'
-      ? value.message
-      : typeof value === 'string'
-      ? value
-      : '';
-
-  return (
-    message.includes('colliderFaceMap Error: No value found for d20') &&
-    message.includes('mesh face -1')
-  );
-};
-
-const suppressKnownDiceBoxFaceMapMiss = () => {
-  if (typeof console === 'undefined' || typeof console.error !== 'function') {
-    return () => {};
-  }
-
-  const originalError = console.error;
-  console.error = (...args) => {
-    if (args.some(isKnownDiceBoxFaceMapMiss)) {
-      return;
-    }
-
-    originalError(...args);
-  };
-
-  return () => {
-    if (console.error === originalError) {
-      return;
-    }
-
-    console.error = originalError;
-  };
-};
-
 export const rollDiceWithBox = (requests) => {
   if (!Array.isArray(requests) || requests.length === 0) {
     return Promise.resolve({
@@ -1225,12 +1188,7 @@ export const rollDiceWithBox = (requests) => {
         console.warn('Dice box clear failed', error);
       }
 
-      let restoreConsoleError = null;
-
       const finalize = (rawResults, usedFallback = false, { failure = false } = {}) => {
-        restoreConsoleError?.();
-        restoreConsoleError = null;
-
         if (failure) {
           markDiceBoxFailure();
         }
@@ -1247,25 +1205,20 @@ export const rollDiceWithBox = (requests) => {
         (rawResults) => {
           const parsed = parseDiceBoxResults(rawResults, requests);
           if (parsed) {
-            restoreConsoleError?.();
-            restoreConsoleError = null;
             resolve({ rolls: parsed, rawResults, usedFallback: false });
             return;
           }
-          finalize(fallback, true);
+          finalize(fallback, true, { failure: true });
         },
         () => {
-          finalize(fallback, true);
+          finalize(fallback, true, { failure: true });
         }
       );
 
       try {
-        restoreConsoleError = suppressKnownDiceBoxFaceMapMiss();
         instance.roll(notations);
       } catch (error) {
         cleanup();
-        restoreConsoleError?.();
-        restoreConsoleError = null;
         // eslint-disable-next-line no-console
         console.error('Dice box roll failed', error);
         finalize(fallback, true, { failure: true });
