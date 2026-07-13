@@ -34,9 +34,17 @@ describe('death save rules', () => {
   test('healing clears Dying state and repeated zero-HP resets counters', () => {
     const dying = { ...applyHealthChange(pc(), 0, 5).character, deathState: { isDying: true, successes: 2, failures: 1 } };
     const healed = applyHealthChange(dying, 3, 0).character;
-    expect(healed.deathState).toMatchObject({ isDying: false, successes: 0, failures: 0 });
+    expect(healed.deathState).toMatchObject({ isDying: false, isDead: false, successes: 0, failures: 0 });
     const dyingAgain = applyHealthChange(healed, 0, 3).character;
     expect(dyingAgain.deathState).toMatchObject({ isDying: true, successes: 0, failures: 0 });
+  });
+
+  test('healing a dead character revives and clears the death state', () => {
+    const dead = { ...pc({ tempHealth: 0 }), deathState: { isDying: false, isDead: true, failures: 3 } };
+    const healed = applyHealthChange(dead, 7, 0);
+    expect(healed.event).toBe('revived');
+    expect(healed.character.tempHealth).toBe(7);
+    expect(healed.character.deathState).toMatchObject({ isDying: false, isDead: false, successes: 0, failures: 0 });
   });
   test('duplicate roll requests are ignored and state normalizes after reload', () => {
     const rolled = applyDeathSaveResult(applyHealthChange(pc(), 0, 5).character, 12).character;
