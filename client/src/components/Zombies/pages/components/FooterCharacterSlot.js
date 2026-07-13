@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import { Button, Spinner } from 'react-bootstrap';
 
 import apiFetch from '../../../../utils/apiFetch';
+import DyingStatePanel from '../../death/DyingStatePanel';
+import { normalizeDeathState } from '../../death/deathState';
 
 const resolveFigurineImageUrl = (figurine) => {
   if (!figurine || typeof figurine !== 'object') {
@@ -32,6 +34,9 @@ const FooterCharacterSlot = ({
   damageSummary,
   onToggleCritical,
   onOpenDamageLog,
+  deathState,
+  onRollDeathSave,
+  isActiveTurn,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
@@ -39,6 +44,8 @@ const FooterCharacterSlot = ({
   const dragStateRef = useRef(null);
   const [damageHighlightClass, setDamageHighlightClass] = useState('');
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
+  const normalizedDeathState = useMemo(() => normalizeDeathState(deathState), [deathState]);
+  const isDeathStateVisible = normalizedDeathState.isDying || normalizedDeathState.isDead;
 
   const { resolvedCurrent, resolvedMax } = useMemo(() => {
     const numericCurrent = Number(currentHealth);
@@ -351,7 +358,7 @@ const FooterCharacterSlot = ({
 
   return (
     <div
-      className={`footer-character-slot ${isResourcesOpen ? 'footer-character-slot--resources-open' : ''}`}
+      className={`footer-character-slot ${isResourcesOpen ? 'footer-character-slot--resources-open' : ''} ${isDeathStateVisible ? 'footer-character-slot--dying' : ''}`}
       data-allow-pointer-events="true"
     >
       {hasResourcesDrawer ? (
@@ -459,7 +466,21 @@ const FooterCharacterSlot = ({
           </div>
         </div>
       </div>
-      {hasHudContent ? (
+      {isDeathStateVisible ? (
+        <div className="footer-character-slot__death-panel">
+          <DyingStatePanel
+            compact
+            characterName={characterName}
+            portraitUrl={figurineImageUrl}
+            currentHp={displayCurrent}
+            deathState={normalizedDeathState}
+            isActiveTurn={isActiveTurn}
+            onRollDeathSave={onRollDeathSave}
+            disabled={isUpdating}
+          />
+        </div>
+      ) : null}
+      {hasHudContent && !normalizedDeathState.isDying && !normalizedDeathState.isDead ? (
         <div className="footer-character-slot__hud" data-allow-pointer-events="true">
           {hasSpellSlots ? (
             <div className="footer-character-slot__slots-wrapper">
@@ -573,6 +594,9 @@ FooterCharacterSlot.propTypes = {
   }),
   onToggleCritical: PropTypes.func,
   onOpenDamageLog: PropTypes.func,
+  deathState: PropTypes.object,
+  onRollDeathSave: PropTypes.func,
+  isActiveTurn: PropTypes.bool,
 };
 
 FooterCharacterSlot.defaultProps = {
