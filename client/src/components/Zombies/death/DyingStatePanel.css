@@ -197,11 +197,81 @@
 
 
 .footer-character-slot__death-panel {
-  width: min(32vw, 330px);
-  min-width: 290px;
-  margin: 0 0 0 0.75rem;
-  position: relative;
-  z-index: 2;
+  width: min(92vw, 330px);
+}
+
+.footer-character-slot__death-dock {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(156px, 20vh, 230px);
+  transform: translateX(-50%);
+  z-index: 80;
+  display: grid;
+  justify-items: center;
+  gap: 0.65rem;
+  pointer-events: none;
+}
+
+.footer-character-slot__death-toggle,
+.footer-character-slot__death-panel {
+  pointer-events: auto;
+}
+
+.footer-character-slot__death-toggle {
+  min-width: min(88vw, 320px);
+  border: 1px solid rgba(255, 120, 150, 0.52);
+  border-radius: 999px;
+  color: #fff1f4;
+  background:
+    radial-gradient(circle at 18% 15%, rgba(255, 168, 188, 0.22), transparent 32%),
+    linear-gradient(135deg, rgba(20, 24, 44, 0.96), rgba(93, 16, 41, 0.94));
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.42), 0 0 22px rgba(255, 88, 125, 0.25);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.62rem 0.9rem;
+  text-align: left;
+  backdrop-filter: blur(14px);
+}
+
+.footer-character-slot__death-toggle:hover,
+.footer-character-slot__death-toggle:focus-visible {
+  border-color: rgba(255, 188, 202, 0.85);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.46), 0 0 28px rgba(255, 88, 125, 0.38);
+}
+
+.footer-character-slot__death-toggle:focus-visible {
+  outline: 3px solid #7dd3fc;
+  outline-offset: 3px;
+}
+
+.footer-character-slot__death-toggle-eyebrow {
+  border-radius: 999px;
+  padding: 0.28rem 0.52rem;
+  background: rgba(255, 104, 132, 0.18);
+  color: #ffb8c6;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.footer-character-slot__death-toggle-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 900;
+}
+
+.footer-character-slot__death-toggle-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #ffe4ea;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {
@@ -231,6 +301,17 @@
     width: 100%;
     min-width: 0;
     margin: 0;
+  }
+
+  .footer-character-slot__death-dock {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 132px);
+    width: min(94vw, 360px);
+  }
+
+  .footer-character-slot__death-toggle {
+    min-width: 0;
+    width: 100%;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 }
 

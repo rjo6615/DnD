@@ -44,6 +44,7 @@ const FooterCharacterSlot = ({
   const dragStateRef = useRef(null);
   const [damageHighlightClass, setDamageHighlightClass] = useState('');
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
+  const [isDeathPanelOpen, setIsDeathPanelOpen] = useState(false);
   const normalizedDeathState = useMemo(() => normalizeDeathState(deathState), [deathState]);
   const isDeathStateVisible = normalizedDeathState.isDying || normalizedDeathState.isDead;
 
@@ -142,6 +143,7 @@ const FooterCharacterSlot = ({
     typeof onOpenDamageLog === 'function';
   const hasFooterContent = hasActions || hasDamageDisplay || hasResourcesDrawer;
   const hasHudContent = hasSpellSlots || hasFooterContent;
+  const deathPanelLabel = normalizedDeathState.isDead ? 'Dead' : 'Dying';
 
   const damageClassName = [
     'footer-character-slot__damage',
@@ -356,6 +358,12 @@ const FooterCharacterSlot = ({
     };
   }, [damageTimestamp]);
 
+  useEffect(() => {
+    if (!isDeathStateVisible) {
+      setIsDeathPanelOpen(false);
+    }
+  }, [isDeathStateVisible]);
+
   return (
     <div
       className={`footer-character-slot ${isResourcesOpen ? 'footer-character-slot--resources-open' : ''}`}
@@ -467,17 +475,38 @@ const FooterCharacterSlot = ({
         </div>
       </div>
       {isDeathStateVisible ? (
-        <div className="footer-character-slot__death-panel">
-          <DyingStatePanel
-            compact
-            characterName={characterName}
-            portraitUrl={figurineImageUrl}
-            currentHp={displayCurrent}
-            deathState={normalizedDeathState}
-            isActiveTurn={isActiveTurn}
-            onRollDeathSave={onRollDeathSave}
-            disabled={isUpdating}
-          />
+        <div className="footer-character-slot__death-dock" data-allow-pointer-events="true">
+          <button
+            type="button"
+            className={`footer-character-slot__death-toggle ${isDeathPanelOpen ? 'is-open' : ''}`}
+            aria-expanded={isDeathPanelOpen}
+            aria-controls="footer-character-death-panel"
+            onClick={() => setIsDeathPanelOpen((current) => !current)}
+          >
+            <span className="footer-character-slot__death-toggle-eyebrow">{deathPanelLabel}</span>
+            <span className="footer-character-slot__death-toggle-name">{characterName}</span>
+            <span className="footer-character-slot__death-toggle-meta">
+              HP {displayCurrent}
+              <i className={`fas fa-chevron-${isDeathPanelOpen ? 'down' : 'up'}`} aria-hidden="true" />
+            </span>
+          </button>
+          {isDeathPanelOpen ? (
+            <div
+              id="footer-character-death-panel"
+              className="footer-character-slot__death-panel"
+            >
+              <DyingStatePanel
+                compact
+                characterName={characterName}
+                portraitUrl={figurineImageUrl}
+                currentHp={displayCurrent}
+                deathState={normalizedDeathState}
+                isActiveTurn={isActiveTurn}
+                onRollDeathSave={onRollDeathSave}
+                disabled={isUpdating}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
       {hasHudContent ? (
