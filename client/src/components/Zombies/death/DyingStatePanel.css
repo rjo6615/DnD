@@ -304,13 +304,9 @@
   }
 
   .footer-character-slot__death-dock {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 214px);
+    bottom: var(--footer-death-dock-bottom, calc(env(safe-area-inset-bottom, 0px) + 214px));
     width: min(94vw, 540px);
     transition: bottom 180ms ease;
-  }
-
-  .footer-character-slot__death-dock--hud-panel-open {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + min(62vh, 500px));
   }
 
   .footer-character-slot__death-toggle {
