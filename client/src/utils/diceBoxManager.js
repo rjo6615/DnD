@@ -1042,6 +1042,8 @@ export const isDiceBoxReady = () => diceBoxReady;
 
 export const hasDiceBoxFailed = () => diceBoxFailed;
 
+export const isDiceBoxInitializing = () => Boolean(diceBoxPromise) && !diceBoxReady;
+
 export const warmupDiceBox = () => {
   if (diceBoxInstance) {
     return Promise.resolve(diceBoxInstance);
@@ -1208,6 +1210,7 @@ export default {
   subscribeToDiceBoxAvailability,
   isDiceBoxReady,
   hasDiceBoxFailed,
+  isDiceBoxInitializing,
   clearDiceBoxResults,
   rollDiceWithBox,
   setDiceBoxThemeColor,
