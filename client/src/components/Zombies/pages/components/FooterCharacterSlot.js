@@ -378,17 +378,11 @@ const FooterCharacterSlot = ({
       return undefined;
     }
 
-    const mobileQuery = window.matchMedia('(max-width: 900px)');
     let animationFrameId = null;
     let followUpTimeoutId = null;
     let resizeObserver = null;
 
     const updateDeathDockOffset = () => {
-      if (!mobileQuery.matches) {
-        setDeathDockBottomOffset(null);
-        return;
-      }
-
       const combatDock = document.querySelector('.combat-hud-dock');
       if (!combatDock) {
         setDeathDockBottomOffset(null);
@@ -415,7 +409,6 @@ const FooterCharacterSlot = ({
     scheduleUpdate();
     followUpTimeoutId = window.setTimeout(scheduleUpdate, 220);
     window.addEventListener('resize', scheduleUpdate);
-    mobileQuery.addEventListener?.('change', scheduleUpdate);
 
     return () => {
       if (animationFrameId !== null) {
@@ -426,7 +419,6 @@ const FooterCharacterSlot = ({
       }
       resizeObserver?.disconnect();
       window.removeEventListener('resize', scheduleUpdate);
-      mobileQuery.removeEventListener?.('change', scheduleUpdate);
     };
   }, [isCombatHudPanelOpen, isDeathStateVisible]);
 

@@ -203,7 +203,7 @@
 .footer-character-slot__death-dock {
   position: fixed;
   left: 50%;
-  bottom: clamp(156px, 20vh, 230px);
+  bottom: var(--footer-death-dock-bottom, clamp(156px, 20vh, 230px));
   transform: translateX(-50%);
   z-index: 80;
   display: grid;
