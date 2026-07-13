@@ -358,7 +358,7 @@ const FooterCharacterSlot = ({
 
   return (
     <div
-      className={`footer-character-slot ${isResourcesOpen ? 'footer-character-slot--resources-open' : ''} ${isDeathStateVisible ? 'footer-character-slot--dying' : ''}`}
+      className={`footer-character-slot ${isResourcesOpen ? 'footer-character-slot--resources-open' : ''}`}
       data-allow-pointer-events="true"
     >
       {hasResourcesDrawer ? (
@@ -480,7 +480,7 @@ const FooterCharacterSlot = ({
           />
         </div>
       ) : null}
-      {hasHudContent && !normalizedDeathState.isDying && !normalizedDeathState.isDead ? (
+      {hasHudContent ? (
         <div className="footer-character-slot__hud" data-allow-pointer-events="true">
           {hasSpellSlots ? (
             <div className="footer-character-slot__slots-wrapper">
