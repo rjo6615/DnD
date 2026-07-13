@@ -102,7 +102,7 @@ const notifyAvailability = (ready) => {
   availabilityListeners.forEach((listener) => {
     try {
       listener(ready);
-    } catch (error) {
+    } catch {
       // eslint-disable-next-line no-console
       console.error('Dice box listener error', error);
     }
@@ -265,7 +265,21 @@ const ensureElementSelector = (element) => {
   const existingId =
     typeof element.id === 'string' && element.id.trim() ? element.id.trim() : null;
   if (existingId) {
-    return `#${existingId}`;
+    const selector = `#${existingId}`;
+    if (typeof document === 'undefined') {
+      return selector;
+    }
+
+    try {
+      const selectedElement = document.querySelector(selector);
+      const matchingElements = document.querySelectorAll(selector);
+      if (selectedElement === element && matchingElements.length === 1) {
+        return selector;
+      }
+    } catch {
+      // Fall through and assign a generated id if the existing id cannot be
+      // queried safely.
+    }
   }
 
   generatedHostId += 1;
@@ -633,7 +647,7 @@ async function ensureDiceBox() {
       if (diceBoxGeneration !== initGeneration) {
         return null;
       }
-      const target = targetElement || selector;
+      const target = selector || targetElement;
       if (!target) {
         throw new Error('Dice box target was not available');
       }
