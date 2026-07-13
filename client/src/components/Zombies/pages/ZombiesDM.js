@@ -75,6 +75,12 @@ import CombatTurnHeader from '../components/CombatTurnHeader';
 import { DeathStateBadge } from '../death/DyingStatePanel';
 import { buildEnemyTokenFilterScopeValues } from '../utils/enemyTokenFilters';
 import { sanitizeIdentifierForTestId } from '../utils/sanitizeIdentifierForTestId';
+import {
+  advanceCombatTurn,
+  createEmptyCombatState,
+  normalizeCombatTimelineState,
+  removeCombatantEffects,
+} from '../utils/combatEffects';
 
 const STAT_LOOKUP = STATS.reduce((acc, { key, label }) => {
   acc[label.toLowerCase()] = key;
@@ -431,8 +437,6 @@ const formatXpDisplay = (xp) => {
 
   return numeric.toLocaleString();
 };
-
-const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
 
 
 const trimTrailingPunctuation = (value) => {
@@ -1165,7 +1169,11 @@ const normalizeCombatState = (state) => {
     }
   }
 
-  return { participants: sortedParticipants, activeTurn };
+  return normalizeCombatTimelineState({
+    ...state,
+    participants: sortedParticipants,
+    activeTurn,
+  });
 };
 
 export const createActiveMapEnemySummaries = ({
@@ -3977,6 +3985,7 @@ export default function ZombiesDM() {
           };
           const stateWithDerived = applyDerivedInitiativesToState(
             {
+              ...combatState,
               participants: [...participants, participant],
               activeTurn: combatState.activeTurn,
             },
@@ -3998,10 +4007,13 @@ export default function ZombiesDM() {
             }
           }
 
-          nextState = normalizeCombatState({
+          nextState = removeCombatantEffects(normalizeCombatState({
             participants: updatedParticipants,
             activeTurn: nextActiveTurn,
-          });
+            activeEffects: combatState.activeEffects,
+            round: combatState.round,
+            turnSequence: combatState.turnSequence,
+          }), characterId);
         }
 
         setCombatState(nextState);
@@ -4168,10 +4180,10 @@ export default function ZombiesDM() {
           nextIndex = direction > 0 ? 0 : total - 1;
         }
 
-        const nextState = normalizeCombatState({
+        const nextState = normalizeCombatState(advanceCombatTurn({
+          ...combatState,
           participants,
-          activeTurn: nextIndex,
-        });
+        }, direction));
 
         setCombatState(nextState);
         persistCombatState(nextState);

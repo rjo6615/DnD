@@ -102,10 +102,21 @@ const collectMovementSpeedBonus = (value) => {
     return 0;
   }
 
+  const modifierBonus = Array.isArray(value.modifiers)
+    ? value.modifiers.reduce((sum, modifier) => {
+        const type = String(modifier?.type || modifier?.stat || modifier?.attribute || '').toLowerCase();
+        if (type !== 'speed' && type !== 'movement' && type !== 'movementspeed') {
+          return sum;
+        }
+        return sum + toFiniteNumberOrZero(modifier.value ?? modifier.amount ?? modifier.bonus);
+      }, 0)
+    : 0;
+
   const directBonus =
     toFiniteNumberOrZero(value.speedBonus) +
     toFiniteNumberOrZero(value.movementSpeedBonus) +
-    toFiniteNumberOrZero(value.walkingSpeedBonus);
+    toFiniteNumberOrZero(value.walkingSpeedBonus) +
+    modifierBonus;
 
   return (
     directBonus +
@@ -177,6 +188,7 @@ export const calculateCharacterMovementSpeed = (character, overrides = {}) => {
     collectMovementSpeedBonus(accessoryEntries) +
     collectMovementSpeedBonus(character?.conditions) +
     collectMovementSpeedBonus(character?.statusConditions) +
+    collectMovementSpeedBonus(character?.activeEffects) +
     collectMovementSpeedBonus(character?.miscBonuses) +
     collectMovementSpeedBonus(character?.bonuses);
 
