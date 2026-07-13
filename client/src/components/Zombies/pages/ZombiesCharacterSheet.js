@@ -71,6 +71,7 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 import TokenPickerModal from '../components/TokenPickerModal';
 import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
 import FooterCharacterSlot from './components/FooterCharacterSlot';
+import { notify } from '../../../utils/notification';
 import CombatTurnHeader, { HEADER_PADDING } from "../components/CombatTurnHeader";
 
 const MIN_DOCKED_MODAL_WIDTH = 320;
@@ -1571,6 +1572,24 @@ export default function ZombiesCharacterSheet() {
     Boolean(encodedCampaignId) &&
     Array.isArray(combatState.participants) &&
     combatState.participants.length > 0;
+
+
+  const handleRollDeathSave = useCallback(async () => {
+    if (!characterId) return;
+    try {
+      const response = await apiFetch(`/characters/death-state/${characterId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'roll' }),
+      });
+      if (!response.ok) throw new Error(response.statusText || 'Failed to roll death save.');
+      const payload = await response.json();
+      setForm((prev) => prev ? { ...prev, tempHealth: payload.tempHealth ?? prev.tempHealth, deathState: payload.deathState ?? prev.deathState } : prev);
+      if (payload.message) notify(payload.message, payload.event === 'dead' ? 'danger' : 'success');
+    } catch (error) {
+      notify(error.message || 'Failed to roll death save.', 'danger');
+    }
+  }, [characterId]);
 
   const handleHealthChange = useCallback(
     (nextTempHealth) => {
@@ -4050,6 +4069,16 @@ export default function ZombiesCharacterSheet() {
         return;
       }
 
+      if (updateIdentifiers.includes(characterId)) {
+        setForm((prev) => prev ? {
+          ...prev,
+          ...(update.tempHealth !== undefined ? { tempHealth: Number.isFinite(Number(update.tempHealth)) ? Number(update.tempHealth) : update.tempHealth } : {}),
+          ...(update.health !== undefined ? { health: Number.isFinite(Number(update.health)) ? Number(update.health) : update.health } : {}),
+          ...(update.deathState && typeof update.deathState === 'object' ? { deathState: update.deathState } : {}),
+        } : prev);
+        if (update.deathEvent?.message) notify(update.deathEvent.message, update.deathEvent.event === 'dead' ? 'danger' : 'success');
+      }
+
       const nextTempHealthValue =
         update.tempHealth !== undefined && update.tempHealth !== null
           ? (() => {
@@ -4129,6 +4158,11 @@ export default function ZombiesCharacterSheet() {
 
         if (nextHealthValue !== undefined && existing.health !== nextHealthValue) {
           updatedCharacter.health = nextHealthValue;
+          didUpdate = true;
+        }
+
+        if (update.deathState && typeof update.deathState === 'object') {
+          updatedCharacter.deathState = update.deathState;
           didUpdate = true;
         }
 
@@ -5763,6 +5797,9 @@ export default function ZombiesCharacterSheet() {
         hiddenResourceCount={footerHiddenResourceCount}
         actions={null}
         onToggleCritical={toggleCriticalFromFooter}
+        deathState={form?.deathState}
+        isActiveTurn={isPlayersTurn}
+        onRollDeathSave={handleRollDeathSave}
       />
       <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
         <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>

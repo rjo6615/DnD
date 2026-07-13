@@ -72,6 +72,7 @@ import { resolveFigurineImageData } from '../utils/figurineAssets';
 import TokenPickerModal from '../components/TokenPickerModal';
 import ActiveEnemyQuickList from '../components/ActiveEnemyQuickList';
 import CombatTurnHeader from '../components/CombatTurnHeader';
+import DyingStatePanel, { DeathStateBadge, DeathSaveTracker } from '../death/DyingStatePanel';
 import { buildEnemyTokenFilterScopeValues } from '../utils/enemyTokenFilters';
 import { sanitizeIdentifierForTestId } from '../utils/sanitizeIdentifierForTestId';
 
@@ -1547,6 +1548,7 @@ export const applyCharacterHealthUpdateToRecords = ({ records, update }) => {
 
   const nextTempHealthValue = normalizeHealthValue(update.tempHealth);
   const nextHealthValue = normalizeHealthValue(update.health);
+  const nextDeathState = update.deathState && typeof update.deathState === 'object' ? update.deathState : undefined;
 
   let didUpdate = false;
 
@@ -1590,6 +1592,11 @@ export const applyCharacterHealthUpdateToRecords = ({ records, update }) => {
 
     if (nextHealthValue !== undefined && record?.health !== nextHealthValue) {
       updatedRecord.health = nextHealthValue;
+      recordUpdated = true;
+    }
+
+    if (nextDeathState !== undefined && record?.deathState !== nextDeathState) {
+      updatedRecord.deathState = nextDeathState;
       recordUpdated = true;
     }
 
@@ -3296,6 +3303,7 @@ export default function ZombiesDM() {
               ...(normalizedCharacterId ? { characterId: normalizedCharacterId } : {}),
               tempHealth: nextTempHealthValue,
               health: nextHealthValue,
+              ...(update.deathState ? { deathState: update.deathState } : {}),
             },
           })
         );
@@ -4332,6 +4340,7 @@ export default function ZombiesDM() {
 
       return DEFAULT_DICE_COLOR;
     }, [activeParticipant, characterLookup, records]);
+
 
     const activeTurnDisplayName = useMemo(() => {
       if (!activeParticipant) {
@@ -7184,7 +7193,13 @@ const resolveIcon = (category, iconMap, fallback) => {
                                   className={isActive ? 'table-success text-dark combat-tracker__active-row' : undefined}
                                   {...rowDataAttributes}
                                 >
-                                  <td className="fw-semibold">{displayName}</td>
+                                  <td className="fw-semibold">
+                                    {displayName}
+                                    <div className="mt-1">
+                                      <DeathStateBadge deathState={character?.deathState} />
+                                      {(character?.deathState?.isDying || character?.deathState?.isDead) ? <DeathSaveTracker deathState={character.deathState} /> : null}
+                                    </div>
+                                  </td>
                                   <td>{playerName}</td>
                                   <td className="text-center">
                                     <Form.Check
@@ -7218,6 +7233,17 @@ const resolveIcon = (category, iconMap, fallback) => {
                                       >
                                         Set Turn
                                       </Button>
+                                      {(character?.deathState?.isDying || character?.deathState?.isDead) ? (
+                                        <DyingStatePanel
+                                          compact
+                                          characterName={displayName}
+                                          currentHp={rowCurrentHp ?? 0}
+                                          deathState={character.deathState}
+                                          onRollDeathSave={() => handleDeathStateAction(character, 'roll')}
+                                          onDmAction={(action) => handleDeathStateAction(character, action)}
+                                          isActiveTurn={isActive}
+                                        />
+                                      ) : null}
                                     </div>
                                   </td>
                                 </tr>

@@ -1,0 +1,254 @@
+.dying-state-panel {
+  background: linear-gradient(135deg, rgba(13, 22, 38, 0.96), rgba(69, 8, 22, 0.9));
+  border: 1px solid rgba(255, 92, 122, 0.45);
+  border-radius: 18px;
+  box-shadow: 0 0 24px rgba(220, 35, 70, 0.28), inset 0 0 28px rgba(255, 255, 255, 0.04);
+  color: #f7eef2;
+  padding: 1rem;
+  min-width: 280px;
+  max-width: 520px;
+  animation: dyingPulse 2.6s ease-in-out infinite;
+}
+
+.dying-state-panel--compact {
+  width: min(100%, 360px);
+  min-width: 0;
+  max-width: 360px;
+  padding: 0.75rem;
+  border-radius: 16px;
+}
+
+.dying-state-panel--dead {
+  filter: saturate(0.65);
+  background: linear-gradient(135deg, #111827, #3b1018);
+}
+
+.dying-state-panel__header {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.dying-state-panel--compact .dying-state-panel__header {
+  gap: 0.6rem;
+}
+
+.dying-state-panel__portrait {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid #ff6680;
+  background: #172033;
+  box-shadow: 0 0 18px rgba(255, 80, 112, 0.45);
+  flex: 0 0 auto;
+}
+
+.dying-state-panel--compact .dying-state-panel__portrait {
+  width: 42px;
+  height: 42px;
+}
+
+.dying-state-panel__portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dying-state-panel__eyebrow {
+  margin: 0;
+  color: #ff9bad;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+}
+
+.dying-state-panel h3,
+.dying-state-panel p {
+  margin: 0.1rem 0;
+}
+
+.dying-state-panel--compact h3 {
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.death-state-badge {
+  margin-left: auto;
+  border: 1px solid #ff7990;
+  color: #ffdce3;
+  background: rgba(130, 15, 39, 0.75);
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.death-state-badge--dead {
+  background: #2d1118;
+  color: #ffb3b3;
+}
+
+.death-save-tracker {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.8rem 0;
+}
+
+.death-save-tracker > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.death-save-circle {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-left: 0.25rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.dying-state-panel--compact .death-save-circle {
+  width: 30px;
+  height: 30px;
+  font-size: 1.15rem;
+}
+
+.death-save-circle--success.is-filled {
+  color: #9fffd0;
+  background: rgba(41, 211, 137, 0.18);
+  box-shadow: 0 0 14px #4af2aa;
+}
+
+.death-save-circle--failure.is-filled {
+  color: #ff8ca0;
+  background: rgba(239, 55, 88, 0.22);
+  box-shadow: 0 0 14px #ff496c;
+}
+
+.death-save-roll-button {
+  width: 100%;
+  min-height: 46px;
+  border: 0 !important;
+  font-weight: 900 !important;
+  background: linear-gradient(90deg, #b91c3c, #f59e0b) !important;
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.25);
+}
+
+.death-save-roll-button:focus-visible,
+.dm-death-controls button:focus-visible {
+  outline: 3px solid #7dd3fc;
+  outline-offset: 2px;
+}
+
+.dying-state-panel__turn {
+  border-radius: 12px;
+  padding: 0.55rem 0.7rem;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  font-weight: 800;
+}
+
+.dying-state-panel__result {
+  min-height: 2.25rem;
+  color: #ffe9ef;
+  text-align: center;
+}
+
+.dying-state-panel--compact .dying-state-panel__result {
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.dm-death-controls {
+  margin-top: 0.65rem;
+}
+
+.dm-death-controls summary {
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.dm-death-controls div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.dm-death-controls button {
+  min-height: 44px;
+}
+
+@keyframes dyingPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(220, 35, 70, 0.22); }
+  50% { box-shadow: 0 0 30px rgba(220, 35, 70, 0.42); }
+}
+
+.footer-character-slot--dying {
+  justify-content: center;
+  align-items: center;
+  width: min(100%, 380px);
+}
+
+.footer-character-slot--dying .footer-character-slot__profile-card {
+  display: none;
+}
+
+.footer-character-slot--dying .footer-character-slot__health-inline {
+  box-shadow: 0 0 18px rgba(220, 38, 70, 0.65) !important;
+  background: linear-gradient(90deg, #48111c, #7f1d1d) !important;
+}
+
+.footer-character-slot--dying .footer-character-slot__health-current {
+  color: #fecdd3;
+}
+
+.footer-character-slot__death-panel {
+  width: min(100%, 360px);
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 640px) {
+  .dying-state-panel,
+  .dying-state-panel--compact {
+    border-radius: 18px 18px 0 0;
+    max-width: none;
+    width: 100%;
+    padding: calc(0.9rem + env(safe-area-inset-bottom) / 4) 0.8rem;
+  }
+
+  .death-save-circle,
+  .dying-state-panel--compact .death-save-circle {
+    width: 44px;
+    height: 44px;
+  }
+
+  .dying-state-panel__header {
+    align-items: flex-start;
+  }
+
+  .death-state-badge {
+    font-size: 0.78rem;
+  }
+
+  .footer-character-slot--dying,
+  .footer-character-slot__death-panel {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dying-state-panel {
+    animation: none;
+  }
+}
