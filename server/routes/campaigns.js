@@ -25,6 +25,21 @@ const {
   suggestEnemyFigurine,
 } = require('../utils/cloudinary');
 
+
+const resetActiveDeathSaveRoll = async (db, combatState) => {
+  const activeTurn = Number.isInteger(combatState?.activeTurn) ? combatState.activeTurn : null;
+  const participants = Array.isArray(combatState?.participants) ? combatState.participants : [];
+  if (activeTurn === null || activeTurn < 0 || activeTurn >= participants.length) return;
+  const characterId = typeof participants[activeTurn]?.characterId === 'string' ? participants[activeTurn].characterId.trim() : '';
+  if (!characterId) return;
+  const filters = [{ characterId }];
+  if (ObjectId.isValid(characterId)) filters.push({ _id: new ObjectId(characterId) });
+  await db.collection('Characters').updateOne(
+    { $or: filters, 'deathState.isDying': true, 'deathState.isDead': { $ne: true } },
+    { $set: { 'deathState.rolledThisTurn': false, 'deathState.updatedAt': new Date().toISOString() } }
+  );
+};
+
 const deriveCloudinaryPublicIdFromUrl = (url) => {
   if (typeof url !== 'string' || url.trim() === '') {
     return null;
@@ -2067,6 +2082,8 @@ module.exports = (router) => {
               { campaignName: req.params.campaign },
               { $set: { combat: combatState } }
             );
+
+          await resetActiveDeathSaveRoll(db_connect, combatState);
 
           emitCombatUpdate(req.params.campaign, combatState);
 

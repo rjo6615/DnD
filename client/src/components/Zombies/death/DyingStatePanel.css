@@ -1,8 +1,10 @@
 .dying-state-panel {
-  background: linear-gradient(135deg, rgba(13, 22, 38, 0.96), rgba(69, 8, 22, 0.9));
-  border: 1px solid rgba(255, 92, 122, 0.45);
-  border-radius: 18px;
-  box-shadow: 0 0 24px rgba(220, 35, 70, 0.28), inset 0 0 28px rgba(255, 255, 255, 0.04);
+  background:
+    radial-gradient(circle at 14% 18%, rgba(255, 120, 148, 0.24), transparent 28%),
+    linear-gradient(145deg, rgba(12, 16, 32, 0.97), rgba(53, 7, 28, 0.94) 58%, rgba(20, 11, 28, 0.97));
+  border: 1px solid rgba(255, 120, 150, 0.5);
+  border-radius: 22px;
+  box-shadow: 0 18px 44px rgba(4, 7, 18, 0.48), 0 0 28px rgba(220, 35, 70, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   color: #f7eef2;
   padding: 1rem;
   min-width: 280px;
@@ -11,11 +13,11 @@
 }
 
 .dying-state-panel--compact {
-  width: min(100%, 360px);
+  width: min(100%, 330px);
   min-width: 0;
-  max-width: 360px;
-  padding: 0.75rem;
-  border-radius: 16px;
+  max-width: 330px;
+  padding: 0.8rem;
+  border-radius: 18px;
 }
 
 .dying-state-panel--dead {
@@ -138,6 +140,7 @@
   width: 100%;
   min-height: 46px;
   border: 0 !important;
+  border-radius: 12px !important;
   font-weight: 900 !important;
   background: linear-gradient(90deg, #b91c3c, #f59e0b) !important;
   box-shadow: 0 0 18px rgba(245, 158, 11, 0.25);
@@ -192,30 +195,83 @@
   50% { box-shadow: 0 0 30px rgba(220, 35, 70, 0.42); }
 }
 
-.footer-character-slot--dying {
-  justify-content: center;
-  align-items: center;
-  width: min(100%, 380px);
-}
-
-.footer-character-slot--dying .footer-character-slot__profile-card {
-  display: none;
-}
-
-.footer-character-slot--dying .footer-character-slot__health-inline {
-  box-shadow: 0 0 18px rgba(220, 38, 70, 0.65) !important;
-  background: linear-gradient(90deg, #48111c, #7f1d1d) !important;
-}
-
-.footer-character-slot--dying .footer-character-slot__health-current {
-  color: #fecdd3;
-}
 
 .footer-character-slot__death-panel {
-  width: min(100%, 360px);
-  margin: 0 auto;
-  position: relative;
-  z-index: 2;
+  width: min(92vw, 330px);
+}
+
+.footer-character-slot__death-dock {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(156px, 20vh, 230px);
+  transform: translateX(-50%);
+  z-index: 80;
+  display: grid;
+  justify-items: center;
+  gap: 0.65rem;
+  pointer-events: none;
+}
+
+.footer-character-slot__death-toggle,
+.footer-character-slot__death-panel {
+  pointer-events: auto;
+}
+
+.footer-character-slot__death-toggle {
+  min-width: min(88vw, 320px);
+  border: 1px solid rgba(255, 120, 150, 0.52);
+  border-radius: 999px;
+  color: #fff1f4;
+  background:
+    radial-gradient(circle at 18% 15%, rgba(255, 168, 188, 0.22), transparent 32%),
+    linear-gradient(135deg, rgba(20, 24, 44, 0.96), rgba(93, 16, 41, 0.94));
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.42), 0 0 22px rgba(255, 88, 125, 0.25);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.62rem 0.9rem;
+  text-align: left;
+  backdrop-filter: blur(14px);
+}
+
+.footer-character-slot__death-toggle:hover,
+.footer-character-slot__death-toggle:focus-visible {
+  border-color: rgba(255, 188, 202, 0.85);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.46), 0 0 28px rgba(255, 88, 125, 0.38);
+}
+
+.footer-character-slot__death-toggle:focus-visible {
+  outline: 3px solid #7dd3fc;
+  outline-offset: 3px;
+}
+
+.footer-character-slot__death-toggle-eyebrow {
+  border-radius: 999px;
+  padding: 0.28rem 0.52rem;
+  background: rgba(255, 104, 132, 0.18);
+  color: #ffb8c6;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.footer-character-slot__death-toggle-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 900;
+}
+
+.footer-character-slot__death-toggle-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #ffe4ea;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {
@@ -241,9 +297,19 @@
     font-size: 0.78rem;
   }
 
-  .footer-character-slot--dying,
   .footer-character-slot__death-panel {
     width: 100%;
+  }
+
+  .footer-character-slot__death-dock {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 132px);
+    width: min(94vw, 360px);
+  }
+
+  .footer-character-slot__death-toggle {
+    min-width: 0;
+    width: 100%;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 }
 
