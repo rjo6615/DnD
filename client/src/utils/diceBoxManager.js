@@ -580,6 +580,10 @@ async function ensureDiceBox() {
     return diceBoxInstance;
   }
 
+  if (diceBoxPromise) {
+    return diceBoxPromise;
+  }
+
   if (diceBoxDisabled) {
     return null;
   }
@@ -607,88 +611,90 @@ async function ensureDiceBox() {
     markDiceBoxFailure({ fatal: true });
     return null;
   }
-  if (!diceBoxPromise) {
-    const initGeneration = diceBoxGeneration;
-    const pending = (async () => {
-      try {
-        const DiceBox = await getDiceBoxConstructor();
-        if (diceBoxGeneration !== initGeneration) {
-          return null;
-        }
-        const target = targetElement || selector;
-        if (!target) {
-          throw new Error('Dice box target was not available');
-        }
-
-        const normalizedPendingTheme = normalizeThemeName(pendingThemeName);
-        const normalizedActiveTheme = normalizeThemeName(activeThemeName);
-        const resolvedThemeName = normalizedPendingTheme || normalizedActiveTheme || DEFAULT_DICE_THEME;
-
-        const overrides = {};
-        if (pendingThemeColor) {
-          overrides.themeColor = pendingThemeColor;
-        }
-        if (resolvedThemeName) {
-          overrides.theme = resolvedThemeName;
-        }
-
-        const options = createDiceBoxConfig(
-          Object.keys(overrides).length > 0 ? overrides : null,
-        );
-
-        let instance = null;
-
-        try {
-          instance = new DiceBox(target, options);
-        } catch (error) {
-          if (selector && target !== selector) {
-            instance = new DiceBox(selector, options);
-          } else {
-            throw error;
-          }
-        }
-
-        await withTimeout(
-          instance.init(),
-          DICEBOX_INIT_TIMEOUT_MS,
-          () => new Error('Dice box initialization timed out'),
-        );
-        if (diceBoxGeneration !== initGeneration) {
-          destroyInstance(instance);
-          return null;
-        }
-        diceBoxInstance = instance;
-        diceBoxFailed = false;
-        diceBoxDisabled = false;
-        activeThemeName = resolvedThemeName || DEFAULT_DICE_THEME;
-        applyPendingThemeName(instance);
-        applyPendingThemeColor(instance);
-        refreshDiceBoxResolution(instance);
-        clearScheduledRetry();
-        setAvailability(true);
-        return instance;
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        if (diceBoxGeneration === initGeneration) {
-          console.error('Dice box initialization failed', error);
-          const fatal =
-            isSecurityPolicyViolation(error) ||
-            (workerSupportState === 'blocked' &&
-              typeof error?.message === 'string' &&
-              error.message.toLowerCase().includes('timed out')) ||
-            workerSupportState === 'unsupported';
-          markDiceBoxFailure({ fatal });
-        }
+  const initGeneration = diceBoxGeneration;
+  const pending = (async () => {
+    try {
+      const DiceBox = await getDiceBoxConstructor();
+      if (diceBoxGeneration !== initGeneration) {
         return null;
       }
-    })();
-    diceBoxPromise = pending;
-    pending.finally(() => {
-      if (diceBoxPromise === pending && diceBoxGeneration !== initGeneration) {
-        diceBoxPromise = null;
+      const target = targetElement || selector;
+      if (!target) {
+        throw new Error('Dice box target was not available');
       }
-    });
-  }
+
+      const normalizedPendingTheme = normalizeThemeName(pendingThemeName);
+      const normalizedActiveTheme = normalizeThemeName(activeThemeName);
+      const resolvedThemeName = normalizedPendingTheme || normalizedActiveTheme || DEFAULT_DICE_THEME;
+
+      const overrides = {};
+      if (pendingThemeColor) {
+        overrides.themeColor = pendingThemeColor;
+      }
+      if (resolvedThemeName) {
+        overrides.theme = resolvedThemeName;
+      }
+
+      const options = createDiceBoxConfig(
+        Object.keys(overrides).length > 0 ? overrides : null,
+      );
+
+      let instance = null;
+
+      try {
+        instance = new DiceBox(target, options);
+      } catch (error) {
+        if (selector && target !== selector) {
+          instance = new DiceBox(selector, options);
+        } else {
+          throw error;
+        }
+      }
+
+      await withTimeout(
+        instance.init(),
+        DICEBOX_INIT_TIMEOUT_MS,
+        () => new Error('Dice box initialization timed out'),
+      );
+      if (diceBoxGeneration !== initGeneration) {
+        destroyInstance(instance);
+        return null;
+      }
+      diceBoxInstance = instance;
+      diceBoxFailed = false;
+      diceBoxDisabled = false;
+      activeThemeName = resolvedThemeName || DEFAULT_DICE_THEME;
+      applyPendingThemeName(instance);
+      applyPendingThemeColor(instance);
+      refreshDiceBoxResolution(instance);
+      clearScheduledRetry();
+      setAvailability(true);
+      return instance;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      if (diceBoxGeneration === initGeneration) {
+        console.error('Dice box initialization failed', error);
+        const fatal =
+          isSecurityPolicyViolation(error) ||
+          (workerSupportState === 'blocked' &&
+            typeof error?.message === 'string' &&
+            error.message.toLowerCase().includes('timed out')) ||
+          workerSupportState === 'unsupported';
+        markDiceBoxFailure({ fatal });
+      }
+      return null;
+    }
+  })();
+  diceBoxPromise = pending;
+  pending.then((instance) => {
+    if (diceBoxPromise === pending && (!instance || diceBoxGeneration !== initGeneration)) {
+      diceBoxPromise = null;
+    }
+  }, () => {
+    if (diceBoxPromise === pending) {
+      diceBoxPromise = null;
+    }
+  });
   return diceBoxPromise;
 }
 
@@ -977,6 +983,17 @@ export const rollDiceWithBox = (requests) => {
     const fallback = requests.map(({ count, sides }) => fallbackRoll(count, sides));
 
     if (!instance) {
+      if (typeof console !== 'undefined' && typeof console.error === 'function') {
+        const { element, selector } = resolveDiceBoxTarget();
+        console.error('Dice box unavailable; using fallback roll.', {
+          hasHost: Boolean(element || selector),
+          ready: diceBoxReady,
+          failed: diceBoxFailed,
+          disabled: diceBoxDisabled,
+          initializationInProgress: Boolean(diceBoxPromise),
+          workerSupportState,
+        });
+      }
       return {
         rolls: fallback,
         rawResults: null,
