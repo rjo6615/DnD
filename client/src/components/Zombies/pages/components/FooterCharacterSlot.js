@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import { Button, Spinner } from 'react-bootstrap';
 
@@ -369,11 +370,48 @@ const FooterCharacterSlot = ({
     setIsDeathPanelOpen(false);
   }, [collapseDeathPanelSignal]);
 
+  const deathDock = isDeathStateVisible ? (
+    <div className="footer-character-slot__death-dock" data-allow-pointer-events="true">
+      <button
+        type="button"
+        className={`footer-character-slot__death-toggle ${isDeathPanelOpen ? 'is-open' : ''}`}
+        aria-expanded={isDeathPanelOpen}
+        aria-controls="footer-character-death-panel"
+        onClick={() => setIsDeathPanelOpen((current) => !current)}
+      >
+        <span className="footer-character-slot__death-toggle-eyebrow">{deathPanelLabel}</span>
+        <span className="footer-character-slot__death-toggle-name">{characterName}</span>
+        <span className="footer-character-slot__death-toggle-meta">
+          HP {displayCurrent}
+          <i className={`fas fa-chevron-${isDeathPanelOpen ? 'down' : 'up'}`} aria-hidden="true" />
+        </span>
+      </button>
+      {isDeathPanelOpen ? (
+        <div
+          id="footer-character-death-panel"
+          className="footer-character-slot__death-panel"
+        >
+          <DyingStatePanel
+            compact
+            characterName={characterName}
+            portraitUrl={figurineImageUrl}
+            currentHp={displayCurrent}
+            deathState={normalizedDeathState}
+            isActiveTurn={isActiveTurn}
+            onRollDeathSave={onRollDeathSave}
+            disabled={isUpdating}
+          />
+        </div>
+      ) : null}
+    </div>
+  ) : null;
+
   return (
     <div
       className={`footer-character-slot ${isResourcesOpen ? 'footer-character-slot--resources-open' : ''}`}
       data-allow-pointer-events="true"
     >
+      {deathDock && typeof document !== 'undefined' ? createPortal(deathDock, document.body) : null}
       {hasResourcesDrawer ? (
         <div
           id="footer-resources-drawer"
@@ -479,41 +517,6 @@ const FooterCharacterSlot = ({
           </div>
         </div>
       </div>
-      {isDeathStateVisible ? (
-        <div className="footer-character-slot__death-dock" data-allow-pointer-events="true">
-          <button
-            type="button"
-            className={`footer-character-slot__death-toggle ${isDeathPanelOpen ? 'is-open' : ''}`}
-            aria-expanded={isDeathPanelOpen}
-            aria-controls="footer-character-death-panel"
-            onClick={() => setIsDeathPanelOpen((current) => !current)}
-          >
-            <span className="footer-character-slot__death-toggle-eyebrow">{deathPanelLabel}</span>
-            <span className="footer-character-slot__death-toggle-name">{characterName}</span>
-            <span className="footer-character-slot__death-toggle-meta">
-              HP {displayCurrent}
-              <i className={`fas fa-chevron-${isDeathPanelOpen ? 'down' : 'up'}`} aria-hidden="true" />
-            </span>
-          </button>
-          {isDeathPanelOpen ? (
-            <div
-              id="footer-character-death-panel"
-              className="footer-character-slot__death-panel"
-            >
-              <DyingStatePanel
-                compact
-                characterName={characterName}
-                portraitUrl={figurineImageUrl}
-                currentHp={displayCurrent}
-                deathState={normalizedDeathState}
-                isActiveTurn={isActiveTurn}
-                onRollDeathSave={onRollDeathSave}
-                disabled={isUpdating}
-              />
-            </div>
-          ) : null}
-        </div>
-      ) : null}
       {hasHudContent ? (
         <div className="footer-character-slot__hud" data-allow-pointer-events="true">
           {hasSpellSlots ? (
