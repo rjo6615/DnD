@@ -50,7 +50,6 @@ const RETRY_DELAY_MS = 4000;
 const HOST_LAYOUT_TIMEOUT_MS = 2000;
 const HOST_LAYOUT_POLL_MS = 50;
 const HOST_REGISTRATION_TIMEOUT_MS = 750;
-const POST_INIT_RENDER_SETTLE_MS = 250;
 
 const clearScheduledRetry = () => {
   if (retryTimeoutId) {
@@ -434,26 +433,6 @@ const waitForDiceBoxTarget = (timeoutMs = HOST_REGISTRATION_TIMEOUT_MS) => {
     check();
   });
 };
-
-const waitForRenderSettle = (timeoutMs = POST_INIT_RENDER_SETTLE_MS) =>
-  new Promise((resolve) => {
-    if (typeof window === 'undefined') {
-      resolve();
-      return;
-    }
-
-    const settle = () => {
-      window.setTimeout(resolve, timeoutMs);
-    };
-
-    if (typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(settle);
-      });
-    } else {
-      settle();
-    }
-  });
 
 const getDiceBoxConstructor = () => {
   if (modulePromise) {
@@ -846,11 +825,6 @@ async function ensureDiceBox({ waitForTarget = false } = {}) {
         applyPendingThemeName(instance);
         applyPendingThemeColor(instance);
         refreshDiceBoxResolution(instance);
-        await waitForRenderSettle();
-        if (diceBoxGeneration !== initGeneration) {
-          destroyInstance(instance);
-          return null;
-        }
         clearScheduledRetry();
         setAvailability(true);
         return instance;
