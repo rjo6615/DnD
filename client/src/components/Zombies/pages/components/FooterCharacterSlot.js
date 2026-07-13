@@ -37,6 +37,7 @@ const FooterCharacterSlot = ({
   deathState,
   onRollDeathSave,
   isActiveTurn,
+  collapseDeathPanelSignal,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
@@ -364,6 +365,10 @@ const FooterCharacterSlot = ({
     }
   }, [isDeathStateVisible]);
 
+  useEffect(() => {
+    setIsDeathPanelOpen(false);
+  }, [collapseDeathPanelSignal]);
+
   return (
     <div
       className={`footer-character-slot ${isResourcesOpen ? 'footer-character-slot--resources-open' : ''}`}
@@ -626,6 +631,7 @@ FooterCharacterSlot.propTypes = {
   deathState: PropTypes.object,
   onRollDeathSave: PropTypes.func,
   isActiveTurn: PropTypes.bool,
+  collapseDeathPanelSignal: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
 };
 
 FooterCharacterSlot.defaultProps = {
@@ -643,6 +649,10 @@ FooterCharacterSlot.defaultProps = {
   damageSummary: null,
   onToggleCritical: undefined,
   onOpenDamageLog: undefined,
+  deathState: null,
+  onRollDeathSave: null,
+  isActiveTurn: false,
+  collapseDeathPanelSignal: null,
 };
 
 export default FooterCharacterSlot;
