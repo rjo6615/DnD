@@ -11621,3 +11621,58 @@ body.character-creation-modal-open {
     padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Shared footer HUD dock tokens keep the Dying drawer and character bar aligned as one component. */
+.footer-character-slot__hud {
+  --hud-max-width: clamp(320px, 62vw, 780px);
+  --hud-radius: 22px;
+  --hud-inline-gap: 0px;
+  width: min(100%, var(--hud-max-width));
+  max-width: var(--hud-max-width);
+  gap: var(--hud-inline-gap);
+  align-items: stretch;
+}
+
+.footer-character-slot__hud > .footer-character-slot__footer-rail,
+.footer-character-slot__hud > .footer-character-slot__slots-wrapper,
+.footer-character-slot__hud > .footer-character-slot__death-dock {
+  width: 100%;
+}
+
+.footer-character-slot__hud > .footer-character-slot__footer-rail {
+  align-self: stretch;
+  width: 100%;
+}
+
+.footer-character-slot__death-dock + .footer-character-slot__slots-wrapper .footer-character-slot__slots {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+@media (max-width: 600px) {
+  .footer-character-slot {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  .footer-character-slot__hud {
+    --hud-max-width: 100%;
+  }
+}
+
+.footer-character-slot__hud:has(.footer-character-slot__death-dock) {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+@media (max-width: 600px) {
+  .footer-character-slot__hud:has(.footer-character-slot__death-dock) .footer-character-slot__footer-rail,
+  .footer-character-slot__hud:has(.footer-character-slot__death-dock) .footer-character-slot__footer-rail-body {
+    display: flex;
+  }
+
+  .footer-character-slot__hud:has(.footer-character-slot__death-dock) .footer-character-slot__footer-rail-body {
+    flex-wrap: wrap;
+  }
+}
