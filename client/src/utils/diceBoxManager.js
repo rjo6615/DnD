@@ -47,8 +47,6 @@ let pendingResolutionFrame = null;
 
 const DICEBOX_INIT_TIMEOUT_MS = 10000;
 const RETRY_DELAY_MS = 4000;
-const HOST_LAYOUT_TIMEOUT_MS = 2000;
-const HOST_LAYOUT_POLL_MS = 50;
 
 const clearScheduledRetry = () => {
   if (retryTimeoutId) {
@@ -288,103 +286,6 @@ const resolveDiceBoxTarget = () => {
 
   const selector = ensureElementSelector(reference);
   return { element: reference, selector };
-};
-
-const getElementLayoutSize = (element) => {
-  if (!element || typeof element !== 'object') {
-    return { width: 0, height: 0 };
-  }
-
-  const rect =
-    typeof element.getBoundingClientRect === 'function'
-      ? element.getBoundingClientRect()
-      : null;
-
-  const width =
-    Number(rect?.width) || Number(element.clientWidth) || Number(element.offsetWidth) || 0;
-  const height =
-    Number(rect?.height) ||
-    Number(element.clientHeight) ||
-    Number(element.offsetHeight) ||
-    0;
-
-  return { width, height };
-};
-
-const isElementConnected = (element) => {
-  if (!element || typeof element !== 'object') {
-    return false;
-  }
-
-  if (typeof element.isConnected === 'boolean') {
-    return element.isConnected;
-  }
-
-  return typeof document === 'undefined' || !document.body
-    ? true
-    : document.body.contains(element);
-};
-
-const hasUsableHostLayout = (element) => {
-  if (!isElementConnected(element)) {
-    return false;
-  }
-
-  const { width, height } = getElementLayoutSize(element);
-  return width > 0 && height > 0;
-};
-
-const waitForUsableHostLayout = (element, timeoutMs = HOST_LAYOUT_TIMEOUT_MS) => {
-  if (!element) {
-    return Promise.resolve(false);
-  }
-
-  if (hasUsableHostLayout(element)) {
-    return Promise.resolve(true);
-  }
-
-  return new Promise((resolve) => {
-    const startedAt = Date.now();
-    let frameId = null;
-    let timeoutId = null;
-
-    const cleanup = () => {
-      if (frameId !== null && typeof cancelAnimationFrame === 'function') {
-        cancelAnimationFrame(frameId);
-      }
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
-    };
-
-    const finish = (value) => {
-      cleanup();
-      resolve(value);
-    };
-
-    const check = () => {
-      frameId = null;
-      timeoutId = null;
-
-      if (hasUsableHostLayout(element)) {
-        finish(true);
-        return;
-      }
-
-      if (Date.now() - startedAt >= timeoutMs) {
-        finish(false);
-        return;
-      }
-
-      if (typeof requestAnimationFrame === 'function') {
-        frameId = requestAnimationFrame(check);
-      } else {
-        timeoutId = setTimeout(check, HOST_LAYOUT_POLL_MS);
-      }
-    };
-
-    check();
-  });
 };
 
 const getDiceBoxConstructor = () => {
@@ -714,29 +615,9 @@ async function ensureDiceBox() {
         if (diceBoxGeneration !== initGeneration) {
           return null;
         }
-        let target = targetElement || selector;
+        const target = targetElement || selector;
         if (!target) {
           throw new Error('Dice box target was not available');
-        }
-
-        if (targetElement) {
-          const hostReady = await waitForUsableHostLayout(targetElement);
-          if (diceBoxGeneration !== initGeneration) {
-            return null;
-          }
-          if (!hostReady) {
-            if (selector && typeof document !== 'undefined') {
-              const resolvedTarget = document.querySelector(selector);
-              if (resolvedTarget && resolvedTarget !== targetElement) {
-                target = resolvedTarget;
-              }
-            }
-
-            if (target === targetElement) {
-              scheduleRetry();
-              return null;
-            }
-          }
         }
 
         const normalizedPendingTheme = normalizeThemeName(pendingThemeName);
@@ -803,10 +684,7 @@ async function ensureDiceBox() {
     })();
     diceBoxPromise = pending;
     pending.finally(() => {
-      if (
-        diceBoxPromise === pending &&
-        (!diceBoxInstance || diceBoxGeneration !== initGeneration)
-      ) {
+      if (diceBoxPromise === pending && diceBoxGeneration !== initGeneration) {
         diceBoxPromise = null;
       }
     });
