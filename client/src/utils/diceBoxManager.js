@@ -68,6 +68,16 @@ const scheduleRetry = () => {
   }, RETRY_DELAY_MS);
 };
 
+const waitForAnimationFrame = () =>
+  new Promise((resolve) => {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => resolve());
+      return;
+    }
+
+    resolve();
+  });
+
 const clearScheduledResolution = () => {
   if (pendingResolutionFrame !== null && typeof cancelAnimationFrame === 'function') {
     cancelAnimationFrame(pendingResolutionFrame);
@@ -537,16 +547,17 @@ const updateCanvasResolution = (canvas, pixelRatio) => {
 
 const refreshDiceBoxResolution = (instance) => {
   if (!instance || typeof window === 'undefined') {
-    return;
+    return Promise.resolve(false);
   }
 
   const pixelRatio = Number(window.devicePixelRatio) > 0 ? window.devicePixelRatio : 1;
   const renderer = instance.renderer || instance._renderer || null;
   const canvas = getRendererCanvas(renderer) || instance.canvas || null;
 
-  const performUpdate = () => {
+  const performUpdate = (resolve) => {
     pendingResolutionFrame = null;
     if (diceBoxInstance !== instance) {
+      resolve(false);
       return;
     }
 
@@ -564,15 +575,19 @@ const refreshDiceBoxResolution = (instance) => {
         }
       }
     }
+
+    resolve(true);
   };
 
   clearScheduledResolution();
 
-  if (typeof window.requestAnimationFrame === 'function') {
-    pendingResolutionFrame = window.requestAnimationFrame(performUpdate);
-  } else {
-    performUpdate();
-  }
+  return new Promise((resolve) => {
+    if (typeof window.requestAnimationFrame === 'function') {
+      pendingResolutionFrame = window.requestAnimationFrame(() => performUpdate(resolve));
+    } else {
+      performUpdate(resolve);
+    }
+  });
 };
 
 async function ensureDiceBox() {
@@ -666,7 +681,8 @@ async function ensureDiceBox() {
       activeThemeName = resolvedThemeName || DEFAULT_DICE_THEME;
       applyPendingThemeName(instance);
       applyPendingThemeColor(instance);
-      refreshDiceBoxResolution(instance);
+      await refreshDiceBoxResolution(instance);
+      await waitForAnimationFrame();
       clearScheduledRetry();
       setAvailability(true);
       return instance;
@@ -1000,6 +1016,8 @@ export const rollDiceWithBox = (requests) => {
         usedFallback: true,
       };
     }
+
+    await refreshDiceBoxResolution(instance);
 
     return new Promise((resolve) => {
       const notations = requests.map(({ count, sides }) => `${count}d${sides}`);
