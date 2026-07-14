@@ -142,7 +142,7 @@ const notifyAvailability = (ready) => {
       listener(ready);
     } catch {
       // eslint-disable-next-line no-console
-      console.error('Dice box listener error', error);
+      console.error('Dice box listener error');
     }
   });
 };
