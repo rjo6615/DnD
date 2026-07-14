@@ -112,6 +112,11 @@ const hasDiceBoxTarget = () => {
   return Boolean(element);
 };
 
+const getDiceBoxTargetElement = () => {
+  const { element } = resolveDiceBoxTarget();
+  return element || null;
+};
+
 const notifyHostAvailable = () => {
   if (hostAvailabilityWaiters.size === 0) {
     return;
@@ -162,10 +167,10 @@ const isElementReadyForDiceBox = (element) => {
 
 const waitForElementReadyForDiceBox = (element) => {
   if (isElementReadyForDiceBox(element)) {
-    return Promise.resolve();
+    return Promise.resolve(true);
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     let settled = false;
     let frameId = null;
     let observer = null;
@@ -194,28 +199,22 @@ const waitForElementReadyForDiceBox = (element) => {
     };
 
     const resolveReady = finish(resolve);
-    const rejectReady = finish(reject);
 
     const check = () => {
       frameId = null;
       if (isElementReadyForDiceBox(element)) {
-        resolveReady();
+        resolveReady(true);
       }
     };
 
     timeoutId = setTimeout(() => {
-      const { width, height } = getElementLayoutSize(element);
-      rejectReady(
-        new Error(
-          `Dice box target was not measurable before initialization (width: ${width}, height: ${height})`
-        )
-      );
+      resolveReady(false);
     }, DICEBOX_LAYOUT_TIMEOUT_MS);
 
     if (typeof ResizeObserver === 'function') {
       observer = new ResizeObserver(() => {
         if (isElementReadyForDiceBox(element)) {
-          resolveReady();
+          resolveReady(true);
         }
       });
       observer.observe(element);
@@ -228,7 +227,7 @@ const waitForElementReadyForDiceBox = (element) => {
     }
 
     if (isElementReadyForDiceBox(element)) {
-      resolveReady();
+      resolveReady(true);
     }
   });
 };
@@ -725,6 +724,10 @@ async function ensureDiceBox() {
     scheduleRetry();
     return null;
   }
+  if (!isElementReadyForDiceBox(targetElement)) {
+    scheduleRetry();
+    return null;
+  }
 
   const workerState = assessWorkerSupport();
   if (workerState === 'blocked') {
@@ -748,7 +751,11 @@ async function ensureDiceBox() {
         if (!target || !targetElement) {
           throw new Error('Dice box target was not available');
         }
-        await waitForElementReadyForDiceBox(targetElement);
+        const targetReady = await waitForElementReadyForDiceBox(targetElement);
+        if (!targetReady) {
+          scheduleRetry();
+          return null;
+        }
 
         const normalizedPendingTheme = normalizeThemeName(pendingThemeName);
         const normalizedActiveTheme = normalizeThemeName(activeThemeName);
@@ -855,7 +862,8 @@ const ensureDiceBoxForRoll = async () => {
       return null;
     }
 
-    if (!hasDiceBoxTarget()) {
+    const targetElement = getDiceBoxTargetElement();
+    if (!targetElement) {
       await withTimeout(
         waitForHostAvailable(),
         remaining,
@@ -864,6 +872,20 @@ const ensureDiceBoxForRoll = async () => {
         // eslint-disable-next-line no-console
         console.error('Dice box host was not available for roll', error);
       });
+    } else if (!isElementReadyForDiceBox(targetElement)) {
+      const targetReady = await withTimeout(
+        waitForElementReadyForDiceBox(targetElement),
+        remaining,
+        () => new Error('Timed out waiting for dice box host layout')
+      ).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Dice box host layout was not available for roll', error);
+        return false;
+      });
+
+      if (!targetReady) {
+        return null;
+      }
     }
   }
 };
