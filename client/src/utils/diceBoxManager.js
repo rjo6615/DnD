@@ -44,9 +44,11 @@ let warmupPromise = null;
 let retryTimeoutId = null;
 let diceBoxGeneration = 0;
 let pendingResolutionFrame = null;
+let hostAvailabilityWaiters = new Set();
 
 const DICEBOX_INIT_TIMEOUT_MS = 10000;
 const RETRY_DELAY_MS = 4000;
+const DICEBOX_ROLL_READY_TIMEOUT_MS = 10000;
 
 const clearScheduledRetry = () => {
   if (retryTimeoutId) {
@@ -102,6 +104,31 @@ const notifyAvailability = (ready) => {
 const setAvailability = (ready) => {
   diceBoxReady = ready;
   notifyAvailability(ready);
+};
+
+const hasDiceBoxTarget = () => {
+  const { element, selector } = resolveDiceBoxTarget();
+  return Boolean(element || selector);
+};
+
+const notifyHostAvailable = () => {
+  if (hostAvailabilityWaiters.size === 0) {
+    return;
+  }
+
+  const waiters = Array.from(hostAvailabilityWaiters);
+  hostAvailabilityWaiters.clear();
+  waiters.forEach((resolve) => resolve());
+};
+
+const waitForHostAvailable = () => {
+  if (hasDiceBoxTarget()) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    hostAvailabilityWaiters.add(resolve);
+  });
 };
 
 const withTimeout = (promise, timeoutMs, errorFactory) =>
@@ -668,9 +695,15 @@ async function ensureDiceBox() {
         setAvailability(true);
         return instance;
       } catch (error) {
-        // eslint-disable-next-line no-console
         if (diceBoxGeneration === initGeneration) {
-          console.error('Dice box initialization failed', error);
+          // eslint-disable-next-line no-console
+          console.error('Dice box initialization failed', {
+            error,
+            hasHost: hasDiceBoxTarget(),
+            workerSupportState,
+            diceBoxGeneration,
+            initGeneration,
+          });
           const fatal =
             isSecurityPolicyViolation(error) ||
             (workerSupportState === 'blocked' &&
@@ -684,13 +717,53 @@ async function ensureDiceBox() {
     })();
     diceBoxPromise = pending;
     pending.finally(() => {
-      if (diceBoxPromise === pending && diceBoxGeneration !== initGeneration) {
+      if (diceBoxPromise === pending && !diceBoxInstance) {
         diceBoxPromise = null;
       }
     });
   }
   return diceBoxPromise;
 }
+
+const ensureDiceBoxForRoll = async () => {
+  const startedAt = Date.now();
+
+  while (true) {
+    const instance = await ensureDiceBox();
+    if (instance) {
+      return instance;
+    }
+
+    if (diceBoxFailed || diceBoxDisabled) {
+      return null;
+    }
+
+    const remaining = DICEBOX_ROLL_READY_TIMEOUT_MS - (Date.now() - startedAt);
+    if (remaining <= 0) {
+      // eslint-disable-next-line no-console
+      console.error('Dice box unavailable for roll after waiting for initialization', {
+        hasHost: hasDiceBoxTarget(),
+        hasInstance: Boolean(diceBoxInstance),
+        hasInitializationPromise: Boolean(diceBoxPromise),
+        failed: diceBoxFailed,
+        disabled: diceBoxDisabled,
+        workerSupportState,
+      });
+      return null;
+    }
+
+    if (!hasDiceBoxTarget()) {
+      await withTimeout(
+        waitForHostAvailable(),
+        remaining,
+        () => new Error('Timed out waiting for dice box host')
+      ).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Dice box host was not available for roll', error);
+      });
+    }
+  }
+};
 
 const collectNumericLeaves = (node, target) => {
   if (!node) return;
@@ -889,6 +962,9 @@ export const registerDiceBoxContainer = (element) => {
   diceBoxFailed = false;
   diceBoxDisabled = false;
   const { element: resolvedElement, selector } = resolveDiceBoxTarget();
+  if (resolvedElement || selector) {
+    notifyHostAvailable();
+  }
   if (!resolvedElement && !selector) {
     setAvailability(false);
     return () => {};
@@ -973,7 +1049,7 @@ export const rollDiceWithBox = (requests) => {
   }
 
   const executeRoll = async () => {
-    const instance = await ensureDiceBox();
+    const instance = await ensureDiceBoxForRoll();
     const fallback = requests.map(({ count, sides }) => fallbackRoll(count, sides));
 
     if (!instance) {
