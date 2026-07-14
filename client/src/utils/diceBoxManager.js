@@ -49,6 +49,7 @@ let hostAvailabilityWaiters = new Set();
 const DICEBOX_INIT_TIMEOUT_MS = 10000;
 const RETRY_DELAY_MS = 4000;
 const DICEBOX_ROLL_READY_TIMEOUT_MS = 10000;
+const DICEBOX_LAYOUT_TIMEOUT_MS = 3000;
 
 const clearScheduledRetry = () => {
   if (retryTimeoutId) {
@@ -107,8 +108,8 @@ const setAvailability = (ready) => {
 };
 
 const hasDiceBoxTarget = () => {
-  const { element, selector } = resolveDiceBoxTarget();
-  return Boolean(element || selector);
+  const { element } = resolveDiceBoxTarget();
+  return Boolean(element);
 };
 
 const notifyHostAvailable = () => {
@@ -128,6 +129,107 @@ const waitForHostAvailable = () => {
 
   return new Promise((resolve) => {
     hostAvailabilityWaiters.add(resolve);
+  });
+};
+
+const getElementLayoutSize = (element) => {
+  if (!element || typeof element !== 'object') {
+    return { width: 0, height: 0 };
+  }
+
+  const rect =
+    typeof element.getBoundingClientRect === 'function'
+      ? element.getBoundingClientRect()
+      : null;
+  const width = Number(rect?.width) || Number(element.clientWidth) || 0;
+  const height = Number(rect?.height) || Number(element.clientHeight) || 0;
+
+  return { width, height };
+};
+
+const isElementReadyForDiceBox = (element) => {
+  if (!element || typeof element !== 'object') {
+    return false;
+  }
+
+  if ('isConnected' in element && !element.isConnected) {
+    return false;
+  }
+
+  const { width, height } = getElementLayoutSize(element);
+  return width > 0 && height > 0;
+};
+
+const waitForElementReadyForDiceBox = (element) => {
+  if (isElementReadyForDiceBox(element)) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let frameId = null;
+    let observer = null;
+
+    let timeoutId = null;
+
+    const cleanup = () => {
+      if (frameId !== null && typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(frameId);
+      }
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+      if (observer) {
+        observer.disconnect();
+      }
+    };
+
+    const finish = (callback) => (value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      callback(value);
+    };
+
+    const resolveReady = finish(resolve);
+    const rejectReady = finish(reject);
+
+    const check = () => {
+      frameId = null;
+      if (isElementReadyForDiceBox(element)) {
+        resolveReady();
+      }
+    };
+
+    timeoutId = setTimeout(() => {
+      const { width, height } = getElementLayoutSize(element);
+      rejectReady(
+        new Error(
+          `Dice box target was not measurable before initialization (width: ${width}, height: ${height})`
+        )
+      );
+    }, DICEBOX_LAYOUT_TIMEOUT_MS);
+
+    if (typeof ResizeObserver === 'function') {
+      observer = new ResizeObserver(() => {
+        if (isElementReadyForDiceBox(element)) {
+          resolveReady();
+        }
+      });
+      observer.observe(element);
+    }
+
+    if (typeof requestAnimationFrame === 'function') {
+      frameId = requestAnimationFrame(check);
+    } else {
+      check();
+    }
+
+    if (isElementReadyForDiceBox(element)) {
+      resolveReady();
+    }
   });
 };
 
@@ -619,7 +721,7 @@ async function ensureDiceBox() {
     return null;
   }
   const { element: targetElement, selector } = resolveDiceBoxTarget();
-  if (!targetElement && !selector) {
+  if (!targetElement) {
     scheduleRetry();
     return null;
   }
@@ -643,9 +745,10 @@ async function ensureDiceBox() {
           return null;
         }
         const target = targetElement || selector;
-        if (!target) {
+        if (!target || !targetElement) {
           throw new Error('Dice box target was not available');
         }
+        await waitForElementReadyForDiceBox(targetElement);
 
         const normalizedPendingTheme = normalizeThemeName(pendingThemeName);
         const normalizedActiveTheme = normalizeThemeName(activeThemeName);
@@ -961,11 +1064,11 @@ export const registerDiceBoxContainer = (element) => {
   resetInstance();
   diceBoxFailed = false;
   diceBoxDisabled = false;
-  const { element: resolvedElement, selector } = resolveDiceBoxTarget();
-  if (resolvedElement || selector) {
+  const { element: resolvedElement } = resolveDiceBoxTarget();
+  if (resolvedElement) {
     notifyHostAvailable();
   }
-  if (!resolvedElement && !selector) {
+  if (!resolvedElement) {
     setAvailability(false);
     return () => {};
   }
