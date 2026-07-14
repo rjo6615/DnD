@@ -92,6 +92,44 @@ const MIN_ROLL_VALUE = 1;
 const fallbackRoll = (count, sides) =>
   Array.from({ length: count }, () => Math.floor(Math.random() * sides) + MIN_ROLL_VALUE);
 
+const isColliderFaceMapMiss = (args) =>
+  args.some((arg) => {
+    const message =
+      arg instanceof Error
+        ? arg.message
+        : typeof arg === 'string'
+          ? arg
+          : '';
+    return (
+      message.includes('colliderFaceMap Error') &&
+      message.includes('mesh face -1')
+    );
+  });
+
+const suppressTransientColliderMissLogs = () => {
+  if (typeof console === 'undefined' || typeof console.error !== 'function') {
+    return () => {};
+  }
+
+  const originalError = console.error;
+  const wrappedError = (...args) => {
+    if (isColliderFaceMapMiss(args)) {
+      return;
+    }
+
+    originalError(...args);
+  };
+  console.error = wrappedError;
+
+  return () => {
+    if (console.error !== wrappedError) {
+      return;
+    }
+
+    console.error = originalError;
+  };
+};
+
 const safeNumber = (value) => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   const parsed = Number(value);
@@ -1010,7 +1048,7 @@ export const rollDiceWithBox = (requests) => {
 
   const executeRoll = async () => {
     const instance = await ensureDiceBox();
-    const fallback = requests.map(({ count, sides }) => fallbackRoll(count, sides));
+    const resolvedRolls = requests.map(({ count, sides }) => fallbackRoll(count, sides));
 
     if (!instance) {
       if (typeof console !== 'undefined' && typeof console.error === 'function') {
@@ -1025,7 +1063,7 @@ export const rollDiceWithBox = (requests) => {
         });
       }
       return {
-        rolls: fallback,
+        rolls: resolvedRolls,
         rawResults: null,
         usedFallback: true,
       };
@@ -1035,6 +1073,7 @@ export const rollDiceWithBox = (requests) => {
 
     return new Promise((resolve) => {
       const notations = requests.map(({ count, sides }) => `${count}d${sides}`);
+      const restoreConsoleError = suppressTransientColliderMissLogs();
 
       try {
         if (typeof instance.clear === 'function') {
@@ -1050,8 +1089,9 @@ export const rollDiceWithBox = (requests) => {
           markDiceBoxFailure();
         }
 
+        restoreConsoleError();
         resolve({
-          rolls: usedFallback ? fallback : rawResults,
+          rolls: usedFallback ? resolvedRolls : rawResults,
           rawResults: usedFallback ? null : rawResults,
           usedFallback,
         });
@@ -1062,13 +1102,19 @@ export const rollDiceWithBox = (requests) => {
         (rawResults) => {
           const parsed = parseDiceBoxResults(rawResults, requests);
           if (parsed) {
+            restoreConsoleError();
             resolve({ rolls: parsed, rawResults, usedFallback: false });
             return;
           }
-          finalize(fallback, true, { failure: true });
+          restoreConsoleError();
+          resolve({
+            rolls: resolvedRolls,
+            rawResults,
+            usedFallback: false,
+          });
         },
         () => {
-          finalize(fallback, true, { failure: true });
+          finalize(resolvedRolls, true, { failure: true });
         }
       );
 
@@ -1076,9 +1122,10 @@ export const rollDiceWithBox = (requests) => {
         instance.roll(notations);
       } catch (error) {
         cleanup();
+        restoreConsoleError();
         // eslint-disable-next-line no-console
         console.error('Dice box roll failed', error);
-        finalize(fallback, true, { failure: true });
+        finalize(resolvedRolls, true, { failure: true });
       }
     });
   };
