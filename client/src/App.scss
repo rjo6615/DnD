@@ -9688,6 +9688,7 @@ h1 {
 .realm-home-layout { width: min(1180px, calc(100vw - 32px)); min-height: 100vh; margin: 0 auto; padding: clamp(28px, 5vw, 72px) 0; display: grid; grid-template-rows: auto auto 1fr; gap: clamp(18px, 3vw, 30px); animation: realm-home-enter 520ms ease-out both; }
 .realm-home-hero { text-align: center; display: grid; justify-items: center; gap: 0.5rem; }
 .realm-home-hero__sigil { width: 58px; height: 58px; display: grid; place-items: center; color: var(--realm-cyan); border: 1px solid rgba(143, 200, 255, 0.3); border-radius: 18px; background: rgba(8, 18, 36, 0.68); box-shadow: 0 0 34px rgba(56, 232, 255, 0.24), inset 0 0 24px rgba(56, 232, 255, 0.08); }
+.realm-home-hero__sigil img { width: 74%; height: 74%; object-fit: contain; filter: drop-shadow(0 0 10px rgba(56, 232, 255, 0.45)); }
 .realm-home-hero__welcome, .realm-home-section-heading span, .realm-home-command__intro span, .realm-recent-campaign-card__eyebrow, .realm-profile-summary__label { margin: 0; color: var(--hud-muted); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
 .realm-home-hero h1 { margin: 0; font-size: clamp(3rem, 9vw, 6.8rem); font-weight: 900; letter-spacing: 0.04em; text-shadow: 0 0 28px rgba(56, 232, 255, 0.34), 0 10px 36px rgba(0, 0, 0, 0.72); }
 .realm-home-hero__subtitle { max-width: 720px; margin: 0; color: rgba(247, 239, 224, 0.78); font-size: clamp(1rem, 2vw, 1.25rem); }
