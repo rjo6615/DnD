@@ -8628,13 +8628,18 @@ h1 {
   }
 }
 
-/* Allow mobile pinch gestures to reach the map/background instead of being fully suppressed by legacy touch-action rules. */
+/* Keep map zoom gestures inside the custom map handlers instead of allowing viewport pinch zoom. */
 .map-modal-background__board,
 .map-modal-background__board-inner,
 .campaign-map-board,
 .campaign-map-board__stage,
 .campaign-map-board__tokens-layer {
-  touch-action: pinch-zoom;
+  touch-action: none;
+}
+
+.footer-character-slot__health-inline {
+  touch-action: none;
+  user-select: none;
 }
 
 /* Mobile resource drawer/damage polish. */
