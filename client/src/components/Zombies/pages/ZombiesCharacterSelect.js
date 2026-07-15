@@ -10,6 +10,7 @@ import useUser from '../../../hooks/useUser';
 import { SKILLS } from "../skillSchema";
 import { STATS } from "../statSchema";
 import { notify } from '../../../utils/notification';
+import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 
 const DEFAULT_SIZE_OPTIONS = ["Tiny", "Small", "Medium", "Large"];
 
@@ -92,7 +93,9 @@ const CharacterCard = ({ character, onContinue }) => {
   const name = character?.characterName || "Unnamed Hero";
   const race = character?.race?.name || character?.race || "Unknown Lineage";
   const background = character?.background?.name || character?.background || "Unwritten Legend";
-  const health = character?.health || character?.maxHealth || character?.hp;
+  const { currentHp, maxHp } = calculateCharacterHitPoints(character);
+  const health = currentHp !== null ? currentHp : character?.hp ?? null;
+  const healthLabel = health !== null && maxHp !== null ? `${health} / ${maxHp}` : health;
   return (
     <article className="character-select-card">
       <CharacterPortrait character={character} />
@@ -108,7 +111,7 @@ const CharacterCard = ({ character, onContinue }) => {
         <CharacterStats character={character} />
         <div className="character-select-card__meta">
           <span>Status <strong>Ready</strong></span>
-          {health && <span>HP <strong>{health}</strong></span>}
+          {healthLabel !== null && healthLabel !== undefined && <span>HP <strong>{healthLabel}</strong></span>}
           <span>Last played <strong>{formatCharacterDate(character?.lastPlayed || character?.updatedAt)}</strong></span>
         </div>
       </div>
@@ -322,8 +325,16 @@ export default function RecordList() {
     return;
   }, [params.campaign, user]);
 
-  const navigateToCharacter = (id) => {
-    navigate(`/zombies-character-sheet/${id}`);
+  const navigateToCharacter = async (id) => {
+    const lastPlayed = new Date().toISOString();
+    setRecords((prev) => prev.map((record) => (record._id === id ? { ...record, lastPlayed } : record)));
+    try {
+      await apiFetch(`/characters/${id}/last-played`, { method: 'PUT' });
+    } catch (error) {
+      // Navigating should not be blocked if this best-effort timestamp update fails.
+    } finally {
+      navigate(`/zombies-character-sheet/${id}`);
+    }
   }
 
 // --------------------------Random Character Creator Section------------------------------------

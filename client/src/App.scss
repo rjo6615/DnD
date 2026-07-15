@@ -10238,7 +10238,8 @@ h1 {
 .character-select-card__stats strong { display: block; color: #fff; font-size: 1.25rem; }
 .character-select-card__meta span { color: rgba(230,237,255,.7); font-size: .78rem; }
 .character-select-card__meta strong { color: #fff; }
-.character-select-card__actions { display: grid; grid-template-columns: 1fr 1fr auto; gap: .55rem; margin-top: 1rem; align-items: center; }
+.character-select-card__actions { display: grid; grid-template-columns: 1fr; gap: .55rem; margin-top: 1rem; align-items: center; }
+.character-select-card__continue { width: 100%; }
 .character-select-card__ghost { border-radius: 999px; background: rgba(145,183,255,.12); border: 1px solid rgba(145,183,255,.25); color: #eef4ff; font-weight: 800; }
 .character-select-card__more { position: relative; }
 .character-select-card__more summary { list-style: none; cursor: pointer; border-radius: 999px; padding: .55rem .75rem; background: rgba(255,255,255,.08); }
