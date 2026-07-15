@@ -10047,7 +10047,7 @@ h1 {
 .realm-campaign-panel__glow { position: absolute; inset: auto 8% -32% 8%; height: 42%; background: radial-gradient(circle, rgba(56, 232, 255, 0.18), transparent 68%); filter: blur(8px); pointer-events: none; }
 .realm-campaign-panel__header, .realm-campaign-panel__body, .realm-campaign-panel__footer { position: relative; z-index: 1; }
 .realm-campaign-panel__header { display: grid; gap: 8px; margin-bottom: 20px; text-align: left; }
-.realm-campaign-panel__header span, .realm-campaign-toolbar span, .realm-campaign-card__eyebrow { margin: 0; color: var(--hud-muted); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+.realm-campaign-panel__header span, .realm-campaign-toolbar span { margin: 0; color: var(--hud-muted); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
 .realm-campaign-panel__header h2 { margin: 0; font-size: clamp(2rem, 5vw, 3.65rem); font-weight: 900; letter-spacing: 0.03em; text-shadow: 0 0 28px rgba(56, 232, 255, 0.3); }
 .realm-campaign-panel__header p { max-width: 680px; margin: 0; color: rgba(247, 239, 224, 0.76); font-size: 1rem; }
 .realm-campaign-panel__body { padding: 0; }
@@ -10059,14 +10059,14 @@ h1 {
 .realm-campaign-search input::placeholder { color: rgba(247, 239, 224, 0.45); }
 .realm-campaign-grid { display: grid; gap: 16px; max-height: min(62vh, 620px); overflow: auto; padding: 2px 4px 8px 2px; }
 .realm-campaign-grid--join { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-.realm-campaign-grid--host { grid-template-columns: 1fr; }
+.realm-campaign-grid--host { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .realm-campaign-card { position: relative; overflow: hidden; color: var(--hud-text); text-decoration: none; border: 1px solid rgba(143, 200, 255, 0.16); border-radius: 22px; background: radial-gradient(circle at 18% 18%, rgba(56, 232, 255, 0.14), transparent 42%), linear-gradient(150deg, rgba(13, 31, 60, 0.74), rgba(5, 11, 23, 0.92)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 34px rgba(0,0,0,0.32); transition: transform 180ms cubic-bezier(.2,1.35,.35,1), box-shadow 180ms ease, border-color 180ms ease, filter 180ms ease; animation: realmCampaignCardIn 320ms ease both; }
 .realm-campaign-card::after { content: ''; position: absolute; inset: auto -20% -45% -20%; height: 82%; background: radial-gradient(circle, rgba(56, 232, 255, 0.19), transparent 62%); opacity: 0; transition: opacity 180ms ease; }
 .realm-campaign-card:hover, .realm-campaign-card:focus-visible { color: var(--hud-text); transform: translateY(-5px) scale(1.012); border-color: rgba(143, 200, 255, 0.48); box-shadow: 0 0 0 1px rgba(143, 200, 255, 0.14), 0 0 30px rgba(56, 232, 255, 0.2), 0 24px 44px rgba(0,0,0,0.44); outline: 0; }
 .realm-campaign-card:hover::after, .realm-campaign-card:focus-visible::after { opacity: 1; }
 .realm-campaign-card:active { transform: translateY(-1px) scale(0.985); }
 .realm-campaign-card--join { min-height: 220px; display: grid; grid-template-rows: 112px 1fr auto; gap: 14px; padding: 14px; }
-.realm-campaign-card--host { min-height: 138px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 20px; }
+.realm-campaign-card--host { min-height: 220px; display: grid; grid-template-rows: 112px 1fr auto; gap: 14px; padding: 14px; }
 .realm-campaign-card__art { display: grid; place-items: center; overflow: hidden; border-radius: 18px; background: radial-gradient(circle at 50% 35%, rgba(215, 180, 106, 0.2), rgba(56, 232, 255, 0.1) 42%, rgba(6, 12, 24, 0.86)); box-shadow: inset 0 0 0 1px rgba(143, 200, 255, 0.16); }
 .realm-campaign-card__art img { width: 100%; height: 100%; object-fit: cover; }
 .realm-campaign-card__art span { color: var(--realm-gold); font-size: 2rem; font-weight: 900; letter-spacing: 0.08em; text-shadow: 0 0 18px rgba(215, 180, 106, 0.32); }

@@ -16,7 +16,6 @@ const getCharacterCount = (campaign) => {
   return getPlayerCount(campaign);
 };
 const getSessionCount = (campaign) => campaign?.sessions?.length || campaign?.sessionCount || 0;
-const getLastActive = (campaign) => campaign?.lastActive || campaign?.updatedAt || campaign?.lastOpened || "Awaiting first session";
 const campaignInitials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "RT";
 const getActiveMapImage = (campaign) => {
   const maps = Array.isArray(campaign?.maps) ? campaign.maps : [];
@@ -155,10 +154,13 @@ export default function CampaignModals({
           <div className="realm-campaign-grid realm-campaign-grid--host">
             {filteredDmCampaigns.map((campaign) => {
               const name = getCampaignName(campaign);
+              const activeMapImage = getActiveMapImage(campaign);
               return (
                 <Link className="realm-campaign-card realm-campaign-card--host" key={name} to={`/zombies-dm/${name}`} onClick={closeHostCampaignModal}>
+                  <div className="realm-campaign-card__art" aria-hidden="true">
+                    {activeMapImage ? <img src={activeMapImage} alt="" /> : <span>{campaignInitials(name)}</span>}
+                  </div>
                   <div className="realm-campaign-card__content">
-                    <span className="realm-campaign-card__eyebrow">Last opened · {getLastActive(campaign)}</span>
                     <h3>{name}</h3>
                     <div className="realm-campaign-card__meta realm-campaign-card__meta--launcher">
                       <span>DM badge</span><span>{campaign?.status || "Ready"}</span><span>{getCharacterCount(campaign)} characters</span><span>{getSessionCount(campaign)} sessions</span>
