@@ -69,6 +69,9 @@ const CharacterStats = ({ character }) => {
     ["STR", character?.str],
     ["DEX", character?.dex],
     ["CON", character?.con],
+    ["INT", character?.int],
+    ["WIS", character?.wis],
+    ["CHA", character?.cha],
   ];
   return (
     <div className="character-select-card__stats">
@@ -82,14 +85,6 @@ const CharacterStats = ({ character }) => {
 const CharacterActions = ({ character, onContinue }) => (
   <div className="character-select-card__actions">
     <Button className="character-select-card__continue" onClick={() => onContinue(character._id)}>Continue Adventure</Button>
-    <Button className="character-select-card__ghost" onClick={() => onContinue(character._id)}>View Character</Button>
-    <details className="character-select-card__more">
-      <summary aria-label="More character actions">⋯</summary>
-      <div>
-        <button type="button" disabled>Duplicate</button>
-        <button type="button" disabled>Delete</button>
-      </div>
-    </details>
   </div>
 );
 
@@ -100,7 +95,6 @@ const CharacterCard = ({ character, onContinue }) => {
   const health = character?.health || character?.maxHealth || character?.hp;
   return (
     <article className="character-select-card">
-      <div className="character-select-card__favorite">☆ Future Favorite</div>
       <CharacterPortrait character={character} />
       <div className="character-select-card__body">
         <p className="character-select-card__eyebrow">Level {getCharacterLevel(character)} • {getPrimaryClass(character)}</p>
@@ -133,8 +127,6 @@ const CampaignHero = ({ campaignName, playerCount, onCreateManual, onCreateRando
       <div className="character-select-hero__facts">
         <span>Dungeon Master <strong>{campaignName}</strong></span>
         <span>Players <strong>{playerCount}</strong></span>
-        <span>System <strong>D&D 5e</strong></span>
-        <span>Recent activity <strong>Campaign roster updated</strong></span>
       </div>
     </div>
     <div className="character-select-hero__actions">
@@ -2255,17 +2247,11 @@ const getAvailableSkillOptions = (index) => {
               <p className="character-select-kicker">Character Library</p>
               <h2>Choose your hero</h2>
             </div>
-            <div className="character-select-tools" aria-label="Future character search and filters">
-              <span>Search</span><span>Sort</span><span>Class</span><span>Level</span><span>Favorites</span>
-            </div>
           </div>
           {records.length ? <CharacterGrid records={records} onContinue={navigateToCharacter} /> : <EmptyState onCreateManual={handleShow5} />}
         </section>
 
-        <CreateCharacterCard
-          onCreateManual={handleShow5}
-          onCreateRandom={(e) => { e.preventDefault(); bigMaff(); handleShow(); }}
-        />
+    
       </div>
     {/* ---------------------------Create Character (Random)------------------------------------------------------- */}
     <Modal className="dnd-modal" centered show={show} onHide={handleClose}>
