@@ -269,6 +269,8 @@ module.exports = (router) => {
       body('spells.*.duration').optional().isString(),
       body('sex').optional().trim(),
       body('diceColor').optional().trim(),
+      body('figurineImageUrl').optional().isString().trim(),
+      body('figurineImagePublicId').optional().isString().trim(),
       ...currencyFields.map((field) => body(field).optional().isInt().toInt()),
       ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
       ...stringCharacterFields.map((field) =>
