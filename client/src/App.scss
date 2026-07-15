@@ -10056,7 +10056,8 @@ h1 {
 .realm-campaign-card:active { transform: translateY(-1px) scale(0.985); }
 .realm-campaign-card--join { min-height: 220px; display: grid; grid-template-rows: 112px 1fr auto; gap: 14px; padding: 14px; }
 .realm-campaign-card--host { min-height: 138px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 20px; }
-.realm-campaign-card__art { display: grid; place-items: center; border-radius: 18px; background: radial-gradient(circle at 50% 35%, rgba(215, 180, 106, 0.2), rgba(56, 232, 255, 0.1) 42%, rgba(6, 12, 24, 0.86)); box-shadow: inset 0 0 0 1px rgba(143, 200, 255, 0.16); }
+.realm-campaign-card__art { display: grid; place-items: center; overflow: hidden; border-radius: 18px; background: radial-gradient(circle at 50% 35%, rgba(215, 180, 106, 0.2), rgba(56, 232, 255, 0.1) 42%, rgba(6, 12, 24, 0.86)); box-shadow: inset 0 0 0 1px rgba(143, 200, 255, 0.16); }
+.realm-campaign-card__art img { width: 100%; height: 100%; object-fit: cover; }
 .realm-campaign-card__art span { color: var(--realm-gold); font-size: 2rem; font-weight: 900; letter-spacing: 0.08em; text-shadow: 0 0 18px rgba(215, 180, 106, 0.32); }
 .realm-campaign-card__content { position: relative; z-index: 1; min-width: 0; display: grid; gap: 8px; }
 .realm-campaign-card h3 { margin: 0; font-size: clamp(1.18rem, 2.5vw, 1.7rem); font-weight: 900; line-height: 1.05; }
