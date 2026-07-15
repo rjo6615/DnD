@@ -491,10 +491,11 @@ const PlayerTurnActions = React.forwardRef(
   const [showLog, setShowLog] = useState(false);
   const [activeDice, setActiveDice] = useState([]);
   const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
+  const [isDiceRollPending, setIsDiceRollPending] = useState(false);
 
   const showDiceRollSurface = useCallback((label = 'Roll') => {
     setDamageRollLabel(label);
-    setHasDamageRoll(true);
+    setIsDiceRollPending(true);
   }, []);
 
   const prepareDiceRollSurface = useCallback(async (label = 'Roll') => {
@@ -2154,6 +2155,7 @@ const updateDamageValueWithAnimation = (
   setPulseClass('');
   setDamageValue(newValue);
   setHasDamageRoll(newValue !== undefined);
+  setIsDiceRollPending(false);
   setDamageRollLabel(
     typeof extra?.rollLabel === 'string' && extra.rollLabel.trim()
       ? extra.rollLabel.trim()
@@ -2439,6 +2441,8 @@ const damageAmountStyle = {
   '--damage-roller-min-height': `${damageContainerMinHeight}px`,
   '--damage-dice-area-size': `${resolvedDiceSize}px`,
 };
+const isDamageRollSurfaceVisible = hasDamageRoll || isDiceRollPending;
+const isDamageRollResultVisible = hasDamageRoll && !isDiceRollPending;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div
@@ -2454,7 +2458,9 @@ const damageAmountStyle = {
           id="damageAmount"
           ref={damageAmountRef}
           style={damageAmountStyle}
-          className={`${hasDamageRoll ? 'damage-roller--visible' : 'damage-roller--hidden'} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${
+          className={`${isDamageRollSurfaceVisible ? 'damage-roller--visible' : 'damage-roller--hidden'} ${
+            isDamageRollResultVisible ? 'damage-roller--result-visible' : 'damage-roller--result-hidden'
+          } ${pulseClass} ${isCritical ? 'critical-active' : ''} ${
             isFumble ? 'critical-failure' : ''
           }`}
         >

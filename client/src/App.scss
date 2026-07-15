@@ -8825,6 +8825,17 @@ h1 {
   pointer-events: auto;
 }
 
+#damageAmount.damage-roller--result-hidden #damageValue {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#damageAmount.damage-roller--result-visible #damageValue {
+  visibility: visible;
+  opacity: 1;
+}
+
 .combat-hud-dock__resource-rail {
   grid-template-columns: repeat(4, 58px);
   grid-auto-rows: 48px;
