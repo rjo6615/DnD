@@ -12,6 +12,8 @@ import { SKILLS } from "../skillSchema";
 import { STATS } from "../statSchema";
 import { notify } from '../../../utils/notification';
 import { calculateCharacterHitPoints } from '../utils/characterMetrics';
+import TokenPickerModal from '../components/TokenPickerModal';
+import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
 
 const DEFAULT_SIZE_OPTIONS = ["Tiny", "Small", "Medium", "Large"];
 
@@ -185,6 +187,7 @@ const MANUAL_STEPS = [
   { id: "background", title: "Background", helper: "Anchor the character in the world." },
   { id: "physical", title: "Physical Details", helper: "Capture concise table-facing details." },
   { id: "abilities", title: "Ability Scores", helper: "Set the six core scores used by the existing character model." },
+  { id: "figurine", title: "Figurine", helper: "Choose a table token filtered by the selected race and class." },
   { id: "review", title: "Review & Create", helper: "Confirm the sheet before creating the character." },
 ];
 
@@ -244,10 +247,10 @@ const AbilityScoreCard = ({ stat, value, onChange, error }) => {
   </div>;
 };
 
-const CharacterCreationWizard = ({ form, updateForm, races, backgrounds, occupations, selectedOccupation, selectedAddOccupationRef, sizeOptions, step, setStep, touched, setTouched, onClose, onSubmit, onRaceChange, onClassChange, onSelectClass, onBackgroundChange, onDragonAncestryChange, onGiantAncestryChange, onElvenLineageChange, onElvenLineageAbilityChange, onGnomeLineageChange, onGnomeLineageAbilityChange, onTieflingLegacyChange, onTieflingLegacyAbilityChange }) => {
+const CharacterCreationWizard = ({ form, updateForm, races, backgrounds, occupations, selectedOccupation, selectedAddOccupationRef, sizeOptions, step, setStep, touched, setTouched, onClose, onSubmit, onRaceChange, onClassChange, onSelectClass, onBackgroundChange, onDragonAncestryChange, onGiantAncestryChange, onElvenLineageChange, onElvenLineageAbilityChange, onGnomeLineageChange, onGnomeLineageAbilityChange, onTieflingLegacyChange, onTieflingLegacyAbilityChange, onOpenTokenPicker, onClearFigurine, tokenPickerAvailable }) => {
   const errors = getManualErrors(form, selectedOccupation);
   const stepFields = {
-    identity: ["characterName"], ancestry: ["race", "dragonAncestryKey", "giantAncestryKey", "elvenLineageKey", "elvenLineageAbility", "gnomeLineageKey", "gnomeLineageAbility", "tieflingLegacyKey", "tieflingLegacyAbility"], class: ["occupation"], background: ["background"], physical: ["age", "sex", "size", "weight"], abilities: STATS.map((s) => s.key), review: Object.keys(errors),
+    identity: ["characterName"], ancestry: ["race", "dragonAncestryKey", "giantAncestryKey", "elvenLineageKey", "elvenLineageAbility", "gnomeLineageKey", "gnomeLineageAbility", "tieflingLegacyKey", "tieflingLegacyAbility"], class: ["occupation"], background: ["background"], physical: ["age", "sex", "size", "weight"], abilities: STATS.map((s) => s.key), figurine: [], review: Object.keys(errors),
   };
   const current = MANUAL_STEPS[step];
   const stepHasError = (id) => stepFields[id].some((field) => errors[field] && touched[field]);
@@ -276,6 +279,8 @@ const CharacterCreationWizard = ({ form, updateForm, races, backgrounds, occupat
   };
   const selectRaceKey = Object.keys(races).find((key) => races[key]?.name === form.race?.name) || "";
   const selectBackgroundKey = Object.keys(backgrounds).find((key) => backgrounds[key]?.name === form.background?.name) || "";
+  const hasFigurineSelection = Boolean(form.figurineImageUrl || form.figurineImagePublicId);
+  const figurineButtonLabel = hasFigurineSelection ? "Change Figurine" : "Choose Figurine";
 
   return <form className="character-wizard" onSubmit={(e) => e.preventDefault()} noValidate>
     <header className="character-wizard__header"><div><p className="character-select-kicker">Hero Forge</p><h2>Create Character</h2><span>Step {step + 1} of {MANUAL_STEPS.length} · {current.title}</span></div><button type="button" onClick={onClose} aria-label="Close character creator">×</button><div className="character-wizard__mobile-progress"><span style={{ width: `${((step + 1) / MANUAL_STEPS.length) * 100}%` }} /></div></header>
@@ -287,7 +292,8 @@ const CharacterCreationWizard = ({ form, updateForm, races, backgrounds, occupat
       {current.id === "background" && <><div className="character-option-grid">{Object.entries(backgrounds).map(([key,bg]) => <CharacterSelectCard key={key} name="background" selected={selectBackgroundKey===key} title={bg.name} meta={bg.skills ? `Skills: ${Object.keys(bg.skills).join(", ")}` : "Background"} onClick={()=>{onBackgroundChange({target:{value:key}}); setTouched((p)=>({...p,background:true}));}} />)}</div>{touched.background && errors.background && <span className="character-wizard-error">{errors.background}</span>}</>}
       {current.id === "physical" && <div className="character-wizard-fields-grid"><CharacterFormField id="manual-age" label="Age" error={touched.age && errors.age}><input id="manual-age" name="age" type="number" min="0" value={form.age || ""} onChange={(e)=>updateForm({age:e.target.value})} onBlur={()=>setTouched((p)=>({...p,age:true}))} /></CharacterFormField><CharacterFormField id="manual-sex" label="Sex / Gender" helper="Free text to match your table." ><input id="manual-sex" name="sex" value={form.sex || ""} onChange={(e)=>updateForm({sex:e.target.value})} /></CharacterFormField><CharacterFormField id="manual-size" label="Size" error={touched.size && errors.size}><select id="manual-size" name="size" value={form.size || ""} onChange={(e)=>updateForm({size:e.target.value})} onBlur={()=>setTouched((p)=>({...p,size:true}))}><option value="" disabled>Select size</option>{sizeOptions.map((o)=><option key={o} value={o}>{o}</option>)}</select></CharacterFormField><CharacterFormField id="manual-weight" label="Weight" error={touched.weight && errors.weight}><input id="manual-weight" name="weight" type="number" min="0" value={form.weight || ""} onChange={(e)=>updateForm({weight:e.target.value})} onBlur={()=>setTouched((p)=>({...p,weight:true}))} /></CharacterFormField></div>}
       {current.id === "abilities" && <div className="ability-score-grid">{STATS.map((stat)=><AbilityScoreCard key={stat.key} stat={stat} value={form[stat.key] || ""} error={touched[stat.key] && errors[stat.key]} onChange={(value)=>updateForm({[stat.key]:value})} />)}</div>}
-      {current.id === "review" && <div className="character-review"><h4>{form.characterName || "Unnamed Hero"}</h4>{[["Ancestry", form.race?.name], ["Class", selectedOccupation?.name], ["Background", form.background?.name], ["Size", form.size], ["Age", form.age || "—"], ["Sex / Gender", form.sex || "—"], ["Weight", form.weight || "—"]].map(([label,value])=><div key={label}><span>{label}</span><strong>{value || "Missing"}</strong></div>)}<div className="character-review__abilities">{STATS.map((s)=><span key={s.key}>{s.key.toUpperCase()} <strong>{form[s.key] || "—"}</strong></span>)}</div>{Object.keys(errors).length > 0 && <div className="character-wizard-error-summary">Complete missing sections before creating this character.</div>}</div>}
+      {current.id === "figurine" && <div className="character-figurine-step"><div className="character-figurine-step__preview" aria-live="polite">{form.figurineImageUrl ? <img src={form.figurineImageUrl} alt="Selected figurine token" /> : <div className="character-figurine-step__placeholder" aria-hidden="true"><i className="fas fa-chess-king"></i></div>}<div><strong>{hasFigurineSelection ? "Figurine selected" : "No figurine selected yet"}</strong><span>{form.race?.name && selectedOccupation?.name ? `Showing choices for ${form.race.name} ${selectedOccupation.name} tokens.` : "Pick a race and class first so the token library can be filtered correctly."}</span></div></div><div className="character-figurine-step__actions"><Button type="button" variant="outline-light" onClick={onOpenTokenPicker} disabled={!tokenPickerAvailable}>{figurineButtonLabel}</Button>{hasFigurineSelection && <Button type="button" variant="link" onClick={onClearFigurine}>Clear Figurine</Button>}</div></div>}
+      {current.id === "review" && <div className="character-review"><h4>{form.characterName || "Unnamed Hero"}</h4>{[["Ancestry", form.race?.name], ["Class", selectedOccupation?.name], ["Background", form.background?.name], ["Figurine", hasFigurineSelection ? "Selected" : "Not selected"], ["Size", form.size], ["Age", form.age || "—"], ["Sex / Gender", form.sex || "—"], ["Weight", form.weight || "—"]].map(([label,value])=><div key={label}><span>{label}</span><strong>{value || "Missing"}</strong></div>)}<div className="character-review__abilities">{STATS.map((s)=><span key={s.key}>{s.key.toUpperCase()} <strong>{form[s.key] || "—"}</strong></span>)}</div>{Object.keys(errors).length > 0 && <div className="character-wizard-error-summary">Complete missing sections before creating this character.</div>}</div>}
     </section></main></div><footer className="character-wizard__actions"><Button type="button" variant="secondary" onClick={() => step ? setStep(step - 1) : onClose()}>{step ? "Back" : "Cancel"}</Button>{step < MANUAL_STEPS.length - 1 ? <Button type="button" onClick={goNext}>Continue</Button> : <Button type="button" onClick={createCharacter} disabled={Object.keys(errors).length > 0}>Create Character</Button>}</footer></form>;
 };
 
@@ -420,6 +426,8 @@ const createDefaultForm = useCallback((campaign) => {
     ...skillDefaults,
     newSkill: [["", 0]],
     diceColor: "#000000",
+    figurineImageUrl: "",
+    figurineImagePublicId: "",
   };
 }, []);
 
@@ -1141,6 +1149,7 @@ const [show5, setShow5] = useState(false);
 const [manualStep, setManualStep] = useState(0);
 const [manualTouched, setManualTouched] = useState({});
 const [showUnsavedManualDialog, setShowUnsavedManualDialog] = useState(false);
+const [showCreationTokenPicker, setShowCreationTokenPicker] = useState(false);
 const initialManualSnapshot = useRef(null);
 const shouldLockCharacterCreationScroll = show5 || showUnsavedManualDialog || showAbilitySkillModal;
 useEffect(() => {
@@ -1179,6 +1188,7 @@ const handleShow5 = () => {
   initialManualSnapshot.current = JSON.stringify(freshForm);
   setManualStep(0);
   setManualTouched({});
+  setShowCreationTokenPicker(false);
   setShow5(true);
 };
 const hasManualChanges = useCallback(() => show5 && initialManualSnapshot.current && JSON.stringify(form) !== initialManualSnapshot.current, [form, show5]);
@@ -1192,12 +1202,22 @@ const requestCloseManual = useCallback(() => {
 const discardManualChanges = () => {
   setShowUnsavedManualDialog(false);
   handleClose5();
+  setShowCreationTokenPicker(false);
   setForm((prev) => ({ ...createDefaultForm(params.campaign), token: user?.username || prev.token || "" }));
   setSelectedOccupation(null);
   setIsOccupationConfirmed(false);
 };
 
+const handleCreationTokenSelection = useCallback((asset) => {
+  const figurineImageUrl = asset ? ((typeof asset.secureUrl === "string" && asset.secureUrl.trim()) || (typeof asset.url === "string" && asset.url.trim()) || "") : "";
+  const figurineImagePublicId = asset && typeof asset.publicId === "string" ? asset.publicId.trim() : "";
+  setForm((prev) => ({ ...prev, figurineImageUrl, figurineImagePublicId }));
+  setShowCreationTokenPicker(false);
+}, []);
+const handleClearCreationFigurine = useCallback(() => setForm((prev) => ({ ...prev, figurineImageUrl: "", figurineImagePublicId: "" })), []);
+
 const [selectedOccupation, setSelectedOccupation] = useState(null);
+const creationTokenPickerFilterScope = useMemo(() => buildPlayerTokenFolderScope(form?.race, selectedOccupation || form?.occupation), [form?.occupation, form?.race, selectedOccupation]);
 const selectedAddOccupationRef = useRef();
 
 const [getOccupation, setGetOccupation] = useState([]);
@@ -2362,6 +2382,18 @@ const getAvailableSkillOptions = (index) => {
         onGnomeLineageAbilityChange={handleGnomeLineageAbilityChange}
         onTieflingLegacyChange={handleTieflingLegacyChange}
         onTieflingLegacyAbilityChange={handleTieflingLegacyAbilityChange}
+        onOpenTokenPicker={() => setShowCreationTokenPicker(true)}
+        onClearFigurine={handleClearCreationFigurine}
+        tokenPickerAvailable={Boolean(creationTokenPickerFilterScope)}
+      />
+      <TokenPickerModal
+        show={showCreationTokenPicker}
+        onHide={() => setShowCreationTokenPicker(false)}
+        campaignId={params.campaign || undefined}
+        onSelect={handleCreationTokenSelection}
+        allowClear={Boolean(form.figurineImageUrl || form.figurineImagePublicId)}
+        onClear={() => handleCreationTokenSelection(null)}
+        filterScope={creationTokenPickerFilterScope}
       />
     </Modal>
     <Modal className="dnd-modal unsaved-character-modal" centered show={showUnsavedManualDialog} onHide={() => setShowUnsavedManualDialog(false)}>
