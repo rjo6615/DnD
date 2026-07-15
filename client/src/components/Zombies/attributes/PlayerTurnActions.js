@@ -21,6 +21,7 @@ import DamageDiceCanvas from './DamageDiceCanvas';
 import DiceRollerModal from '../common/DiceRollerModal';
 import {
   clearDiceBoxResults,
+  DICE_BOX_ROLL_SURFACE_EVENT,
   rollDiceWithBox,
   setDiceBoxThemeColor,
 } from '../../../utils/diceBoxManager';
@@ -491,11 +492,34 @@ const PlayerTurnActions = React.forwardRef(
   const [activeDice, setActiveDice] = useState([]);
   const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
 
-  const prepareDiceRollSurface = useCallback(async (label = 'Roll') => {
+  const showDiceRollSurface = useCallback((label = 'Roll') => {
     setDamageRollLabel(label);
     setHasDamageRoll(true);
-    await waitForNextAnimationFrame();
   }, []);
+
+  const prepareDiceRollSurface = useCallback(async (label = 'Roll') => {
+    showDiceRollSurface(label);
+    await waitForNextAnimationFrame();
+  }, [showDiceRollSurface]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleDiceRollSurfaceRequest = (event) => {
+      const requestedLabel =
+        typeof event?.detail?.label === 'string' && event.detail.label.trim()
+          ? event.detail.label.trim()
+          : 'Roll';
+      showDiceRollSurface(requestedLabel);
+    };
+
+    window.addEventListener(DICE_BOX_ROLL_SURFACE_EVENT, handleDiceRollSurfaceRequest);
+    return () => {
+      window.removeEventListener(DICE_BOX_ROLL_SURFACE_EVENT, handleDiceRollSurfaceRequest);
+    };
+  }, [showDiceRollSurface]);
 
 
   useEffect(() => {

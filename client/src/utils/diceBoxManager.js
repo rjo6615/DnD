@@ -50,6 +50,7 @@ const DICEBOX_INIT_TIMEOUT_MS = 10000;
 const RETRY_DELAY_MS = 4000;
 const DICEBOX_ROLL_READY_TIMEOUT_MS = 10000;
 const DICEBOX_LAYOUT_TIMEOUT_MS = 3000;
+export const DICE_BOX_ROLL_SURFACE_EVENT = 'dice-box-roll-surface-requested';
 
 const clearScheduledRetry = () => {
   if (retryTimeoutId) {
@@ -254,6 +255,46 @@ const withTimeout = (promise, timeoutMs, errorFactory) =>
 
     promise.then(finalize(resolve), finalize(reject));
   });
+
+const waitForNextRenderFrame = () =>
+  new Promise((resolve) => {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => resolve());
+      return;
+    }
+
+    if (typeof setTimeout === 'function') {
+      setTimeout(resolve, 0);
+      return;
+    }
+
+    resolve();
+  });
+
+const requestVisibleDiceRollSurface = async (requests) => {
+  if (
+    typeof window === 'undefined' ||
+    typeof window.dispatchEvent !== 'function' ||
+    typeof CustomEvent !== 'function'
+  ) {
+    return;
+  }
+
+  const firstRequest = Array.isArray(requests) ? requests[0] : null;
+  const label =
+    firstRequest && Number(firstRequest?.sides) === 20 ? 'Roll' : 'Damage';
+
+  window.dispatchEvent(
+    new CustomEvent(DICE_BOX_ROLL_SURFACE_EVENT, {
+      detail: {
+        label,
+        requests,
+      },
+    })
+  );
+
+  await waitForNextRenderFrame();
+};
 
 const markDiceBoxFailure = ({ fatal = false } = {}) => {
   diceBoxFailed = true;
@@ -1174,6 +1215,7 @@ export const rollDiceWithBox = (requests) => {
   }
 
   const executeRoll = async () => {
+    await requestVisibleDiceRollSurface(requests);
     const instance = await ensureDiceBoxForRoll();
     const fallback = requests.map(({ count, sides }) => fallbackRoll(count, sides));
 
