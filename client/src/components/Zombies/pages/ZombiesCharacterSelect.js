@@ -5,6 +5,7 @@ import { Form, Modal, Card } from 'react-bootstrap';
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
+import logoLight from "../../../images/logo-light.png";
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import useUser from '../../../hooks/useUser';
 import { SKILLS } from "../skillSchema";
@@ -122,10 +123,13 @@ const CharacterCard = ({ character, onContinue }) => {
 
 const CampaignHero = ({ campaignName, playerCount, onCreateManual, onCreateRandom }) => (
   <section className="character-select-hero">
-    <div className="character-select-hero__art" aria-hidden="true"><span>✦</span></div>
+    <div className="character-select-hero__art" aria-hidden="true"><img src={logoLight} alt="" /></div>
     <div className="character-select-hero__content">
       <p className="character-select-kicker">RealmTracker Campaign</p>
-      <h1>{campaignName}</h1>
+      <div className="character-select-hero__title-row">
+        <h1>{campaignName}</h1>
+        <img className="character-select-hero__mobile-logo" src={logoLight} alt="" aria-hidden="true" />
+      </div>
       <p>Gather your party, choose the hero who will step through the portal, and continue the next chapter of the adventure.</p>
       <div className="character-select-hero__facts">
         <span>Dungeon Master <strong>{campaignName}</strong></span>
