@@ -10234,7 +10234,7 @@ h1 {
 .character-select-library__header { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 1rem; }
 .character-select-library h2, .character-select-create h2, .character-select-empty h2 { font-weight: 900; margin: 0; }
 .character-select-tools { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
-.character-select-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(285px, 1fr)); gap: 1rem; }
+.character-select-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(285px, calc((100% - 2rem) / 3))); justify-content: center; gap: 1rem; }
 .character-select-card { position: relative; border-radius: 26px; padding: 1rem; overflow: hidden; transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease; animation: characterSelectFadeIn .45s ease both; }
 .character-select-card:hover { transform: translateY(-7px); border-color: rgba(142, 183, 255, .58); box-shadow: 0 2rem 4.5rem rgba(0,0,0,.48), 0 0 2rem rgba(109, 134, 255, .2); }
 .character-select-card__favorite { position: absolute; right: 1rem; top: 1rem; color: rgba(244, 221, 154, .82); font-size: .75rem; z-index: 2; }
