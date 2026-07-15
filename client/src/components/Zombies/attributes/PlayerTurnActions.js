@@ -21,6 +21,7 @@ import DamageDiceCanvas from './DamageDiceCanvas';
 import DiceRollerModal from '../common/DiceRollerModal';
 import {
   clearDiceBoxResults,
+  DICE_BOX_ROLL_SURFACE_EVENT,
   rollDiceWithBox,
   setDiceBoxThemeColor,
 } from '../../../utils/diceBoxManager';
@@ -482,6 +483,45 @@ const PlayerTurnActions = React.forwardRef(
   };
 
   const [footerHeight, setFooterHeight] = useState(0);
+  // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
+  const [damageValue, setDamageValue] = useState(0);
+  const [hasDamageRoll, setHasDamageRoll] = useState(false);
+  const [damageRollLabel, setDamageRollLabel] = useState('Damage');
+  const [damageLog, setDamageLog] = useState([]);
+  const [showLog, setShowLog] = useState(false);
+  const [activeDice, setActiveDice] = useState([]);
+  const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
+  const [isDiceRollPending, setIsDiceRollPending] = useState(false);
+
+  const showDiceRollSurface = useCallback((label = 'Roll') => {
+    setDamageRollLabel(label);
+    setIsDiceRollPending(true);
+  }, []);
+
+  const prepareDiceRollSurface = useCallback(async (label = 'Roll') => {
+    showDiceRollSurface(label);
+    await waitForNextAnimationFrame();
+  }, [showDiceRollSurface]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleDiceRollSurfaceRequest = (event) => {
+      const requestedLabel =
+        typeof event?.detail?.label === 'string' && event.detail.label.trim()
+          ? event.detail.label.trim()
+          : 'Roll';
+      showDiceRollSurface(requestedLabel);
+    };
+
+    window.addEventListener(DICE_BOX_ROLL_SURFACE_EVENT, handleDiceRollSurfaceRequest);
+    return () => {
+      window.removeEventListener(DICE_BOX_ROLL_SURFACE_EVENT, handleDiceRollSurfaceRequest);
+    };
+  }, [showDiceRollSurface]);
+
 
   useEffect(() => {
     const observed = new Map();
@@ -1519,6 +1559,8 @@ const manualCriticalRef = useRef(false);
         return staticResult ? { ...staticResult, rollValues: undefined } : null;
       }
 
+      await prepareDiceRollSurface('Damage');
+
       const rollPlan = (() => {
         if (!Array.isArray(requests) || requests.length === 0) {
           return [];
@@ -1716,6 +1758,7 @@ const manualCriticalRef = useRef(false);
     [
       diceFaceColor,
       normalizeDamageTypeForClass,
+      prepareDiceRollSurface,
       resolveDamageTypeColor,
       rollDiceWithBox,
       setDiceBoxThemeColor,
@@ -1816,6 +1859,7 @@ const manualCriticalRef = useRef(false);
       isUnarmedStrike: isUnarmedAttack(weapon),
     };
     const rollModeResult = resolveAttackRollMode(form, attackContext);
+    await prepareDiceRollSurface('Roll');
     const { result, d20, rolledD20s, keptD20, rollMode } = await rollSkillWithDiceBox(bonus, {
       diceColor: diceFaceColor,
       rollMode: rollModeResult.mode,
@@ -1867,6 +1911,7 @@ const manualCriticalRef = useRef(false);
       }
 
       const { total, abilityBonus, proficiencyBonus, extraBonus } = attackDetails;
+      await prepareDiceRollSurface('Roll');
       const { result, d20 } = await rollSkillWithDiceBox(total, {
         diceColor: diceFaceColor,
       });
@@ -1906,6 +1951,7 @@ const manualCriticalRef = useRef(false);
       diceFaceColor,
       formatModifier,
       getSpellAttackDetails,
+      prepareDiceRollSurface,
       spellAbilityLabel,
     ],
   );
@@ -2043,15 +2089,6 @@ const sortedSpells = useMemo(() => {
     );
 }, [form.spells]);
 
-// -----------------------------------------Dice roller for damage-------------------------------------------------------------------
-const [damageValue, setDamageValue] = useState(0);
-  const [hasDamageRoll, setHasDamageRoll] = useState(false);
-  const [damageRollLabel, setDamageRollLabel] = useState('Damage');
-  const [damageLog, setDamageLog] = useState([]);
-  const [showLog, setShowLog] = useState(false);
-  const [activeDice, setActiveDice] = useState([]);
-  const [lastRollTimestamp, setLastRollTimestamp] = useState(0);
-
 const triggerDiceAnimation = useCallback((diceDetails = []) => {
   if (!Array.isArray(diceDetails) || diceDetails.length === 0) {
     setActiveDice([]);
@@ -2118,6 +2155,7 @@ const updateDamageValueWithAnimation = (
   setPulseClass('');
   setDamageValue(newValue);
   setHasDamageRoll(newValue !== undefined);
+  setIsDiceRollPending(false);
   setDamageRollLabel(
     typeof extra?.rollLabel === 'string' && extra.rollLabel.trim()
       ? extra.rollLabel.trim()
@@ -2403,6 +2441,8 @@ const damageAmountStyle = {
   '--damage-roller-min-height': `${damageContainerMinHeight}px`,
   '--damage-dice-area-size': `${resolvedDiceSize}px`,
 };
+const isDamageRollSurfaceVisible = hasDamageRoll || isDiceRollPending;
+const isDamageRollResultVisible = hasDamageRoll && !isDiceRollPending;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div
@@ -2418,7 +2458,9 @@ const damageAmountStyle = {
           id="damageAmount"
           ref={damageAmountRef}
           style={damageAmountStyle}
-          className={`${hasDamageRoll ? 'damage-roller--visible' : 'damage-roller--hidden'} ${pulseClass} ${isCritical ? 'critical-active' : ''} ${
+          className={`${isDamageRollSurfaceVisible ? 'damage-roller--visible' : 'damage-roller--hidden'} ${
+            isDamageRollResultVisible ? 'damage-roller--result-visible' : 'damage-roller--result-hidden'
+          } ${pulseClass} ${isCritical ? 'critical-active' : ''} ${
             isFumble ? 'critical-failure' : ''
           }`}
         >
