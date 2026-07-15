@@ -5,6 +5,7 @@ import { Form, Modal, Card } from 'react-bootstrap';
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../App.scss';
 import loginbg from "../../../images/loginbg.png";
+import logoLight from "../../../images/logo-light.png";
 import { resolveFigurineImageData } from '../utils/figurineAssets';
 import useUser from '../../../hooks/useUser';
 import { SKILLS } from "../skillSchema";
@@ -120,15 +121,18 @@ const CharacterCard = ({ character, onContinue }) => {
   );
 };
 
-const CampaignHero = ({ campaignName, playerCount, onCreateManual, onCreateRandom }) => (
+const CampaignHero = ({ campaignName, dmName, playerCount, onCreateManual, onCreateRandom }) => (
   <section className="character-select-hero">
-    <div className="character-select-hero__art" aria-hidden="true"><span>✦</span></div>
+    <div className="character-select-hero__art" aria-hidden="true"><img src={logoLight} alt="" /></div>
     <div className="character-select-hero__content">
       <p className="character-select-kicker">RealmTracker Campaign</p>
-      <h1>{campaignName}</h1>
+      <div className="character-select-hero__title-row">
+        <h1>{campaignName}</h1>
+        <img className="character-select-hero__mobile-logo" src={logoLight} alt="" aria-hidden="true" />
+      </div>
       <p>Gather your party, choose the hero who will step through the portal, and continue the next chapter of the adventure.</p>
       <div className="character-select-hero__facts">
-        <span>Dungeon Master <strong>{campaignName}</strong></span>
+        <span>Dungeon Master <strong>{dmName || "Unknown"}</strong></span>
         <span>Players <strong>{playerCount}</strong></span>
       </div>
     </div>
@@ -290,6 +294,8 @@ const CharacterCreationWizard = ({ form, updateForm, races, backgrounds, occupat
 export default function RecordList() {
   const params = useParams();
   const [records, setRecords] = useState([]);
+  const [dmName, setDmName] = useState("");
+  const [campaignPlayerCount, setCampaignPlayerCount] = useState(0);
   const navigate = useNavigate();
   const user = useUser();
 
@@ -302,6 +308,29 @@ export default function RecordList() {
       document.documentElement.classList.remove("character-select-scroll-enabled");
     };
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    async function getCampaign() {
+      const response = await apiFetch(`/campaigns/${params.campaign}`);
+
+      if (!response.ok) {
+        const message = `An error occurred: ${response.statusText}`;
+        notify(message);
+        return;
+      }
+
+      const campaign = await response.json();
+      setDmName(campaign?.dm || "");
+      setCampaignPlayerCount(Array.isArray(campaign?.players) ? campaign.players.length : 0);
+    }
+
+    getCampaign();
+
+    return;
+  }, [params.campaign, user]);
 
   useEffect(() => {
     if (!user) {
@@ -2247,7 +2276,8 @@ const getAvailableSkillOptions = (index) => {
       <div className="character-select-shell">
         <CampaignHero
           campaignName={params.campaign.toString()}
-          playerCount={records.length}
+          dmName={dmName}
+          playerCount={campaignPlayerCount}
           onCreateManual={(e) => { e.preventDefault(); handleShow5(); }}
           onCreateRandom={(e) => { e.preventDefault(); bigMaff(); handleShow(); }}
         />

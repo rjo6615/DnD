@@ -10208,9 +10208,11 @@ h1 {
   box-shadow: inset 0 0 4rem rgba(7, 12, 28, 0.75), 0 0 3rem rgba(89, 132, 255, 0.24);
 }
 
-.character-select-hero__art span { font-size: clamp(4rem, 9vw, 8rem); text-shadow: 0 0 2rem rgba(255,255,255,.65); }
+.character-select-hero__art img { width: min(66%, 220px); filter: drop-shadow(0 0 2rem rgba(255,255,255,.58)); }
 .character-select-kicker { color: #91b7ff; letter-spacing: .18em; text-transform: uppercase; font-size: .78rem; font-weight: 800; margin-bottom: .35rem; }
+.character-select-hero__title-row { display: flex; align-items: flex-start; gap: clamp(.75rem, 2vw, 1.25rem); }
 .character-select-hero h1 { font-size: clamp(2.4rem, 6vw, 5.7rem); line-height: .92; margin: 0 0 1rem; font-weight: 900; }
+.character-select-hero__mobile-logo { display: none; }
 .character-select-hero p, .character-select-create p, .character-select-empty p { color: rgba(230, 237, 255, 0.78); }
 .character-select-hero__facts { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: 1.25rem; }
 .character-select-hero__facts span, .character-select-tools span, .character-select-card__chips span { border: 1px solid rgba(145,183,255,.22); background: rgba(10, 20, 45, .55); border-radius: 999px; padding: .45rem .75rem; color: rgba(238, 243, 255, .78); }
@@ -10261,7 +10263,11 @@ h1 {
 
 @media (max-width: 640px) {
   .character-select-page { padding: .75rem; }
-  .character-select-hero { border-radius: 24px; max-height: none; }
+  .character-select-hero { border-radius: 24px; max-height: none; padding-top: 1rem; }
+  .character-select-hero__art { display: none; }
+  .character-select-hero__title-row { align-items: center; justify-content: space-between; }
+  .character-select-hero__mobile-logo { display: block; flex: 0 0 auto; width: clamp(58px, 18vw, 86px); filter: drop-shadow(0 0 1.25rem rgba(145,183,255,.62)); }
+  .character-select-hero h1 { margin-bottom: .65rem; }
   .character-select-hero__facts span, .character-select-tools span { width: 100%; }
   .character-select-grid { grid-template-columns: 1fr; }
   .character-select-card { padding: 1.1rem; }
