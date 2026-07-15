@@ -263,6 +263,10 @@ const FooterCharacterSlot = ({
         return;
       }
 
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
       dragStateRef.current = {
         pointerId: event.pointerId,
         startX: event.clientX,
@@ -281,6 +285,10 @@ const FooterCharacterSlot = ({
       const dragState = dragStateRef.current;
       if (!dragState || dragState.pointerId !== event.pointerId) {
         return;
+      }
+
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
       }
 
       const delta = Math.round((event.clientX - dragState.startX) / 8);
@@ -302,6 +310,10 @@ const FooterCharacterSlot = ({
         return;
       }
 
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
       dragStateRef.current = null;
       event.currentTarget.releasePointerCapture?.(event.pointerId);
       delete event.currentTarget.dataset.dragging;
@@ -320,6 +332,10 @@ const FooterCharacterSlot = ({
       const dragState = dragStateRef.current;
       if (!dragState || dragState.pointerId !== event.pointerId) {
         return;
+      }
+
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
       }
 
       dragStateRef.current = null;
