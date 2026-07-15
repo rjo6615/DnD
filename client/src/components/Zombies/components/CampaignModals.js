@@ -175,10 +175,9 @@ export default function CampaignModals({
         onHide={closeCreateCampaignModal}
         eyebrow="New Realm Setup"
         title="Create Campaign"
-        subtitle="Name the world now. Artwork, player invites, and launch options can grow here next."
+        subtitle="Name the world now. Player invites and launch options can grow here next."
       >
         <Form onSubmit={submitCreateCampaign} className="realm-create-campaign-form">
-          <div className="realm-create-campaign-form__art" aria-hidden="true"><span>+</span><strong>Artwork slot</strong></div>
           <div className="realm-create-campaign-form__fields">
             <label className="realm-floating-field">
               <input onChange={(e) => updateCreateCampaignForm({ campaignName: e.target.value })} type="text" value={createCampaignForm.campaignName} placeholder=" " />
