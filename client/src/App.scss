@@ -8811,11 +8811,18 @@ h1 {
 
 /* User-requested HUD fit fixes: keep spell labels visible, make resources four-wide, and tuck pact magic under level IX. */
 #damageAmount.damage-roller--hidden {
-  display: none;
+  position: absolute;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 #damageAmount.damage-roller--visible {
-  display: block;
+  display: flex;
+  position: relative;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .combat-hud-dock__resource-rail {
