@@ -310,6 +310,14 @@ export default function RecordList() {
   }, []);
 
   useEffect(() => {
+    if (!user || !params.campaign) {
+      return;
+    }
+
+    apiFetch(`/campaigns/${encodeURIComponent(params.campaign)}/access`, { method: "PUT" }).catch(() => {});
+  }, [params.campaign, user]);
+
+  useEffect(() => {
     if (!user) {
       return;
     }
