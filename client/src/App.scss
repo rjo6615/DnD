@@ -8817,6 +8817,11 @@ h1 {
   pointer-events: none;
 }
 
+.zombies-character-sheet-layout--map-interaction-active #damageAmount,
+.zombies-character-sheet-layout--map-interaction-active #damageAmount.damage-roller--visible {
+  pointer-events: none;
+}
+
 #damageAmount.damage-roller--visible {
   display: flex;
   position: relative;
