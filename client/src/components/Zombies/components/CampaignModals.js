@@ -10,12 +10,6 @@ const getPlayerCount = (campaign) => {
   if (typeof campaign?.playerCount === "number") return campaign.playerCount;
   return 0;
 };
-const getCharacterCount = (campaign) => {
-  if (Array.isArray(campaign?.characters)) return campaign.characters.length;
-  if (typeof campaign?.characterCount === "number") return campaign.characterCount;
-  return getPlayerCount(campaign);
-};
-const getSessionCount = (campaign) => campaign?.sessions?.length || campaign?.sessionCount || 0;
 const campaignInitials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "RT";
 const getActiveMapImage = (campaign) => {
   const maps = Array.isArray(campaign?.maps) ? campaign.maps : [];
@@ -163,7 +157,7 @@ export default function CampaignModals({
                   <div className="realm-campaign-card__content">
                     <h3>{name}</h3>
                     <div className="realm-campaign-card__meta realm-campaign-card__meta--launcher">
-                      <span>DM badge</span><span>{campaign?.status || "Ready"}</span><span>{getCharacterCount(campaign)} characters</span><span>{getSessionCount(campaign)} sessions</span>
+                      <span>DM badge</span><span>{getPlayerCount(campaign)} players</span>
                     </div>
                   </div>
                   <span className="realm-campaign-button realm-campaign-button--primary">Host</span>
