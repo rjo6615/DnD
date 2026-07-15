@@ -155,8 +155,8 @@ export default function useCampaignActions() {
   }, [navigate, username]);
 
   useEffect(() => {
-    fetchPlayerCampaigns();
-  }, [fetchPlayerCampaigns]);
+    Promise.all([fetchPlayerCampaigns(), fetchDmCampaigns()]);
+  }, [fetchDmCampaigns, fetchPlayerCampaigns]);
 
   const updateCreateCampaignForm = useCallback((value) => {
     setCreateCampaignForm((prev) => ({ ...prev, ...value }));
