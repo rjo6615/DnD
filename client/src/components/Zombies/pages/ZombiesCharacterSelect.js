@@ -295,6 +295,7 @@ export default function RecordList() {
   const params = useParams();
   const [records, setRecords] = useState([]);
   const [dmName, setDmName] = useState("");
+  const [campaignPlayerCount, setCampaignPlayerCount] = useState(0);
   const navigate = useNavigate();
   const user = useUser();
 
@@ -323,6 +324,7 @@ export default function RecordList() {
 
       const campaign = await response.json();
       setDmName(campaign?.dm || "");
+      setCampaignPlayerCount(Array.isArray(campaign?.players) ? campaign.players.length : 0);
     }
 
     getCampaign();
@@ -2275,7 +2277,7 @@ const getAvailableSkillOptions = (index) => {
         <CampaignHero
           campaignName={params.campaign.toString()}
           dmName={dmName}
-          playerCount={records.length}
+          playerCount={campaignPlayerCount}
           onCreateManual={(e) => { e.preventDefault(); handleShow5(); }}
           onCreateRandom={(e) => { e.preventDefault(); bigMaff(); handleShow(); }}
         />
