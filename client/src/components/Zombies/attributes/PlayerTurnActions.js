@@ -2669,12 +2669,19 @@ const isDamageRollResultVisible = hasDamageRoll && !isDiceRollPending;
       />
 {/* Attack Modal */}
 
-      <Modal size="lg" className="dnd-modal modern-modal" centered show={showAttack} onHide={handleCloseAttack}>
+      <Modal
+        size="lg"
+        className="dnd-modal modern-modal"
+        centered
+        scrollable
+        show={showAttack}
+        onHide={handleCloseAttack}
+      >
         <Card className="modern-card">
           <Card.Header className="modal-header">
             <Card.Title className="modal-title">Attacks</Card.Title>
           </Card.Header>
-          <Card.Body>
+          <Card.Body className="modal-body attack-modal__body">
             <Card.Title className="modal-title">Weapons</Card.Title>
             <div className="attack-card-grid">
               {equippedWeapons.length === 0 ? (
