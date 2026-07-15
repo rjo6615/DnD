@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import apiFetch from "../../../utils/apiFetch";
 import CampaignModals from "../components/CampaignModals";
 import useCampaignActions from "../hooks/useCampaignActions";
+import logoLight from "../../../images/logo-light.png";
 
 const getCampaignTitle = (campaign) => campaign?.campaignName || "Untitled Realm";
 
@@ -66,7 +67,7 @@ function ProfileSummary({ username, campaignCount, characterCount, onLogout }) {
 function HeroSection({ username }) {
   return (
     <header className="realm-home-hero">
-      <div className="realm-home-hero__sigil" aria-hidden="true"><i className="fa-solid fa-wand-sparkles" /></div>
+      <div className="realm-home-hero__sigil" aria-hidden="true"><img src={logoLight} alt="" /></div>
       <p className="realm-home-hero__welcome">Welcome back{username ? `, ${username}` : ""}</p>
       <h1>RealmTracker</h1>
       <p className="realm-home-hero__subtitle">Virtual Tabletop for Dungeons & Dragons</p>
