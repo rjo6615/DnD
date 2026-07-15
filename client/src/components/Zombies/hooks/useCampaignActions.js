@@ -53,6 +53,22 @@ const normalizeCampaignSummaries = (campaigns) => {
           ? campaign.activeMapId.trim()
           : null;
 
+      const recentAccess = Array.isArray(campaign.recentAccess)
+        ? campaign.recentAccess
+            .filter((entry) => entry && typeof entry === "object")
+            .map((entry) => ({
+              username:
+                typeof entry.username === "string"
+                  ? entry.username.trim()
+                  : "",
+              lastAccessedAt:
+                typeof entry.lastAccessedAt === "string"
+                  ? entry.lastAccessedAt.trim()
+                  : "",
+            }))
+            .filter((entry) => entry.username && entry.lastAccessedAt)
+        : [];
+
       return {
         campaignName,
         players,
@@ -60,6 +76,7 @@ const normalizeCampaignSummaries = (campaigns) => {
         ...(gameMode ? { gameMode } : {}),
         ...(maps.length > 0 ? { maps } : {}),
         ...(activeMapId ? { activeMapId } : {}),
+        ...(recentAccess.length > 0 ? { recentAccess } : {}),
       };
     })
     .filter(Boolean);
