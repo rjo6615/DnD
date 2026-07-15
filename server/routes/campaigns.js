@@ -1575,6 +1575,16 @@ module.exports = (router) => {
           return res.status(401).json({ message: 'Unauthorized' });
         }
 
+        const requestedRole = typeof req.body?.role === 'string'
+          ? req.body.role.trim().toLowerCase()
+          : typeof req.query?.role === 'string'
+            ? req.query.role.trim().toLowerCase()
+            : '';
+        const role = requestedRole === 'dm' || requestedRole === 'player' ? requestedRole : '';
+        if (!role) {
+          return res.status(400).json({ message: 'role must be dm or player' });
+        }
+
         const campaignName = req.params.campaign;
         const collection = req.db.collection('Campaigns');
         const campaign = await collection.findOne(
@@ -1588,22 +1598,24 @@ module.exports = (router) => {
 
         const isDm = campaign.dm === username;
         const isPlayer = Array.isArray(campaign.players) && campaign.players.includes(username);
-        if (!isDm && !isPlayer) {
+        if ((role === 'dm' && !isDm) || (role === 'player' && !isPlayer)) {
           return res.status(403).json({ message: 'Forbidden' });
         }
 
         const lastAccessedAt = new Date().toISOString();
         const recentAccess = Array.isArray(campaign.recentAccess)
-          ? campaign.recentAccess.filter((entry) => entry && entry.username !== username)
+          ? campaign.recentAccess.filter((entry) => (
+              entry && (entry.username !== username || entry.role !== role)
+            ))
           : [];
-        recentAccess.push({ username, lastAccessedAt });
+        recentAccess.push({ username, role, lastAccessedAt });
 
         await collection.updateOne(
           { campaignName },
           { $set: { recentAccess } }
         );
 
-        return res.json({ username, lastAccessedAt });
+        return res.json({ username, role, lastAccessedAt });
       } catch (err) {
         next(err);
       }

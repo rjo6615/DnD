@@ -314,7 +314,11 @@ export default function RecordList() {
       return;
     }
 
-    apiFetch(`/campaigns/${encodeURIComponent(params.campaign)}/access`, { method: "PUT" }).catch(() => {});
+    apiFetch(`/campaigns/${encodeURIComponent(params.campaign)}/access`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "player" }),
+    }).catch(() => {});
   }, [params.campaign, user]);
 
   useEffect(() => {

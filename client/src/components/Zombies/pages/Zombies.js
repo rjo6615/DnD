@@ -8,12 +8,12 @@ import logoLight from "../../../images/logo-light.png";
 
 const getCampaignTitle = (campaign) => campaign?.campaignName || "Untitled Realm";
 
-const getUserLastAccessedAt = (campaign, username) => {
-  if (!username || !Array.isArray(campaign?.recentAccess)) {
+const getUserLastAccessedAt = (campaign, username, role) => {
+  if (!username || !role || !Array.isArray(campaign?.recentAccess)) {
     return null;
   }
 
-  const accessEntry = campaign.recentAccess.find((entry) => entry?.username === username);
+  const accessEntry = campaign.recentAccess.find((entry) => entry?.username === username && entry?.role === role);
   return typeof accessEntry?.lastAccessedAt === "string" ? accessEntry.lastAccessedAt : null;
 };
 
@@ -133,12 +133,12 @@ export default function Zombies() {
     const hosted = dmCampaigns.map((campaign) => ({
       campaign,
       role: "dm",
-      lastAccessedAt: getUserLastAccessedAt(campaign, username),
+      lastAccessedAt: getUserLastAccessedAt(campaign, username, "dm"),
     }));
     const joined = playerCampaigns.map((campaign) => ({
       campaign,
       role: "player",
-      lastAccessedAt: getUserLastAccessedAt(campaign, username),
+      lastAccessedAt: getUserLastAccessedAt(campaign, username, "player"),
     }));
 
     return [...hosted, ...joined]
@@ -154,7 +154,11 @@ export default function Zombies() {
     const encodedCampaign = encodeURIComponent(campaignTitle);
 
     try {
-      await apiFetch(`/campaigns/${encodedCampaign}/access`, { method: "PUT" });
+      await apiFetch(`/campaigns/${encodedCampaign}/access`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: role === "dm" ? "dm" : "player" }),
+      });
     } catch (error) {
       // Access tracking should not block users from entering their campaign.
     }

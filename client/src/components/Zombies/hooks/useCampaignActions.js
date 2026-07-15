@@ -61,12 +61,16 @@ const normalizeCampaignSummaries = (campaigns) => {
                 typeof entry.username === "string"
                   ? entry.username.trim()
                   : "",
+              role:
+                entry.role === "dm" || entry.role === "player"
+                  ? entry.role
+                  : "",
               lastAccessedAt:
                 typeof entry.lastAccessedAt === "string"
                   ? entry.lastAccessedAt.trim()
                   : "",
             }))
-            .filter((entry) => entry.username && entry.lastAccessedAt)
+            .filter((entry) => entry.username && entry.role && entry.lastAccessedAt)
         : [];
 
       return {

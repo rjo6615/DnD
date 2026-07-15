@@ -1851,7 +1851,11 @@ export default function ZombiesDM() {
         return;
       }
 
-      apiFetch(`/campaigns/${encodedCampaign}/access`, { method: "PUT" }).catch(() => {});
+      apiFetch(`/campaigns/${encodedCampaign}/access`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "dm" }),
+      }).catch(() => {});
     }, [encodedCampaign, user]);
 
     const waitForNextAnimationFrame = useCallback(
