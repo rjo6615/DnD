@@ -657,6 +657,7 @@ module.exports = (router) => {
       'maps.image': 1,
       'maps.thumbnailUrl': 1,
       activeMapId: 1,
+      recentAccess: 1,
     },
   };
 
@@ -1564,6 +1565,51 @@ module.exports = (router) => {
       }
     );
 
+  campaignRouter.route('/:campaign/access').put(
+    [param('campaign').trim().notEmpty().withMessage('campaign is required')],
+    handleValidationErrors,
+    async (req, res, next) => {
+      try {
+        const username = typeof req.user?.username === 'string' ? req.user.username.trim() : '';
+        if (!username) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const campaignName = req.params.campaign;
+        const collection = req.db.collection('Campaigns');
+        const campaign = await collection.findOne(
+          { campaignName },
+          { projection: { dm: 1, players: 1, recentAccess: 1 } }
+        );
+
+        if (!campaign) {
+          return res.status(404).json({ message: 'Campaign not found' });
+        }
+
+        const isDm = campaign.dm === username;
+        const isPlayer = Array.isArray(campaign.players) && campaign.players.includes(username);
+        if (!isDm && !isPlayer) {
+          return res.status(403).json({ message: 'Forbidden' });
+        }
+
+        const lastAccessedAt = new Date().toISOString();
+        const recentAccess = Array.isArray(campaign.recentAccess)
+          ? campaign.recentAccess.filter((entry) => entry && entry.username !== username)
+          : [];
+        recentAccess.push({ username, lastAccessedAt });
+
+        await collection.updateOne(
+          { campaignName },
+          { $set: { recentAccess } }
+        );
+
+        return res.json({ username, lastAccessedAt });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
   // This section will create a new campaign.
   campaignRouter.route('/add').post(async (req, response, next) => {
     const db_connect = req.db;
@@ -1578,6 +1624,7 @@ module.exports = (router) => {
       mapTokens: {},
       combat: createDefaultCombatState(),
       enemies: [],
+      recentAccess: [],
     };
     try {
       const result = await db_connect.collection("Campaigns").insertOne(myobj);
