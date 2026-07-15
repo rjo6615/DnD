@@ -1846,6 +1846,18 @@ export default function ZombiesDM() {
     );
 
 
+    useEffect(() => {
+      if (!user || !encodedCampaign) {
+        return;
+      }
+
+      apiFetch(`/campaigns/${encodedCampaign}/access`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "dm" }),
+      }).catch(() => {});
+    }, [encodedCampaign, user]);
+
     const waitForNextAnimationFrame = useCallback(
       () =>
         new Promise((resolve) => {

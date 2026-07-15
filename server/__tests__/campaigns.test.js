@@ -352,6 +352,116 @@ describe('Campaign routes', () => {
     );
   });
 
+  test('create campaign initializes recent access tracking', async () => {
+    const insertOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    dbo.mockResolvedValue({
+      collection: () => ({
+        insertOne,
+      }),
+    });
+
+    await request(app)
+      .post('/campaigns/add')
+      .send({ campaignName: 'Test', dm: 'DM' });
+
+    expect(insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recentAccess: [],
+      })
+    );
+  });
+
+  test('records campaign access for current user', async () => {
+    const updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: jest.fn().mockResolvedValue({
+          campaignName: 'Test',
+          dm: 'DM',
+          players: ['Player'],
+          recentAccess: [{ username: 'Player', role: 'player', lastAccessedAt: '2024-01-01T00:00:00.000Z' }],
+        }),
+        updateOne,
+      }),
+    });
+
+    const res = await request(app)
+      .put('/campaigns/Test/access')
+      .send({ role: 'dm' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.username).toBe('DM');
+    expect(res.body.role).toBe('dm');
+    expect(Date.parse(res.body.lastAccessedAt)).not.toBeNaN();
+    expect(updateOne).toHaveBeenCalledWith(
+      { campaignName: 'Test' },
+      {
+        $set: {
+          recentAccess: expect.arrayContaining([
+            { username: 'Player', role: 'player', lastAccessedAt: '2024-01-01T00:00:00.000Z' },
+            { username: 'DM', role: 'dm', lastAccessedAt: expect.any(String) },
+          ]),
+        },
+      }
+    );
+  });
+
+  test('records campaign access independently per role', async () => {
+    const updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 });
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: jest.fn().mockResolvedValue({
+          campaignName: 'Legendary Campaign',
+          dm: 'DM',
+          players: ['DM'],
+          recentAccess: [{ username: 'DM', role: 'dm', lastAccessedAt: '2024-01-01T00:00:00.000Z' }],
+        }),
+        updateOne,
+      }),
+    });
+
+    const res = await request(app)
+      .put('/campaigns/Legendary%20Campaign/access')
+      .send({ role: 'player' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.role).toBe('player');
+    expect(updateOne).toHaveBeenCalledWith(
+      { campaignName: 'Legendary Campaign' },
+      {
+        $set: {
+          recentAccess: expect.arrayContaining([
+            { username: 'DM', role: 'dm', lastAccessedAt: '2024-01-01T00:00:00.000Z' },
+            { username: 'DM', role: 'player', lastAccessedAt: expect.any(String) },
+          ]),
+        },
+      }
+    );
+  });
+
+  test('rejects campaign access tracking for non-members', async () => {
+    mockUser = { username: 'Stranger' };
+    const updateOne = jest.fn();
+    dbo.mockResolvedValue({
+      collection: () => ({
+        findOne: jest.fn().mockResolvedValue({
+          campaignName: 'Test',
+          dm: 'DM',
+          players: ['Player'],
+          recentAccess: [],
+        }),
+        updateOne,
+      }),
+    });
+
+    const res = await request(app)
+      .put('/campaigns/Test/access')
+      .send({ role: 'player' });
+
+    expect(res.status).toBe(403);
+    expect(updateOne).not.toHaveBeenCalled();
+  });
+
   test('create campaign failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
