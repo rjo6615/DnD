@@ -651,6 +651,12 @@ module.exports = (router) => {
       dm: 1,
       players: 1,
       gameMode: 1,
+      'maps.mapId': 1,
+      'maps.name': 1,
+      'maps.imageUrl': 1,
+      'maps.image': 1,
+      'maps.thumbnailUrl': 1,
+      activeMapId: 1,
     },
   };
 

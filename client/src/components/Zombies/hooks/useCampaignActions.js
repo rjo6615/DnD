@@ -43,11 +43,23 @@ const normalizeCampaignSummaries = (campaigns) => {
           ? campaign.gameMode.trim()
           : null;
 
+      const maps = Array.isArray(campaign.maps)
+        ? campaign.maps.filter((map) => map && typeof map === "object")
+        : [];
+
+      const activeMapId =
+        typeof campaign.activeMapId === "string" &&
+        campaign.activeMapId.trim() !== ""
+          ? campaign.activeMapId.trim()
+          : null;
+
       return {
         campaignName,
         players,
         ...(dm ? { dm } : {}),
         ...(gameMode ? { gameMode } : {}),
+        ...(maps.length > 0 ? { maps } : {}),
+        ...(activeMapId ? { activeMapId } : {}),
       };
     })
     .filter(Boolean);
