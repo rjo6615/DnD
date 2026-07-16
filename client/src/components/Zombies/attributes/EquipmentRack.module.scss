@@ -1,18 +1,20 @@
 .equipmentShell {
+  --eq-bg: #07111f;
+  --eq-panel: rgba(12, 24, 44, 0.78);
   --eq-line: rgba(134, 189, 255, 0.18);
   --eq-text: #edf6ff;
   --eq-muted: rgba(226, 239, 255, 0.68);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.3fr);
-  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.34fr);
+  gap: 1rem;
   color: var(--eq-text);
 }
 
 .bonusSummary {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(5, minmax(110px, 1fr));
-  gap: 0.55rem;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 0.75rem;
 }
 
 .bonusPill,
@@ -22,60 +24,58 @@
 .characterPreview {
   background: linear-gradient(145deg, rgba(13, 28, 52, 0.9), rgba(15, 19, 43, 0.72));
   border: 1px solid var(--eq-line);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(18px);
 }
 
 .bonusPill {
-  border-radius: 0.85rem;
-  padding: 0.55rem 0.7rem;
+  border-radius: 1rem;
+  padding: 0.8rem 0.9rem;
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
-  min-height: 44px;
+  min-height: 56px;
 }
 
 .bonusPill span,
 .eyebrow {
   color: #9cc8ff;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.bonusPill strong { color: #ffe7a3; font-size: 1rem; }
+.bonusPill strong { color: #ffe7a3; font-size: 1.15rem; }
 
 .rackLayout {
   position: relative;
-  border-radius: 1.15rem;
+  min-height: 640px;
+  display: grid;
+  grid-template-columns: minmax(170px, 0.9fr) minmax(220px, 1.08fr) minmax(170px, 0.9fr);
+  grid-template-areas: 'left preview right' 'bottom bottom bottom';
+  gap: 0.85rem;
+  padding: clamp(0.85rem, 2vw, 1.25rem);
+  border-radius: 1.4rem;
   overflow: hidden;
-  padding: 0.8rem;
   background:
-    radial-gradient(circle at 50% 20%, rgba(96, 165, 250, 0.2), transparent 35%),
-    radial-gradient(circle at 50% 84%, rgba(124, 58, 237, 0.18), transparent 42%),
+    radial-gradient(circle at 50% 20%, rgba(96, 165, 250, 0.22), transparent 35%),
+    radial-gradient(circle at 50% 85%, rgba(124, 58, 237, 0.20), transparent 42%),
     linear-gradient(160deg, rgba(3, 8, 20, 0.98), rgba(7, 17, 31, 0.96));
   border: 1px solid rgba(125, 174, 255, 0.16);
 }
 
-.slotGrid {
-  min-height: 560px;
-  display: grid;
-  grid-template-columns: repeat(7, minmax(88px, 1fr));
-  grid-template-rows: repeat(5, minmax(90px, 1fr));
-  grid-template-areas:
-    'mainHand head neck shoulders back ranged ranged'
-    'mainHand eyes preview preview arms ranged ranged'
-    'ringLeft hands preview preview wrists ringRight offHand'
-    'waist legs preview preview chest feet offHand'
-    'waist legs bottom bottom chest feet offHand';
-  gap: 0.5rem;
-}
+.leftColumn { grid-area: left; }
+.rightColumn { grid-area: right; }
+.leftColumn,
+.rightColumn { display: grid; gap: 0.7rem; align-content: start; }
+.bottomRow { grid-area: bottom; display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 0.7rem; }
 
 .characterPreview {
   grid-area: preview;
-  border-radius: 1rem;
-  padding: 0.8rem;
+  align-self: stretch;
+  border-radius: 1.5rem;
+  padding: 1.3rem;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -87,124 +87,100 @@
 .characterPreview::before {
   content: '';
   position: absolute;
-  inset: 7% 18%;
-  background: linear-gradient(180deg, rgba(160, 198, 255, 0.3), rgba(73, 43, 140, 0.16));
+  inset: 8% 18%;
+  background: linear-gradient(180deg, rgba(160, 198, 255, 0.28), rgba(73, 43, 140, 0.16));
   clip-path: polygon(50% 0, 68% 17%, 62% 45%, 78% 100%, 22% 100%, 38% 45%, 32% 17%);
-  filter: drop-shadow(0 0 28px rgba(98, 169, 255, 0.42));
+  filter: drop-shadow(0 0 35px rgba(98, 169, 255, 0.45));
   opacity: 0.7;
 }
 
-.previewSigil { position: relative; font-size: 2.35rem; color: #ffe7a3; text-shadow: 0 0 20px rgba(255, 210, 91, 0.75); }
+.previewSigil { position: relative; font-size: 3rem; color: #ffe7a3; text-shadow: 0 0 24px rgba(255, 210, 91, 0.8); }
 .characterPreview h3,
-.characterPreview p { position: relative; margin-bottom: 0.25rem; }
-.characterPreview p { color: var(--eq-muted); font-size: 0.82rem; }
-
-.slot_head { grid-area: head; }
-.slot_eyes { grid-area: eyes; }
-.slot_neck { grid-area: neck; }
-.slot_shoulders { grid-area: shoulders; }
-.slot_chest { grid-area: chest; }
-.slot_back { grid-area: back; }
-.slot_arms { grid-area: arms; }
-.slot_wrists { grid-area: wrists; }
-.slot_hands { grid-area: hands; }
-.slot_waist { grid-area: waist; }
-.slot_legs { grid-area: legs; }
-.slot_feet { grid-area: feet; }
-.slot_mainHand { grid-area: mainHand; }
-.slot_offHand { grid-area: offHand; }
-.slot_ranged { grid-area: ranged; }
-.slot_ringLeft { grid-area: ringLeft; }
-.slot_ringRight { grid-area: ringRight; }
+.characterPreview p { position: relative; }
+.characterPreview p { color: var(--eq-muted); }
 
 .slotCard {
-  border-radius: 0.75rem;
-  min-height: 0;
+  border-radius: 1rem;
+  min-height: 154px;
   overflow: hidden;
   position: relative;
-  border-color: rgba(111, 159, 221, 0.22);
-  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  border-color: rgba(111, 159, 221, 0.2);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 .slotCard:hover,
-.selected { transform: translateY(-1px); border-color: rgba(130, 195, 255, 0.62); box-shadow: 0 12px 30px rgba(30, 94, 180, 0.26); }
-.slotButton { width: 100%; min-height: 100%; border: 0; color: inherit; background: transparent; padding: 0.45rem; display: grid; grid-template-rows: auto 1fr auto auto; gap: 0.2rem; text-align: center; }
+.selected { transform: translateY(-2px); border-color: rgba(130, 195, 255, 0.58); box-shadow: 0 18px 48px rgba(30, 94, 180, 0.28); }
+.slotButton { width: 100%; min-height: 116px; border: 0; color: inherit; background: transparent; padding: 0.75rem; display: grid; gap: 0.3rem; text-align: left; }
 .slotButton:focus-visible,
 .itemCard button:focus-visible,
 .iconButton:focus-visible,
 .miniButton:focus-visible { outline: 3px solid #8bd3ff; outline-offset: 2px; }
-.slotHeader { display: flex; align-items: center; justify-content: center; gap: 0.3rem; color: #c4d7ff; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
-.slotIcon { display: none; }
-.itemArt { align-self: center; display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; justify-self: center; border-radius: 0.7rem; background: linear-gradient(135deg, #f7edd0, #948150); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5), 0 8px 16px rgba(0,0,0,0.3); color: #1f1a12; }
-.itemName { font-weight: 900; line-height: 1.05; font-size: 0.86rem; }
-.rarityBadge { justify-self: center; border-radius: 999px; padding: 0.1rem 0.45rem; font-size: 0.58rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(255,255,255,0.09); color: #dbeafe; }
-.statLine { color: var(--eq-muted); font-size: 0.68rem; line-height: 1.05; min-height: 0.8rem; }
-.quickActions { position: absolute; right: 0.35rem; bottom: 0.35rem; display: flex; gap: 0.25rem; opacity: 0; transform: translateY(4px); transition: opacity 160ms ease, transform 160ms ease; }
-.slotCard:hover .quickActions,
-.slotCard:focus-within .quickActions { opacity: 1; transform: translateY(0); }
+.slotHeader { display: flex; align-items: center; gap: 0.45rem; color: #9cc8ff; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.11em; text-transform: uppercase; }
+.slotIcon,
+.itemArt { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(146, 197, 255, 0.1); box-shadow: inset 0 0 0 1px rgba(190, 220, 255, 0.16); }
+.itemArt { width: 58px; height: 58px; justify-self: center; }
+.itemName { text-align: center; font-weight: 800; line-height: 1.15; }
+.rarityBadge { justify-self: center; border-radius: 999px; padding: 0.16rem 0.55rem; font-size: 0.68rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(255,255,255,0.08); color: #dbeafe; }
+.statLine { text-align: center; color: var(--eq-muted); font-size: 0.78rem; min-height: 1rem; }
+.quickActions { display: flex; justify-content: center; gap: 0.45rem; padding: 0 0.6rem 0.6rem; }
 .miniButton,
-.iconButton { min-height: 32px; border: 1px solid rgba(143, 203, 255, 0.32) !important; background: linear-gradient(135deg, rgba(37, 99, 235, 0.92), rgba(91, 33, 182, 0.86)) !important; color: white !important; font-weight: 800; border-radius: 999px; padding: 0.25rem 0.55rem; }
-.iconButton { min-width: 32px; padding-inline: 0.45rem; }
+.iconButton { min-height: 36px; border: 1px solid rgba(143, 203, 255, 0.32) !important; background: linear-gradient(135deg, rgba(37, 99, 235, 0.84), rgba(91, 33, 182, 0.8)) !important; color: white !important; font-weight: 800; border-radius: 999px; }
+.iconButton { min-width: 38px; padding-inline: 0.65rem; }
 
-.detailsPanel { border-radius: 1rem; padding: 0.85rem; align-self: start; position: sticky; top: 0.5rem; }
-.detailsHero { display: flex; gap: 0.7rem; align-items: center; padding-bottom: 0.65rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.detailsHero h3 { margin: 0.1rem 0; font-size: 1.35rem; }
-.detailsPanel p { color: var(--eq-muted); margin: 0.75rem 0; font-size: 0.95rem; }
-.statChips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.statChips span { border-radius: 999px; padding: 0.3rem 0.55rem; background: rgba(125, 211, 252, 0.12); color: #dbeafe; font-weight: 700; font-size: 0.85rem; }
-.compareGrid { display: grid; gap: 0.4rem; margin-top: 0.8rem; }
-.compareGrid div { display: grid; grid-template-columns: 0.75fr 1fr auto; gap: 0.4rem; padding: 0.45rem; border-radius: 0.65rem; background: rgba(255,255,255,0.055); }
+.detailsPanel { border-radius: 1.25rem; padding: 1rem; align-self: start; position: sticky; top: 0.75rem; }
+.detailsHero { display: flex; gap: 0.85rem; align-items: center; padding-bottom: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.detailsHero h3 { margin: 0.15rem 0; }
+.detailsPanel p { color: var(--eq-muted); margin: 1rem 0; }
+.statChips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.statChips span { border-radius: 999px; padding: 0.35rem 0.65rem; background: rgba(125, 211, 252, 0.12); color: #dbeafe; font-weight: 700; }
+.compareGrid { display: grid; gap: 0.5rem; margin-top: 1rem; }
+.compareGrid div { display: grid; grid-template-columns: 0.8fr 1fr auto; gap: 0.5rem; padding: 0.55rem; border-radius: 0.75rem; background: rgba(255,255,255,0.055); }
 .compareGrid span { text-transform: capitalize; color: #9cc8ff; }
 .compareGrid em { font-style: normal; font-weight: 900; }
 .positive { color: #86efac; }
 .negative { color: #fca5a5; }
 
-.picker { grid-column: 1 / -1; border-radius: 1rem; padding: 0.85rem; animation: pickerIn 160ms ease both; }
+.picker { grid-column: 1 / -1; border-radius: 1.25rem; padding: 1rem; animation: pickerIn 180ms ease both; }
 .pickerHeader { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-.pickerHeader h3 { margin-bottom: 0; }
-.pickerControls { display: grid; grid-template-columns: 1fr 170px; gap: 0.55rem; margin: 0.7rem 0; }
+.pickerControls { display: grid; grid-template-columns: 1fr 180px; gap: 0.65rem; margin: 0.85rem 0; }
 .pickerControls :global(.form-control),
-.pickerControls :global(.form-select) { min-height: 40px; color: #eff6ff; background-color: rgba(4, 13, 28, 0.9); border-color: rgba(147, 197, 253, 0.3); }
-.itemGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.55rem; max-height: 34vh; overflow: auto; padding-right: 0.25rem; }
-.itemCard { border-radius: 0.85rem; padding: 0.65rem; background: rgba(3, 10, 24, 0.76); border: 1px solid rgba(147, 197, 253, 0.16); }
-.itemCard button:first-child { width: 100%; display: flex; align-items: center; gap: 0.55rem; text-align: left; color: inherit; background: transparent; border: 0; padding: 0; }
+.pickerControls :global(.form-select) { min-height: 44px; color: #eff6ff; background-color: rgba(4, 13, 28, 0.9); border-color: rgba(147, 197, 253, 0.3); }
+.itemGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.7rem; max-height: 42vh; overflow: auto; padding-right: 0.25rem; }
+.itemCard { border-radius: 1rem; padding: 0.75rem; background: rgba(3, 10, 24, 0.76); border: 1px solid rgba(147, 197, 253, 0.16); }
+.itemCard button:first-child { width: 100%; display: flex; align-items: center; gap: 0.65rem; text-align: left; color: inherit; background: transparent; border: 0; padding: 0; }
 .itemCard small { display: block; color: var(--eq-muted); text-transform: capitalize; }
-.itemCard p { min-height: 1rem; color: #c7d2fe; font-size: 0.78rem; margin: 0.5rem 0; }
-.emptyState { grid-column: 1 / -1; padding: 1.25rem; text-align: center; color: var(--eq-muted); border: 1px dashed rgba(147, 197, 253, 0.28); border-radius: 1rem; }
+.itemCard p { min-height: 1.2rem; color: #c7d2fe; font-size: 0.82rem; margin: 0.65rem 0; }
+.emptyState { grid-column: 1 / -1; padding: 1.5rem; text-align: center; color: var(--eq-muted); border: 1px dashed rgba(147, 197, 253, 0.28); border-radius: 1rem; }
 
-.rarity_uncommon { border-color: rgba(74, 222, 128, 0.52); box-shadow: 0 0 20px rgba(34,197,94,0.12); }
-.rarity_rare { border-color: rgba(96, 165, 250, 0.58); box-shadow: 0 0 22px rgba(59,130,246,0.16); }
-.rarity_epic { border-color: rgba(192, 132, 252, 0.6); box-shadow: 0 0 24px rgba(168,85,247,0.18); }
-.rarity_legendary { border-color: rgba(251, 191, 36, 0.7); box-shadow: 0 0 26px rgba(245,158,11,0.2); }
-.rarity_artifact { border-color: rgba(248, 113, 113, 0.72); box-shadow: 0 0 28px rgba(249,115,22,0.22); }
+.rarity_uncommon { border-color: rgba(74, 222, 128, 0.52); box-shadow: 0 0 24px rgba(34,197,94,0.12); }
+.rarity_rare { border-color: rgba(96, 165, 250, 0.58); box-shadow: 0 0 26px rgba(59,130,246,0.16); }
+.rarity_epic { border-color: rgba(192, 132, 252, 0.6); box-shadow: 0 0 28px rgba(168,85,247,0.18); }
+.rarity_legendary { border-color: rgba(251, 191, 36, 0.7); box-shadow: 0 0 32px rgba(245,158,11,0.2); }
+.rarity_artifact { border-color: rgba(248, 113, 113, 0.72); box-shadow: 0 0 34px rgba(249,115,22,0.22); }
 
-@keyframes pickerIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pickerIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-@media (max-width: 1180px) {
+@media (max-width: 1100px) {
   .equipmentShell { grid-template-columns: 1fr; }
   .detailsPanel { position: static; }
-  .slotGrid { min-height: 520px; }
+  .bonusSummary { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 }
 
 @media (max-width: 820px) {
-  .bonusSummary { grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); }
-  .slotGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto; grid-template-areas: none; min-height: 0; }
-  .characterPreview,
-  .slotCard { grid-area: auto; }
-  .characterPreview { min-height: 160px; }
+  .rackLayout { grid-template-columns: 1fr 1fr; grid-template-areas: 'preview preview' 'left right' 'bottom bottom'; min-height: 0; }
+  .bottomRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pickerControls { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
-  .equipmentShell { gap: 0.65rem; }
-  .rackLayout { padding: 0.55rem; }
-  .slotGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
+  .equipmentShell { gap: 0.75rem; }
+  .rackLayout { grid-template-columns: 1fr; grid-template-areas: 'preview' 'left' 'right' 'bottom'; padding: 0.7rem; }
+  .bottomRow { grid-template-columns: 1fr; }
   .bonusSummary { grid-template-columns: 1fr 1fr; }
-  .picker { position: sticky; bottom: 0; z-index: 5; border-radius: 1rem 1rem 0 0; }
+  .picker { position: sticky; bottom: 0; z-index: 5; border-radius: 1.25rem 1.25rem 0 0; }
   .itemGrid { max-height: 55vh; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .slotCard,
-  .picker,
-  .quickActions { transition: none !important; animation: none !important; }
+  .picker { transition: none !important; animation: none !important; }
 }
