@@ -281,6 +281,9 @@ export default function EquipmentRack({ equipment = {}, inventory = {}, onEquipm
           </div>
           {SLOT_LAYOUT.board.map((slot) => renderSlotCard(slot))}
         </div>
+        <div className={styles.leftColumn}>{SLOT_LAYOUT.leftColumn.map((slotKey) => renderSlotCard(slotLookup.get(slotKey)))}</div>
+        <div className={styles.rightColumn}>{SLOT_LAYOUT.rightColumn.map((slotKey) => renderSlotCard(slotLookup.get(slotKey)))}</div>
+        <div className={styles.bottomRow}>{SLOT_LAYOUT.bottomRow.map((slotKey) => renderSlotCard(slotLookup.get(slotKey)))}</div>
       </div>
       <aside className={styles.detailsPanel} aria-live="polite">
         <div className={styles.detailsHero}><ItemIcon equipmentSlot={selectedSlot.key} item={inspectedItem} size={58} /><div><span className={styles.eyebrow}>{selectedSlot.label}</span><h3>{getItemName(inspectedItem) || 'Empty Slot'}</h3><span className={styles.rarityBadge}>{inspectedItem ? getItemRarity(inspectedItem) : 'No item equipped'}</span></div></div>
