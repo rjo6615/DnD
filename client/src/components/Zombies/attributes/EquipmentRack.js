@@ -12,6 +12,14 @@ const DESCRIPTOR_KEYS = ['category', 'categories', 'type', 'types', 'slot', 'slo
 const SLOT_METADATA_KEYS = ['slot', 'equipmentSlot', 'slots', 'equipmentSlots', 'targetSlot', 'targetSlots'];
 const STAT_LABELS = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' };
 const RARITIES = ['all', 'common', 'uncommon', 'rare', 'epic', 'legendary', 'artifact'];
+const PAPER_DOLL_SLOTS = [
+  'ranged', 'head', 'eyes',
+  'mainHand', 'shoulders', 'offHand',
+  'ringLeft', 'neck', 'ringRight',
+  'arms', 'chest', 'wrists',
+  'hands', 'waist', 'back',
+  'legs', 'feet', null,
+];
 
 const toLowercaseStrings = (value) => {
   if (!value) return [];
@@ -86,6 +94,13 @@ const getItemName = (item) => !item ? '' : typeof item === 'string' ? item : ite
 const getItemSource = (item) => item && typeof item === 'object' ? item.source || item.__source || item.reference?.source : undefined;
 const normalizeRarity = (item) => String(item?.rarity || item?.quality || 'common').toLowerCase();
 const getDescription = (item) => item?.description || item?.notes || item?.detail || item?.flavor || 'No description recorded for this piece of gear.';
+const getCharacterPart = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map(getCharacterPart).filter(Boolean).join(', ');
+  if (typeof value === 'object') return value.name || value.Name || value.displayName || value.title || '';
+  return String(value);
+};
 const getStatLines = (item) => {
   if (!item) return [];
   const lines = [];
@@ -149,9 +164,9 @@ export default function EquipmentRack({ equipment = {}, inventory = {}, onEquipm
   }, [equipment, onEquipmentChange, onSlotChange, optionMap]);
   const renderSlot = (slot) => {
     const item = equipment?.[slot.key]; const rarity = normalizeRarity(item); const lines = getStatLines(item).slice(0, 2);
-    return <button key={slot.key} type="button" className={`${styles.socket} ${styles[`rarity_${rarity}`] || ''} ${selectedSlot.key === slot.key ? styles.selected : ''}`} onClick={() => setSelectedSlotKey(slot.key)} disabled={disabled} aria-label={`${slot.label} equipment slot${item ? ` equipped with ${getItemName(item)}` : ', empty'}`}>
+    return <button key={slot.key} type="button" className={`${styles.socket} ${item ? styles.equippedSocket : styles.emptySocket} ${styles[`slot_${slot.key}`] || ''} ${styles[`rarity_${rarity}`] || ''} ${selectedSlot.key === slot.key ? styles.selected : ''}`} onClick={() => setSelectedSlotKey(slot.key)} disabled={disabled} aria-label={`${slot.label} equipment slot${item ? ` equipped with ${getItemName(item)}` : ', empty'}`}>
       <span className={styles.socketLabel}>{slot.label}</span><span className={styles.socketIcon}><ItemIcon item={item} equipmentSlot={slot.key} size={40} title={slot.label} /></span>
-      <span className={styles.socketName}>{item ? getItemName(item) : 'Empty Slot'}</span><span className={styles.socketMeta}>{item ? (lines[0] || SOURCE_DESCRIPTIONS[getItemSource(item)] || 'Equipped') : 'Choose equipment'}</span>
+      <span className={styles.socketState}>{item ? 'Equipped' : 'Open'}</span><span className={styles.socketName}>{item ? getItemName(item) : 'Empty Slot'}</span><span className={styles.socketMeta}>{item ? (lines[0] || SOURCE_DESCRIPTIONS[getItemSource(item)] || 'Equipped') : 'Click to equip'}</span>
     </button>;
   };
   const detailItem = currentItem;
@@ -159,9 +174,8 @@ export default function EquipmentRack({ equipment = {}, inventory = {}, onEquipm
     <div className={styles.bonusSummary} aria-label="Active equipment bonuses"><div><strong>{summary.ac >= 0 ? '+' : ''}{summary.ac}</strong><span>Armor Class</span></div><div><strong>{summary.attack >= 0 ? '+' : ''}{summary.attack}</strong><span>Attack Bonus</span></div><div><strong>{summary.passive}</strong><span>Passive Effects</span></div><div><strong>{summary.weight}</strong><span>Weight</span></div></div>
     <div className={styles.equipmentShell}>
       <section className={styles.paperDoll} aria-label="Character equipment rack">
-        <div className={styles.leftRail}>{['mainHand','ringLeft','hands','arms','wrists'].map((key) => renderSlot(slotLookup.get(key)))}</div>
-        <div className={styles.centerRail}>{renderSlot(slotLookup.get('head'))}<div className={styles.characterPreview}><div className={styles.characterAura}><Shield size={54}/></div><h3>{character.name || 'Adventurer'}</h3><p>{[character.race, character.className || character.occupation?.[0]?.Name, character.level && `Level ${character.level}`].filter(Boolean).join(' • ') || 'Equipped hero'}</p><span><Sword size={15}/> {equippedItems.length} slots active</span></div>{renderSlot(slotLookup.get('chest'))}{renderSlot(slotLookup.get('waist'))}</div>
-        <div className={styles.rightRail}>{['offHand','neck','ringRight','back','legs','feet','ranged','eyes','shoulders'].map((key) => renderSlot(slotLookup.get(key)))}</div>
+        <div className={styles.characterPreview}><div className={styles.characterAura}><Shield size={54}/></div><h3>{character.name || 'Adventurer'}</h3><p>{[getCharacterPart(character.race), getCharacterPart(character.className || character.occupation?.[0]?.Name), character.level && `Level ${character.level}`].filter(Boolean).join(' • ') || 'Equipped hero'}</p><span><Sword size={15}/> {equippedItems.length} slots active</span></div>
+        {PAPER_DOLL_SLOTS.map((key, index) => key ? renderSlot(slotLookup.get(key)) : <span key={`spacer-${index}`} className={styles.slotSpacer} aria-hidden="true" />)}
       </section>
       <aside className={styles.detailPanel} aria-live="polite"><div className={styles.panelHeader}><span>{selectedSlot.label}</span><strong>{detailItem ? getItemName(detailItem) : 'Empty Slot'}</strong></div>{detailItem ? <><div className={`${styles.itemHero} ${styles[`rarity_${normalizeRarity(detailItem)}`] || ''}`}><ItemIcon item={detailItem} equipmentSlot={selectedSlot.key} size={72}/><span>{normalizeRarity(detailItem)}</span></div><p>{getDescription(detailItem)}</p><div className={styles.statList}>{getStatLines(detailItem).map((line) => <span key={line}>{line}</span>)}</div><dl className={styles.itemFacts}><dt>Type</dt><dd>{SOURCE_DESCRIPTIONS[getItemSource(detailItem)] || 'Gear'}</dd><dt>Weight</dt><dd>{detailItem.weight || '—'}</dd><dt>Value</dt><dd>{detailItem.cost || detailItem.value || '—'}</dd></dl><Button variant="outline-light" className={styles.unequipButton} onClick={() => handleAssign(selectedSlot.key, '')} disabled={disabled}><X size={16}/> Unequip</Button></> : <div className={styles.emptyDetail}><Sparkles size={42}/><p>Select compatible owned gear below to fill this socket.</p></div>}
         <div className={styles.picker}><div className={styles.pickerTools}><label><Search size={15}/><Form.Control size="sm" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search compatible gear" aria-label="Search compatible gear" /></label><Form.Select size="sm" value={rarityFilter} onChange={(e) => setRarityFilter(e.target.value)} aria-label="Filter by rarity">{RARITIES.map((rarity) => <option key={rarity} value={rarity}>{rarity === 'all' ? 'All rarities' : rarity}</option>)}</Form.Select></div><div className={styles.itemList}>{compatibleOptions.length ? compatibleOptions.map((opt) => { const equipped = optionMatchesItem(opt, currentItem); const rarity = normalizeRarity(opt.item); return <button key={opt.value} type="button" className={`${styles.itemCard} ${styles[`rarity_${rarity}`] || ''}`} onClick={() => handleAssign(selectedSlot.key, opt.value)} disabled={disabled} title={`${opt.label} - ${getDescription(opt.item)}`}><ItemIcon item={opt.item} equipmentSlot={selectedSlot.key} size={34}/><span><strong>{opt.label}</strong><small>{rarity} • {getStatLines(opt.item).slice(0, 2).join(' • ') || opt.description}</small></span>{equipped ? <CheckCircle2 size={18}/> : <em>Equip</em>}</button>; }) : <p className={styles.noItems}>No owned compatible equipment found for this slot.</p>}</div></div>
