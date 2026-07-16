@@ -79,7 +79,7 @@ export default function EquipmentModal({
       className={modalClassName}
       show={show}
       onHide={handleModalHide}
-      size="lg"
+      size="xl"
       centered={!isDocked}
       scrollable
       fullscreen="sm-down"
@@ -112,6 +112,7 @@ export default function EquipmentModal({
               }}
               onEquipmentChange={onEquipmentChange}
               onSlotChange={onEquipmentSlotChange}
+              character={form}
             />
           )}
         </Card.Body>
