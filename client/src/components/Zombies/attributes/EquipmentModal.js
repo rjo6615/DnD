@@ -79,7 +79,7 @@ export default function EquipmentModal({
       className={modalClassName}
       show={show}
       onHide={handleModalHide}
-      size="lg"
+      size="xl"
       centered={!isDocked}
       scrollable
       fullscreen="sm-down"
@@ -95,11 +95,11 @@ export default function EquipmentModal({
             onDockChange={onDockChange}
             isDocked={isDocked}
           />
-          <Card.Title className="modal-title">Equipment</Card.Title>
+          <Card.Title className="modal-title">Equipment Arsenal</Card.Title>
         </Card.Header>
         <Card.Body
           className="modal-body"
-          style={{ maxHeight: '80vh', overflowY: 'auto' }}
+          style={{ maxHeight: 'calc(100vh - 11rem)', overflowY: 'auto' }}
         >
           {show && (
             <EquipmentRack
