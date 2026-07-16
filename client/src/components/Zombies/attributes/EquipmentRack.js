@@ -123,9 +123,33 @@ const getItemName = (item) => {
   return item.displayName || item.name || item.itemName || item.accessoryName || item.armorName || item.title || '';
 };
 
+
+const formatDisplayValue = (value) => {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => formatDisplayValue(entry))
+      .filter(Boolean)
+      .join(', ');
+  }
+  if (typeof value === 'object') {
+    if (value.name || value.label || value.title) {
+      return String(value.name || value.label || value.title);
+    }
+    return Object.entries(value)
+      .map(([key, entry]) => {
+        const formatted = formatDisplayValue(entry);
+        return formatted ? `${key}: ${formatted}` : '';
+      })
+      .filter(Boolean)
+      .join(', ');
+  }
+  return String(value);
+};
+
 const getItemSource = (item) => item && typeof item === 'object' ? (item.source || item.__source || item.reference?.source) : undefined;
 const getItemRarity = (item) => String(item?.rarity || item?.quality || item?.tier || 'common').toLowerCase();
-const getItemDescription = (item) => item?.description || item?.desc || item?.details || item?.notes || 'No lore entry has been recorded for this piece yet.';
+const getItemDescription = (item) => formatDisplayValue(item?.description || item?.desc || item?.details || item?.notes) || 'No lore entry has been recorded for this piece yet.';
 
 const getStatLines = (item) => {
   if (!item || typeof item !== 'object') return [];
@@ -140,8 +164,13 @@ const getStatLines = (item) => {
   add('Speed', item.speedBonus || item.movementBonus, '+');
   Object.entries(item.statBonuses || item.abilityBonuses || {}).forEach(([key, value]) => add(ABILITY_LABELS[key] || key, value));
   Object.entries(item.statOverrides || {}).forEach(([key, value]) => lines.push(`${ABILITY_LABELS[key] || key} set to ${value}`));
-  if (item.damage) lines.push(`${item.damage} damage`);
-  if (item.properties) lines.push(Array.isArray(item.properties) ? item.properties.slice(0, 2).join(', ') : item.properties);
+  const damage = formatDisplayValue(item.damage);
+  if (damage) lines.push(`${damage} damage`);
+  const properties = Array.isArray(item.properties)
+    ? item.properties.slice(0, 2)
+    : item.properties;
+  const formattedProperties = formatDisplayValue(properties);
+  if (formattedProperties) lines.push(formattedProperties);
   return lines.slice(0, 4);
 };
 
