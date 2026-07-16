@@ -24,6 +24,12 @@ const SLOT_METADATA_KEYS = ['slot', 'equipmentSlot', 'slots', 'equipmentSlots', 
 
 const RARITY_ORDER = ['all', 'common', 'uncommon', 'rare', 'epic', 'legendary', 'artifact'];
 
+const SLOT_LAYOUT = {
+  leftColumn: ['head', 'eyes', 'neck', 'shoulders', 'chest', 'back'],
+  rightColumn: ['arms', 'wrists', 'hands', 'waist', 'legs', 'feet'],
+  bottomRow: ['mainHand', 'offHand', 'ranged', 'ringLeft', 'ringRight'],
+};
+
 const ABILITY_LABELS = { str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
 
 const toLowercaseStrings = (value) => {
@@ -162,7 +168,7 @@ const materializeOptionItem = (option) => {
 
 export default function EquipmentRack({ equipment = {}, inventory = {}, onEquipmentChange, onSlotChange, disabled = false }) {
   const { weapons = [], armor = [], items = [], accessories = [] } = inventory || {};
-  const [selectedSlotKey, setSelectedSlotKey] = useState('chest');
+  const [selectedSlotKey, setSelectedSlotKey] = useState('mainHand');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [rarityFilter, setRarityFilter] = useState('all');
@@ -216,7 +222,7 @@ export default function EquipmentRack({ equipment = {}, inventory = {}, onEquipm
     const statLines = getStatLines(item);
     const rarity = item ? getItemRarity(item) : 'empty';
     return (
-      <article key={slot.key} className={`${styles.slotCard} ${styles[`slot_${slot.key}`] || ''} ${styles[`rarity_${rarity}`] || ''} ${selectedSlotKey === slot.key ? styles.selected : ''}`}>
+      <article key={slot.key} className={`${styles.slotCard} ${styles[`rarity_${rarity}`] || ''} ${selectedSlotKey === slot.key ? styles.selected : ''}`}>
         <button type="button" className={styles.slotButton} onClick={() => openPicker(slot.key)} aria-label={`${slot.label}: ${item ? `change ${getItemName(item)}` : 'choose equipment'}`} disabled={disabled}>
           <span className={styles.slotHeader}><ItemIcon equipmentSlot={slot.key} size={30} className={styles.slotIcon} title="" /><span>{slot.label}</span></span>
           <span className={styles.itemArt}><ItemIcon equipmentSlot={slot.key} item={item} size={46} title={getItemName(item) || slot.label} /></span>
@@ -240,13 +246,10 @@ export default function EquipmentRack({ equipment = {}, inventory = {}, onEquipm
         ))}
       </section>
       <div className={styles.rackLayout}>
-        <div className={styles.slotGrid}>
-          <div className={styles.characterPreview}>
-            <div className={styles.previewSigil}>✦</div>
-            <h3>Loadout</h3>
-            <p>{hasOptions ? 'Click any socket to compare and equip owned gear.' : 'Owned gear will appear here when inventory is available.'}</p>
-          </div>
-          {FLAT_SLOTS.map((slot) => renderSlotCard(slot))}
+        <div className={styles.characterPreview}>
+          <div className={styles.previewSigil}>✦</div>
+          <h3>Loadout</h3>
+          <p>{hasOptions ? 'Select a slot, compare owned gear, and equip instantly.' : 'Owned gear will appear here when inventory is available.'}</p>
         </div>
         <div className={styles.leftColumn}>{SLOT_LAYOUT.leftColumn.map((slotKey) => renderSlotCard(slotLookup.get(slotKey)))}</div>
         <div className={styles.rightColumn}>{SLOT_LAYOUT.rightColumn.map((slotKey) => renderSlotCard(slotLookup.get(slotKey)))}</div>

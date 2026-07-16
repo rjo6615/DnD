@@ -99,7 +99,7 @@ export default function EquipmentModal({
         </Card.Header>
         <Card.Body
           className="modal-body"
-          style={{ maxHeight: 'calc(100vh - 11rem)', overflowY: 'auto' }}
+          style={{ maxHeight: '80vh', overflowY: 'auto' }}
         >
           {show && (
             <EquipmentRack
