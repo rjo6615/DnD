@@ -11901,3 +11901,135 @@ body.character-creation-modal-open {
   .realm-class-card { grid-template-columns: auto 1fr; }
   .character-class-list__level { grid-column: 2; justify-self: start; }
 }
+
+/* Character overview refinements: keep details scannable and actions polished. */
+.character-info-layout {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px;
+}
+.character-info-panel--identity {
+  order: -1;
+  grid-column: 1 / -1;
+  padding: 14px 16px;
+}
+.character-info-panel--progression {
+  grid-column: span 8;
+  grid-row: auto;
+}
+.character-info-panel--recovery {
+  grid-column: span 4;
+}
+.character-info-panel--identity .character-info-section-heading {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.character-info-panel--identity .character-info-section-heading h4 {
+  font-size: 1.05rem;
+}
+.character-info-panel--identity .character-stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+}
+.character-info-panel--identity .realm-stat-card {
+  min-height: 72px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+.character-info-panel--identity .realm-stat-card span {
+  font-size: .61rem;
+  letter-spacing: .12em;
+}
+.character-info-panel--identity .realm-stat-card strong {
+  font-size: clamp(.92rem, 1.15vw, 1.12rem);
+  line-height: 1.15;
+}
+.character-info-panel--identity .realm-stat-card small {
+  font-size: .68rem;
+  line-height: 1.2;
+}
+.character-info-panel--identity .stat-card-view {
+  justify-self: start;
+  min-width: 34px;
+  min-height: 34px;
+  padding: .35rem .55rem !important;
+}
+.character-info-panel--recovery .rest-action-card {
+  padding: 12px 14px;
+  min-height: 92px;
+}
+.character-info-panel--recovery .rest-action-card strong {
+  font-size: 1rem;
+}
+.character-info-panel--recovery .rest-action-card span {
+  font-size: .84rem;
+  line-height: 1.35;
+}
+.character-info-panel--recovery .character-info-figurine {
+  margin: 12px 0 0;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.character-info-panel--recovery .character-info-figurine__preview {
+  min-height: 86px;
+  max-width: 112px;
+  padding: .55rem;
+}
+.character-info-panel--recovery .character-info-figurine__image {
+  max-width: 76px;
+  max-height: 76px;
+}
+.character-info-footer {
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 18px calc(14px + env(safe-area-inset-bottom)) !important;
+}
+.character-info-footer .hud-button {
+  min-height: 46px;
+  padding: .62rem 1rem !important;
+  border-radius: 16px !important;
+  letter-spacing: .01em;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 12px 26px rgba(0,0,0,.22);
+}
+.character-info-footer .progression-entry-button {
+  min-width: 168px;
+  color: #111827 !important;
+  background: linear-gradient(135deg, #f5d06f, #62b8ff 88%) !important;
+  border-color: rgba(255,226,143,.86) !important;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.character-info-footer .progression-entry-button span {
+  color: rgba(17,24,39,.78);
+}
+.character-info-footer .hud-button--secondary {
+  background: linear-gradient(135deg, rgba(104,83,178,.9), rgba(64,130,220,.88)) !important;
+  border-color: rgba(169,151,255,.42) !important;
+}
+.character-info-footer .hud-button--ghost {
+  background: rgba(11,23,42,.74) !important;
+  border-color: rgba(121,184,255,.22) !important;
+  color: rgba(238,246,255,.9) !important;
+}
+.character-info-footer .hud-button--ghost:hover,
+.character-info-footer .hud-button--secondary:hover,
+.character-info-footer .progression-entry-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px rgba(78,161,255,.22), inset 0 1px 0 rgba(255,255,255,.2);
+}
+@media (max-width: 980px) {
+  .character-info-panel--progression,
+  .character-info-panel--recovery { grid-column: 1 / -1; }
+  .character-info-panel--recovery .character-info-figurine { justify-content: flex-start; gap: 12px; }
+}
+@media (max-width: 768px) {
+  .character-info-panel--identity .character-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .character-info-footer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .character-info-footer .progression-entry-button { grid-column: 1 / -1; width: 100%; }
+}
+@media (max-width: 420px) {
+  .character-info-panel--identity .character-stat-grid { grid-template-columns: 1fr; }
+  .character-info-footer { grid-template-columns: 1fr; }
+}
