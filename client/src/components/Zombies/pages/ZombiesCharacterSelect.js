@@ -2327,16 +2327,84 @@ const applyGeneratedCharacterToForm = (next) => {
   setForm(createCharacterFromGeneratedData(next));
 };
 
-const runSmartGenerator = (overrides = {}) => {
+const getTokenAssetImageData = (asset) => ({
+  figurineImageUrl:
+    (typeof asset?.secureUrl === 'string' && asset.secureUrl.trim()) ||
+    (typeof asset?.url === 'string' && asset.url.trim()) ||
+    (typeof asset?.imageUrl === 'string' && asset.imageUrl.trim()) ||
+    '',
+  figurineImagePublicId: typeof asset?.publicId === 'string' ? asset.publicId.trim() : '',
+});
+
+const fetchRandomFigurineForCharacter = async (character) => {
+  const scope = buildPlayerTokenFolderScope(character?.race, character?.occupation);
+  const classNames = (Array.isArray(character?.occupation) ? character.occupation : [])
+    .map((job) => String(job?.Occupation || job?.name || '').toLowerCase())
+    .filter(Boolean);
+  const folderCandidates = Array.from(new Set((scope || [])
+    .filter((entry) => typeof entry === 'string' && entry.startsWith('folder:'))
+    .map((entry) => entry.slice('folder:'.length).trim())
+    .filter(Boolean)))
+    .sort((left, right) => {
+      const leftLower = left.toLowerCase();
+      const rightLower = right.toLowerCase();
+      const leftClassMatch = classNames.some((name) => leftLower.includes(name));
+      const rightClassMatch = classNames.some((name) => rightLower.includes(name));
+      if (leftClassMatch === rightClassMatch) return 0;
+      return leftClassMatch ? -1 : 1;
+    });
+
+  const folderBatches = folderCandidates.length
+    ? [folderCandidates.slice(0, 6), ['Tokens/Adventurers']]
+    : [['Tokens/Adventurers']];
+
+  for (const folders of folderBatches) {
+    const queryParams = new URLSearchParams();
+    queryParams.set('folders', folders.join(','));
+    const endpoint = `/campaigns/${encodeURIComponent(params.campaign.toString())}/token-manifest?${queryParams.toString()}`;
+    const response = await apiFetch(endpoint);
+    if (!response.ok) {
+      continue;
+    }
+    const manifest = await response.json();
+    const assets = Array.isArray(manifest?.assets) ? manifest.assets.filter(Boolean) : [];
+    if (assets.length) {
+      const selected = assets[Math.floor(Math.random() * assets.length)];
+      const imageData = getTokenAssetImageData(selected);
+      if (imageData.figurineImageUrl || imageData.figurineImagePublicId) {
+        return imageData;
+      }
+    }
+  }
+
+  return null;
+};
+
+const attachRandomFigurineAsset = async (character) => {
+  try {
+    const figurineAsset = await fetchRandomFigurineForCharacter(character);
+    if (figurineAsset) {
+      return { ...character, ...figurineAsset };
+    }
+    setGeneratorError('No matching figurine asset was found automatically. You can still change the figurine manually.');
+  } catch (error) {
+    setGeneratorError('Could not automatically choose a figurine. You can still change the figurine manually.');
+  }
+  return { ...character, figurineImageUrl: '', figurineImagePublicId: '' };
+};
+
+const runSmartGenerator = async (overrides = {}) => {
   setGeneratorError('');
   setGeneratorStatus('Rolling ancestry, class, stats, and figurine...');
-  const next = generateSmartCharacter({
+  const generated = generateSmartCharacter({
     baseForm: { ...createDefaultForm(params.campaign), token: user?.username || form.token || "" },
     races,
     classes: Object.fromEntries(getOccupation.map((item) => [String(item.name || '').toLowerCase(), item])),
     backgrounds,
     preferredName: overrides.preferredName || form.characterName,
   });
+  setGeneratorStatus('Choosing a matching figurine...');
+  const next = await attachRandomFigurineAsset(generated);
   applyGeneratedCharacterToForm(next);
   setGeneratorStatus('Character validated and ready to preview.');
 };
@@ -2384,13 +2452,15 @@ const runAIGenerator = async () => {
     if (!response.ok) throw new Error('AI generation is temporarily unavailable. Smart Random is still available.');
     setGeneratorStatus('Validating build and assigning stats...');
     const aiData = await response.json();
-    const next = normalizeAICharacter({
+    const normalized = normalizeAICharacter({
       aiData,
       baseForm: { ...createDefaultForm(params.campaign), token: user?.username || form.token || "" },
       races,
       classes: Object.fromEntries(getOccupation.map((item) => [String(item.name || '').toLowerCase(), item])),
       backgrounds,
     });
+    setGeneratorStatus('Choosing a matching figurine...');
+    const next = await attachRandomFigurineAsset(normalized);
     applyGeneratedCharacterToForm(next);
     setGeneratorStatus('AI concept normalized with RealmTracker rules.');
   } catch (error) {
