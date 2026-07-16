@@ -11804,3 +11804,232 @@ body.character-creation-modal-open {
   .character-generator__footer { display:grid; grid-template-columns:1fr 1fr; padding:.65rem .8rem; }
   .character-generator__footer .btn:last-child { grid-column:1 / -1; }
 }
+
+/* Premium character management modals */
+.character-info-modal .modal-dialog { max-width: min(1180px, calc(100vw - 32px)); }
+.progression-modal .modal-dialog { max-width: min(920px, calc(100vw - 32px)); }
+.character-info-shell,
+.progression-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(88vh, 980px);
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+}
+.character-info-shell .realm-modal-header,
+.progression-shell .realm-modal-header {
+  min-height: 88px;
+  padding: 18px 72px 18px 24px;
+  border-bottom: 1px solid rgba(121,184,255,.18);
+  background: linear-gradient(180deg, rgba(14,30,54,.96), rgba(5,11,24,.92));
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.realm-modal-header__titles { min-width: 150px; }
+.realm-modal-header__subtitle { color: #d8b76a; font-size: .76rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 800; }
+.realm-modal-header__title { color: #fff8df; font-family: 'Cinzel', serif; margin: 0; font-size: clamp(1.25rem, 2vw, 1.8rem); }
+.realm-modal-header__content { flex: 1; min-width: 0; }
+.realm-modal-header__actions { order: -1; }
+.realm-modal-header__close { position: absolute; right: 18px; top: 18px; min-width: 44px; min-height: 44px; }
+.character-summary-header { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.character-summary-header__portrait { width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; flex: 0 0 auto; overflow: hidden; color: #d8b76a; font-size: 1.6rem; background: radial-gradient(circle at 35% 20%, rgba(216,183,106,.28), rgba(30,55,90,.52)); border: 1px solid rgba(216,183,106,.28); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); }
+.character-summary-header__portrait img { width: 100%; height: 100%; object-fit: contain; }
+.character-summary-header__copy { min-width: 0; display: grid; gap: 2px; text-align: left; }
+.character-summary-header__copy h3 { margin: 0; color: #fff; font-weight: 900; font-size: clamp(1.1rem, 2vw, 1.55rem); }
+.character-summary-header__copy p, .character-summary-header__copy span, .character-summary-header__copy small { margin: 0; color: rgba(238,246,255,.78); }
+.character-summary-header__copy span { white-space: normal; overflow-wrap: anywhere; }
+.character-info-body,
+.progression-body { min-height: 0; overflow-y: auto; padding: 22px !important; }
+.character-info-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .8fr); gap: 16px; align-items: start; }
+.character-info-panel { padding: 18px; background: linear-gradient(145deg, rgba(15,29,52,.82), rgba(5,10,22,.88)); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+.character-info-panel--progression { grid-row: span 2; }
+.character-info-section-heading { margin-bottom: 14px; text-align: left; }
+.character-info-section-heading span { color: #79b8ff; text-transform: uppercase; letter-spacing: .13em; font-size: .74rem; font-weight: 900; }
+.character-info-section-heading h4 { margin: 2px 0 0; color: #fff8df; font-weight: 900; }
+.character-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; }
+.character-stat-grid--compact { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 14px; }
+.realm-stat-card { padding: 14px; text-align: left; gap: 3px; min-width: 0; }
+.realm-stat-card span { color: rgba(218,232,255,.68); font-size: .72rem; letter-spacing: .11em; text-transform: uppercase; font-weight: 800; }
+.realm-stat-card strong { color: #fff; font-size: clamp(1.05rem, 2vw, 1.4rem); overflow-wrap: anywhere; }
+.realm-stat-card small { color: rgba(238,246,255,.66); }
+.character-class-list, .levelup-choice-grid, .class-browser-grid { display: grid; gap: 10px; }
+.character-class-list { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.realm-action-card { width: 100%; min-height: 44px; padding: 14px; border-radius: 16px; border: 1px solid rgba(121,184,255,.18); background: linear-gradient(145deg, rgba(22,39,65,.78), rgba(7,13,27,.9)); color: var(--realm-text); text-align: left; display: grid; gap: 5px; transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease; }
+.realm-action-card:hover:not(:disabled):not(.is-disabled), .realm-action-card:focus-visible { transform: translateY(-1px); border-color: rgba(121,184,255,.5); box-shadow: 0 0 0 .18rem rgba(78,161,255,.18), 0 18px 36px rgba(0,0,0,.25); outline: none; }
+.realm-action-card.is-selected { border-color: rgba(216,183,106,.8); background: linear-gradient(145deg, rgba(92,70,30,.76), rgba(13,25,45,.92)); box-shadow: 0 0 28px rgba(216,183,106,.18); }
+.realm-action-card:disabled, .realm-action-card.is-disabled { opacity: .55; cursor: not-allowed; }
+.realm-class-card { grid-template-columns: auto 1fr auto; align-items: center; }
+.realm-class-card strong { color: #fff; }
+.realm-class-card small, .realm-class-card span, .realm-class-card em { color: rgba(238,246,255,.72); font-style: normal; }
+.class-card__icon { width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; color: #d8b76a; background: rgba(216,183,106,.12); border: 1px solid rgba(216,183,106,.18); }
+.character-class-list__level { justify-self: end; color: #d8b76a !important; font-weight: 900; }
+.is-primary-class { border-color: rgba(216,183,106,.46); }
+.rest-action-grid { display: grid; gap: 10px; }
+.rest-action-card--short { border-color: rgba(78,202,255,.28); }
+.rest-action-card--long { border-color: rgba(216,183,106,.38); background: radial-gradient(circle at 100% 0%, rgba(155,112,255,.2), transparent 42%), linear-gradient(145deg, rgba(35,31,62,.82), rgba(9,14,28,.92)); }
+.character-info-footer,
+.progression-footer { justify-content: flex-end; flex-wrap: wrap; padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important; }
+.progression-entry-button { display: inline-flex !important; flex-direction: column; align-items: flex-start; line-height: 1.05; background: linear-gradient(135deg, #224fb1, #d8a928) !important; border-color: rgba(216,183,106,.74) !important; }
+.progression-entry-button span { font-size: .76rem; opacity: .9; }
+.levelup-summary { display: grid; grid-template-columns: minmax(170px, .35fr) 1fr; gap: 12px; align-items: stretch; margin-bottom: 16px; }
+.levelup-summary__classes { border: 1px solid rgba(121,184,255,.16); border-radius: 16px; padding: 14px; background: rgba(255,255,255,.04); color: rgba(238,246,255,.82); display: flex; align-items: center; }
+.levelup-choice-grid { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.realm-class-card--add { border-style: dashed; border-color: rgba(216,183,106,.5); }
+.add-class-step { display: grid; gap: 14px; animation: realmStepIn .18s ease-out; }
+.class-browser-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); max-height: 42vh; overflow-y: auto; padding-right: 4px; }
+.selected-class-preview { padding: 14px; }
+.selected-class-preview p { margin: 4px 0 0; color: rgba(238,246,255,.74); }
+.barbarian-followup { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+@keyframes realmStepIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .add-class-step, .realm-action-card { animation: none; transition: none; } }
+@media (max-width: 900px) { .character-info-layout { grid-template-columns: 1fr; } .character-info-panel--progression { grid-row: auto; } }
+@media (max-width: 768px) {
+  .character-info-modal .modal-dialog, .progression-modal .modal-dialog { max-width: 100%; }
+  .character-info-shell, .progression-shell { max-height: 92vh; }
+  .character-info-shell .realm-modal-header, .progression-shell .realm-modal-header { padding: 14px 60px 14px 16px; align-items: flex-start; flex-direction: column; }
+  .realm-modal-header__actions { order: 0; }
+  .character-summary-header__portrait { width: 52px; height: 52px; border-radius: 16px; }
+  .character-stat-grid--compact, .levelup-summary { grid-template-columns: 1fr; }
+  .character-info-footer .hud-button, .progression-footer .hud-button { flex: 1 1 160px; min-height: 44px; }
+  .progression-entry-button { flex-basis: 100% !important; }
+  .class-browser-grid { max-height: none; overflow: visible; }
+}
+@media (max-width: 420px) {
+  .character-summary-header { align-items: flex-start; }
+  .realm-class-card { grid-template-columns: auto 1fr; }
+  .character-class-list__level { grid-column: 2; justify-self: start; }
+}
+
+/* Character overview refinements: keep details scannable and actions polished. */
+.character-info-layout {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px;
+}
+.character-info-panel--identity {
+  order: -1;
+  grid-column: 1 / -1;
+  padding: 14px 16px;
+}
+.character-info-panel--progression {
+  grid-column: span 8;
+  grid-row: auto;
+}
+.character-info-panel--recovery {
+  grid-column: span 4;
+}
+.character-info-panel--identity .character-info-section-heading {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.character-info-panel--identity .character-info-section-heading h4 {
+  font-size: 1.05rem;
+}
+.character-info-panel--identity .character-stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+}
+.character-info-panel--identity .realm-stat-card {
+  min-height: 72px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+.character-info-panel--identity .realm-stat-card span {
+  font-size: .61rem;
+  letter-spacing: .12em;
+}
+.character-info-panel--identity .realm-stat-card strong {
+  font-size: clamp(.92rem, 1.15vw, 1.12rem);
+  line-height: 1.15;
+}
+.character-info-panel--identity .realm-stat-card small {
+  font-size: .68rem;
+  line-height: 1.2;
+}
+.character-info-panel--identity .stat-card-view {
+  justify-self: start;
+  min-width: 34px;
+  min-height: 34px;
+  padding: .35rem .55rem !important;
+}
+.character-info-panel--recovery .rest-action-card {
+  padding: 12px 14px;
+  min-height: 92px;
+}
+.character-info-panel--recovery .rest-action-card strong {
+  font-size: 1rem;
+}
+.character-info-panel--recovery .rest-action-card span {
+  font-size: .84rem;
+  line-height: 1.35;
+}
+.character-info-panel--recovery .character-info-figurine {
+  margin: 12px 0 0;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.character-info-panel--recovery .character-info-figurine__preview {
+  min-height: 86px;
+  max-width: 112px;
+  padding: .55rem;
+}
+.character-info-panel--recovery .character-info-figurine__image {
+  max-width: 76px;
+  max-height: 76px;
+}
+.character-info-footer {
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 18px calc(14px + env(safe-area-inset-bottom)) !important;
+}
+.character-info-footer .hud-button {
+  min-height: 46px;
+  padding: .62rem 1rem !important;
+  border-radius: 16px !important;
+  letter-spacing: .01em;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 12px 26px rgba(0,0,0,.22);
+}
+.character-info-footer .progression-entry-button {
+  min-width: 168px;
+  color: #111827 !important;
+  background: linear-gradient(135deg, #f5d06f, #62b8ff 88%) !important;
+  border-color: rgba(255,226,143,.86) !important;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.character-info-footer .progression-entry-button span {
+  color: rgba(17,24,39,.78);
+}
+.character-info-footer .hud-button--secondary {
+  background: linear-gradient(135deg, rgba(104,83,178,.9), rgba(64,130,220,.88)) !important;
+  border-color: rgba(169,151,255,.42) !important;
+}
+.character-info-footer .hud-button--ghost {
+  background: rgba(11,23,42,.74) !important;
+  border-color: rgba(121,184,255,.22) !important;
+  color: rgba(238,246,255,.9) !important;
+}
+.character-info-footer .hud-button--ghost:hover,
+.character-info-footer .hud-button--secondary:hover,
+.character-info-footer .progression-entry-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px rgba(78,161,255,.22), inset 0 1px 0 rgba(255,255,255,.2);
+}
+@media (max-width: 980px) {
+  .character-info-panel--progression,
+  .character-info-panel--recovery { grid-column: 1 / -1; }
+  .character-info-panel--recovery .character-info-figurine { justify-content: flex-start; gap: 12px; }
+}
+@media (max-width: 768px) {
+  .character-info-panel--identity .character-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .character-info-footer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .character-info-footer .progression-entry-button { grid-column: 1 / -1; width: 100%; }
+}
+@media (max-width: 420px) {
+  .character-info-panel--identity .character-stat-grid { grid-template-columns: 1fr; }
+  .character-info-footer { grid-template-columns: 1fr; }
+}
