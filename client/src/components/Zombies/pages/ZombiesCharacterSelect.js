@@ -14,6 +14,7 @@ import { notify } from '../../../utils/notification';
 import { calculateCharacterHitPoints } from '../utils/characterMetrics';
 import TokenPickerModal from '../components/TokenPickerModal';
 import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
+import { createCharacterFromGeneratedData, generateSmartCharacter, normalizeAICharacter, rollAbilityPool, assignAbilityScores, chooseClassBuildProfile, validateGeneratedCharacter } from '../utils/characterGenerator';
 
 const DEFAULT_SIZE_OPTIONS = ["Tiny", "Small", "Medium", "Large"];
 
@@ -473,6 +474,12 @@ const sizeOptionsForManual = useMemo(() => {
 const [show, setShow] = useState(false);
 const handleClose = () => setShow(false);
 const handleShow = () => setShow(true);
+const [generatorMode, setGeneratorMode] = useState('smart');
+const [generatedCharacter, setGeneratedCharacter] = useState(null);
+const [generatorPrompt, setGeneratorPrompt] = useState('');
+const [generatorError, setGeneratorError] = useState('');
+const [isGeneratingCharacter, setIsGeneratingCharacter] = useState(false);
+const [generatorStatus, setGeneratorStatus] = useState('');
 
 const [showAbilitySkillModal, setShowAbilitySkillModal] = useState(false);
 const [abilitySelections, setAbilitySelections] = useState([]);
@@ -1212,6 +1219,7 @@ const handleCreationTokenSelection = useCallback((asset) => {
   const figurineImageUrl = asset ? ((typeof asset.secureUrl === "string" && asset.secureUrl.trim()) || (typeof asset.url === "string" && asset.url.trim()) || "") : "";
   const figurineImagePublicId = asset && typeof asset.publicId === "string" ? asset.publicId.trim() : "";
   setForm((prev) => ({ ...prev, figurineImageUrl, figurineImagePublicId }));
+  setGeneratedCharacter((prev) => prev ? { ...prev, figurineImageUrl, figurineImagePublicId } : prev);
   setShowCreationTokenPicker(false);
 }, []);
 const handleClearCreationFigurine = useCallback(() => setForm((prev) => ({ ...prev, figurineImageUrl: "", figurineImagePublicId: "" })), []);
@@ -2303,6 +2311,183 @@ const getAvailableSkillOptions = (index) => {
   return base.filter((opt) => !taken.includes(opt));
 };
 
+
+const openCharacterGenerator = () => {
+  const freshForm = { ...createDefaultForm(params.campaign), token: user?.username || form.token || "" };
+  setForm(freshForm);
+  setGeneratedCharacter(null);
+  setGeneratorError('');
+  setGeneratorStatus('Ready to forge a hero.');
+  setGeneratorMode('smart');
+  handleShow();
+};
+
+const applyGeneratedCharacterToForm = (next) => {
+  setGeneratedCharacter(next);
+  setForm(createCharacterFromGeneratedData(next));
+};
+
+const getTokenAssetImageData = (asset) => ({
+  figurineImageUrl:
+    (typeof asset?.secureUrl === 'string' && asset.secureUrl.trim()) ||
+    (typeof asset?.url === 'string' && asset.url.trim()) ||
+    (typeof asset?.imageUrl === 'string' && asset.imageUrl.trim()) ||
+    '',
+  figurineImagePublicId: typeof asset?.publicId === 'string' ? asset.publicId.trim() : '',
+});
+
+const fetchRandomFigurineForCharacter = async (character) => {
+  const scope = buildPlayerTokenFolderScope(character?.race, character?.occupation);
+  const classNames = (Array.isArray(character?.occupation) ? character.occupation : [])
+    .map((job) => String(job?.Occupation || job?.name || '').toLowerCase())
+    .filter(Boolean);
+  const folderCandidates = Array.from(new Set((scope || [])
+    .filter((entry) => typeof entry === 'string' && entry.startsWith('folder:'))
+    .map((entry) => entry.slice('folder:'.length).trim())
+    .filter(Boolean)))
+    .sort((left, right) => {
+      const leftLower = left.toLowerCase();
+      const rightLower = right.toLowerCase();
+      const leftClassMatch = classNames.some((name) => leftLower.includes(name));
+      const rightClassMatch = classNames.some((name) => rightLower.includes(name));
+      if (leftClassMatch === rightClassMatch) return 0;
+      return leftClassMatch ? -1 : 1;
+    });
+
+  const folderBatches = folderCandidates.length
+    ? [folderCandidates.slice(0, 6), ['Tokens/Adventurers']]
+    : [['Tokens/Adventurers']];
+
+  for (const folders of folderBatches) {
+    const queryParams = new URLSearchParams();
+    queryParams.set('folders', folders.join(','));
+    const endpoint = `/campaigns/${encodeURIComponent(params.campaign.toString())}/token-manifest?${queryParams.toString()}`;
+    const response = await apiFetch(endpoint);
+    if (!response.ok) {
+      continue;
+    }
+    const manifest = await response.json();
+    const assets = Array.isArray(manifest?.assets) ? manifest.assets.filter(Boolean) : [];
+    if (assets.length) {
+      const selected = assets[Math.floor(Math.random() * assets.length)];
+      const imageData = getTokenAssetImageData(selected);
+      if (imageData.figurineImageUrl || imageData.figurineImagePublicId) {
+        return imageData;
+      }
+    }
+  }
+
+  return null;
+};
+
+const attachRandomFigurineAsset = async (character) => {
+  try {
+    const figurineAsset = await fetchRandomFigurineForCharacter(character);
+    if (figurineAsset) {
+      return { ...character, ...figurineAsset };
+    }
+    setGeneratorError('No matching figurine asset was found automatically. You can still change the figurine manually.');
+  } catch (error) {
+    setGeneratorError('Could not automatically choose a figurine. You can still change the figurine manually.');
+  }
+  return { ...character, figurineImageUrl: '', figurineImagePublicId: '' };
+};
+
+const runSmartGenerator = async (overrides = {}) => {
+  setGeneratorError('');
+  setGeneratorStatus('Rolling ancestry, class, stats, and figurine...');
+  const generated = generateSmartCharacter({
+    baseForm: { ...createDefaultForm(params.campaign), token: user?.username || form.token || "" },
+    races,
+    classes: Object.fromEntries(getOccupation.map((item) => [String(item.name || '').toLowerCase(), item])),
+    backgrounds,
+    preferredName: overrides.preferredName || form.characterName,
+  });
+  setGeneratorStatus('Choosing a matching figurine...');
+  const next = await attachRandomFigurineAsset(generated);
+  applyGeneratedCharacterToForm(next);
+  setGeneratorStatus('Character validated and ready to preview.');
+};
+
+const regenerateGeneratedName = () => {
+  if (!generatedCharacter) return runSmartGenerator();
+  const next = generateSmartCharacter({ baseForm: { ...createDefaultForm(params.campaign), token: user?.username || form.token || "" }, races: { temp: generatedCharacter.race }, classes: { [String(generatedCharacter.occupation?.[0]?.Occupation || '').toLowerCase()]: getOccupation.find((item) => item.name === generatedCharacter.occupation?.[0]?.Occupation) || getOccupation[0] }, backgrounds: { temp: generatedCharacter.background } });
+  applyGeneratedCharacterToForm({ ...generatedCharacter, characterName: next.characterName, validation: validateGeneratedCharacter({ ...generatedCharacter, characterName: next.characterName }) });
+};
+
+const regenerateGeneratedStats = () => {
+  if (!generatedCharacter) return runSmartGenerator();
+  const classKey = String(generatedCharacter.occupation?.[0]?.Occupation || '').toLowerCase();
+  const scores = assignAbilityScores(rollAbilityPool(), chooseClassBuildProfile(classKey));
+  const next = { ...generatedCharacter, ...scores };
+  next.startStatTotal = STATS.reduce((sum, stat) => sum + Number(next[stat.key] || 0), 0);
+  next.validation = validateGeneratedCharacter(next);
+  applyGeneratedCharacterToForm(next);
+};
+
+const runAIGenerator = async () => {
+  const prompt = generatorPrompt.trim();
+  if (!prompt) {
+    setGeneratorError('Describe your character before using AI generation.');
+    return;
+  }
+  if (prompt.length > 1200) {
+    setGeneratorError('Keep prompts under 1200 characters.');
+    return;
+  }
+  setIsGeneratingCharacter(true);
+  setGeneratorError('');
+  setGeneratorStatus('Generating concept...');
+  try {
+    const response = await apiFetch('/ai/character-concept', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        supportedRaces: Object.values(races).map((race) => race.name),
+        supportedClasses: getOccupation.map((item) => item.name),
+        supportedBackgrounds: Object.values(backgrounds).map((bg) => bg.name),
+      }),
+    });
+    if (!response.ok) throw new Error('AI generation is temporarily unavailable. Smart Random is still available.');
+    setGeneratorStatus('Validating build and assigning stats...');
+    const aiData = await response.json();
+    const normalized = normalizeAICharacter({
+      aiData,
+      baseForm: { ...createDefaultForm(params.campaign), token: user?.username || form.token || "" },
+      races,
+      classes: Object.fromEntries(getOccupation.map((item) => [String(item.name || '').toLowerCase(), item])),
+      backgrounds,
+    });
+    setGeneratorStatus('Choosing a matching figurine...');
+    const next = await attachRandomFigurineAsset(normalized);
+    applyGeneratedCharacterToForm(next);
+    setGeneratorStatus('AI concept normalized with RealmTracker rules.');
+  } catch (error) {
+    setGeneratorError(error.message || 'RealmTracker could not generate a valid character. Try again or simplify your description.');
+  } finally {
+    setIsGeneratingCharacter(false);
+  }
+};
+
+const createGeneratedCharacter = async (event) => {
+  event.preventDefault();
+  if (!generatedCharacter?.validation?.valid) {
+    setGeneratorError('Generate a valid character before creating it.');
+    return;
+  }
+  await sendToDb(createCharacterFromGeneratedData(generatedCharacter));
+};
+
+const editGeneratedManually = () => {
+  if (generatedCharacter) setForm(createCharacterFromGeneratedData(generatedCharacter));
+  handleClose();
+  setManualStep(0);
+  setManualTouched({});
+  initialManualSnapshot.current = JSON.stringify(form);
+  setShow5(true);
+};
+
   return (
     <div className="character-select-page" style={{ backgroundImage: `url(${loginbg})` }}>
       <div className="character-select-shell">
@@ -2311,7 +2496,7 @@ const getAvailableSkillOptions = (index) => {
           dmName={dmName}
           playerCount={campaignPlayerCount}
           onCreateManual={(e) => { e.preventDefault(); handleShow5(); }}
-          onCreateRandom={(e) => { e.preventDefault(); bigMaff(); handleShow(); }}
+          onCreateRandom={(e) => { e.preventDefault(); openCharacterGenerator(); }}
         />
 
         <section className="character-select-library">
@@ -2326,33 +2511,51 @@ const getAvailableSkillOptions = (index) => {
 
     
       </div>
-    {/* ---------------------------Create Character (Random)------------------------------------------------------- */}
-    <Modal className="dnd-modal" centered show={show} onHide={handleClose}>
-       <div className="text-center">
-        <Card className="dnd-background">
-          <Card.Title>Create Random</Card.Title>
-        <Card.Body>   
-        <div className="text-center">
-      <Form onSubmit={onSubmit} className="px-5">
-      <Form.Group className="mb-3 pt-3">
-       <Form.Label className="text-light">Character Name</Form.Label>
-       <Form.Control className="mb-2" onChange={(e) => updateForm({ characterName: e.target.value })}
-        type="text" placeholder="Enter character name" />        
-     </Form.Group>
-     <div className="text-center">
-     <Button variant="primary" onClick={handleClose} type="submit">
-            Create
-          </Button>
-          <Button className="ms-4" variant="secondary" onClick={handleClose}>
-            Close
-          </Button>
+    {/* ---------------------------Character Generator------------------------------------------------------- */}
+    <Modal className="dnd-modal character-generator-modal" dialogClassName="character-generator-modal__dialog" centered show={show} onHide={handleClose} backdrop="static" keyboard={false}>
+      <section className={`character-generator character-generator--${generatorMode}`}>
+        <header className="character-generator__header">
+          <div>
+            <p className="character-select-kicker">Hero Forge</p>
+            <h2>Create a Character</h2>
+            <span>Generate a coherent RealmTracker hero, preview the sheet, then create only when ready.</span>
           </div>
-     </Form>
-     </div>
-     </Card.Body> 
-     </Card>  
-     </div>      
-      </Modal>
+          <button type="button" onClick={handleClose} aria-label="Close character generator">×</button>
+        </header>
+        <div className="character-generator__tabs" role="tablist" aria-label="Character generator modes">
+          <button type="button" className={generatorMode === 'smart' ? 'is-active' : ''} onClick={() => setGeneratorMode('smart')}>✦ Smart Random</button>
+          <button type="button" className={generatorMode === 'ai' ? 'is-active' : ''} onClick={() => setGeneratorMode('ai')}>✧ Create with AI</button>
+        </div>
+        <div className="character-generator__body">
+          <aside className="character-generator__controls">
+            {generatorMode === 'smart' ? <div className="generator-panel">
+              <h3>Smart Random Generator</h3>
+              <p>RealmTracker chooses ancestry, class, background, rolled scores, physical details, and a token using class-aware build priorities.</p>
+              <CharacterFormField id="generator-name" label="Optional Name" helper="Leave blank to generate a short fantasy name."><input id="generator-name" value={form.characterName || ''} maxLength="12" onChange={(e) => updateForm({ characterName: e.target.value })} placeholder="Optional" /></CharacterFormField>
+              <Button type="button" onClick={() => runSmartGenerator()} disabled={!Object.keys(races).length || !getOccupation.length || !Object.keys(backgrounds).length}>Generate Character</Button>
+            </div> : <div className="generator-panel generator-panel--ai">
+              <h3>Create with AI</h3>
+              <p>Describe ancestry, class, personality, fighting style, background, or appearance. Leave details out and RealmTracker will choose them.</p>
+              <textarea value={generatorPrompt} onChange={(e) => setGeneratorPrompt(e.target.value)} maxLength="1200" placeholder="A grizzled dwarf barbarian with a two-handed axe..." />
+              <div className="character-generator__examples">{['A noble elven wizard obsessed with forbidden history.', 'A cheerful halfling rogue who fights with daggers.', 'A battle-scarred human paladin devoted to protecting the weak.', 'Surprise me with a strange but playable character.'].map((example) => <button type="button" key={example} onClick={() => setGeneratorPrompt(example)}>{example}</button>)}</div>
+              <Button type="button" onClick={runAIGenerator} disabled={isGeneratingCharacter}>{isGeneratingCharacter ? 'Generating...' : 'Generate Character'}</Button>
+            </div>}
+            <div className="character-generator__status"><strong>{isGeneratingCharacter ? 'Working' : generatedCharacter ? 'Preview ready' : 'Awaiting generation'}</strong><span>{generatorStatus}</span>{generatorError && <p className="character-generator__error">{generatorError}</p>}</div>
+          </aside>
+          <main className="generated-preview">
+            {generatedCharacter ? <>
+              <div className="generated-preview__hero"><div className="generated-preview__figurine">{generatedCharacter.figurineImageUrl ? <img src={generatedCharacter.figurineImageUrl} alt="Selected figurine" /> : <span>♟</span>}</div><div><p className="character-select-kicker">Generated Hero</p><input value={generatedCharacter.characterName || ''} maxLength="12" onChange={(e) => applyGeneratedCharacterToForm({ ...generatedCharacter, characterName: e.target.value, validation: validateGeneratedCharacter({ ...generatedCharacter, characterName: e.target.value }) })} /><strong>{generatedCharacter.race?.name} {generatedCharacter.occupation?.[0]?.Occupation}</strong><small>{generatedCharacter.background?.name} • {generatedCharacter.buildArchetype}</small></div></div>
+              <p className="generated-preview__concept">{generatedCharacter.shortConcept}</p>
+              <div className="generated-preview__stats">{STATS.map((stat) => <label key={stat.key}><span>{stat.key.toUpperCase()}</span><input type="number" min="1" max="30" value={generatedCharacter[stat.key] || ''} onChange={(e) => { const next = { ...generatedCharacter, [stat.key]: Number(e.target.value) }; next.validation = validateGeneratedCharacter(next); applyGeneratedCharacterToForm(next); }} /><small>{abilityModifier(generatedCharacter[stat.key])}</small></label>)}</div>
+              <div className="generated-preview__details"><label>Age<input type="number" value={generatedCharacter.age || ''} onChange={(e) => applyGeneratedCharacterToForm({ ...generatedCharacter, age: Number(e.target.value) })} /></label><label>Sex<input value={generatedCharacter.sex || ''} onChange={(e) => applyGeneratedCharacterToForm({ ...generatedCharacter, sex: e.target.value })} /></label><label>Size<input value={generatedCharacter.size || ''} onChange={(e) => applyGeneratedCharacterToForm({ ...generatedCharacter, size: e.target.value })} /></label><label>Weight<input type="number" value={generatedCharacter.weight || ''} onChange={(e) => applyGeneratedCharacterToForm({ ...generatedCharacter, weight: Number(e.target.value) })} /></label></div>
+              <div className="generated-preview__actions"><Button type="button" variant="secondary" onClick={regenerateGeneratedName}>Regenerate Name</Button><Button type="button" variant="secondary" onClick={regenerateGeneratedStats}>Regenerate Stats</Button><Button type="button" variant="secondary" onClick={() => setShowCreationTokenPicker(true)}>Change Figurine</Button><Button type="button" variant="secondary" onClick={editGeneratedManually}>Edit Manually</Button></div>
+              <div className={generatedCharacter.validation?.valid ? 'generated-preview__validation is-valid' : 'generated-preview__validation'}>{generatedCharacter.validation?.valid ? '✓ Valid RealmTracker character' : generatedCharacter.validation?.errors?.join(' ')}</div>
+            </> : <div className="generated-preview__empty"><span>✦</span><h3>Your hero preview appears here</h3><p>Generate first, review every field, then create the character.</p></div>}
+          </main>
+        </div>
+        <footer className="character-generator__footer"><Button type="button" variant="secondary" onClick={handleClose}>Cancel</Button><Button type="button" variant="secondary" onClick={() => generatorMode === 'ai' ? runAIGenerator() : runSmartGenerator()}>{generatedCharacter ? 'Regenerate All' : 'Generate'}</Button><Button type="button" onClick={createGeneratedCharacter} disabled={!generatedCharacter?.validation?.valid || isGeneratingCharacter}>Create Character</Button></footer>
+      </section>
+    </Modal>
        {/* ---------------------------Create Character (Manual)------------------------------------------------------- */}
     <Modal className="dnd-modal manual-character-modal" dialogClassName="manual-character-modal__dialog" centered show={show5} onHide={requestCloseManual} backdrop="static" keyboard={false}>
       <CharacterCreationWizard
