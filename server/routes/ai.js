@@ -16,6 +16,8 @@ const {
 } = require('../data/accessories');
 const { skillNames } = require('./fieldConstants');
 const createMapSchema = require('../schemas/map');
+const classes = require('../data/classes');
+const backgrounds = require('../data/backgrounds');
 const { deriveMapTitle } = require('../utils/mapTitle');
 
 const resolveOpenAI = () => {
@@ -80,6 +82,55 @@ module.exports = (router) => {
     }
     return mapSchemas;
   };
+
+
+  aiRouter.post('/character-concept', async (req, res) => {
+    const { prompt, supportedRaces = [], supportedClasses = [], supportedBackgrounds = [] } = req.body || {};
+    if (typeof prompt !== 'string' || !prompt.trim()) return res.status(400).json({ message: 'Prompt is required' });
+    if (prompt.length > 1200) return res.status(400).json({ message: 'Prompt is too long' });
+    const OpenAIClient = resolveOpenAI();
+    const Z = resolveZod();
+    if (!OpenAIClient || !Z || !resolveZodResponseFormat()) return res.status(500).json({ message: 'OpenAI not configured' });
+    const classNames = supportedClasses.length ? supportedClasses : Object.values(classes).map((item) => item.name);
+    const backgroundNames = supportedBackgrounds.length ? supportedBackgrounds : Object.values(backgrounds).map((item) => item.name);
+    const raceNames = supportedRaces.length ? supportedRaces : ['Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 'Gnome', 'Tiefling', 'Goliath'];
+    const CharacterConceptSchema = Z.object({
+      name: Z.string().max(12),
+      race: Z.string(),
+      class: Z.string(),
+      subclass: Z.string().nullable().optional(),
+      background: Z.string(),
+      buildArchetype: Z.string().nullable().optional(),
+      abilityPriorities: Z.array(Z.enum(['str', 'dex', 'con', 'int', 'wis', 'cha'])).optional(),
+      age: Z.number().nullable().optional(),
+      sex: Z.string().nullable().optional(),
+      size: Z.string().nullable().optional(),
+      weight: Z.number().nullable().optional(),
+      dragonAncestry: Z.string().nullable().optional(),
+      appearanceTags: Z.array(Z.string()).optional(),
+      shortConcept: Z.string().max(180),
+    });
+    try {
+      const openai = new OpenAIClient({ apiKey: process.env.OPENAI_API_KEY, timeout: 20000 });
+      const format = buildFormat(CharacterConceptSchema, 'character_concept');
+      const response = await openai.responses.parse({
+        model: 'gpt-4o-2024-08-06',
+        input: [
+          { role: 'system', content: `Create a concise RealmTracker D&D character concept. Only use supported races (${raceNames.join(', ')}), classes (${classNames.join(', ')}), and backgrounds (${backgroundNames.join(', ')}). Return structured data only. The local rules engine will assign legal ability scores, validate fields, choose figurines, and save only after user confirmation. Do not copy famous copyrighted characters or unsupported details.` },
+          { role: 'user', content: prompt.trim() },
+        ],
+        text: { format },
+        max_output_tokens: 700,
+      });
+      const data = response.output?.[0]?.content?.[0]?.parsed;
+      const parsed = CharacterConceptSchema.safeParse(data);
+      if (!parsed.success) return res.status(422).json({ message: 'Invalid structured character response' });
+      return res.json(parsed.data);
+    } catch (err) {
+      logger.warn('AI character concept generation failed', { error: err.message });
+      return res.status(503).json({ message: 'AI generation is temporarily unavailable. Smart Random is still available.' });
+    }
+  });
 
   aiRouter.post('/weapon', async (req, res) => {
     const { prompt } = req.body || {};
