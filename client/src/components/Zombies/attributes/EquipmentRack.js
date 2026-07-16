@@ -6,10 +6,6 @@ import styles from './EquipmentRack.module.scss';
 
 const FLAT_SLOTS = EQUIPMENT_SLOT_LAYOUT.flat();
 
-const SLOT_LAYOUT = {
-  board: FLAT_SLOTS,
-};
-
 const DEFAULT_ALLOWED_SOURCES = ['weapon', 'armor', 'item', 'accessory'];
 
 const SOURCE_DESCRIPTIONS = {
@@ -279,7 +275,7 @@ export default function EquipmentRack({ equipment = {}, inventory = {}, onEquipm
             <h3>Loadout</h3>
             <p>{hasOptions ? 'Click any socket to compare and equip owned gear.' : 'Owned gear will appear here when inventory is available.'}</p>
           </div>
-          {SLOT_LAYOUT.board.map((slot) => renderSlotCard(slot))}
+          {FLAT_SLOTS.map((slot) => renderSlotCard(slot))}
         </div>
         <div className={styles.leftColumn}>{SLOT_LAYOUT.leftColumn.map((slotKey) => renderSlotCard(slotLookup.get(slotKey)))}</div>
         <div className={styles.rightColumn}>{SLOT_LAYOUT.rightColumn.map((slotKey) => renderSlotCard(slotLookup.get(slotKey)))}</div>
