@@ -1222,10 +1222,16 @@ const handleCreationTokenSelection = useCallback((asset) => {
   setGeneratedCharacter((prev) => prev ? { ...prev, figurineImageUrl, figurineImagePublicId } : prev);
   setShowCreationTokenPicker(false);
 }, []);
-const handleClearCreationFigurine = useCallback(() => setForm((prev) => ({ ...prev, figurineImageUrl: "", figurineImagePublicId: "" })), []);
+const handleClearCreationFigurine = useCallback(() => {
+  setForm((prev) => ({ ...prev, figurineImageUrl: "", figurineImagePublicId: "" }));
+  setGeneratedCharacter((prev) => prev ? { ...prev, figurineImageUrl: "", figurineImagePublicId: "" } : prev);
+}, []);
 
 const [selectedOccupation, setSelectedOccupation] = useState(null);
-const creationTokenPickerFilterScope = useMemo(() => buildPlayerTokenFolderScope(form?.race, selectedOccupation || form?.occupation), [form?.occupation, form?.race, selectedOccupation]);
+const creationTokenPickerFilterScope = useMemo(() => {
+  const scopedOccupation = show5 ? (selectedOccupation || form?.occupation) : form?.occupation;
+  return buildPlayerTokenFolderScope(form?.race, scopedOccupation);
+}, [form?.occupation, form?.race, selectedOccupation, show5]);
 const selectedAddOccupationRef = useRef();
 
 const [getOccupation, setGetOccupation] = useState([]);
@@ -2589,16 +2595,16 @@ const editGeneratedManually = () => {
         onClearFigurine={handleClearCreationFigurine}
         tokenPickerAvailable={Boolean(creationTokenPickerFilterScope)}
       />
-      <TokenPickerModal
-        show={showCreationTokenPicker}
-        onHide={() => setShowCreationTokenPicker(false)}
-        campaignId={params.campaign || undefined}
-        onSelect={handleCreationTokenSelection}
-        allowClear={Boolean(form.figurineImageUrl || form.figurineImagePublicId)}
-        onClear={() => handleCreationTokenSelection(null)}
-        filterScope={creationTokenPickerFilterScope}
-      />
     </Modal>
+    <TokenPickerModal
+      show={showCreationTokenPicker}
+      onHide={() => setShowCreationTokenPicker(false)}
+      campaignId={params.campaign || undefined}
+      onSelect={handleCreationTokenSelection}
+      allowClear={Boolean(form.figurineImageUrl || form.figurineImagePublicId)}
+      onClear={() => handleCreationTokenSelection(null)}
+      filterScope={creationTokenPickerFilterScope}
+    />
     <Modal className="dnd-modal unsaved-character-modal" centered show={showUnsavedManualDialog} onHide={() => setShowUnsavedManualDialog(false)}>
       <Card className="dnd-background unsaved-character-modal__card">
         <Card.Body>
