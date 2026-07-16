@@ -10,8 +10,8 @@ describe('EquipmentRack', () => {
       <EquipmentRack
         equipment={{ chest: null }}
         inventory={{
-          weapons: [{ name: 'Longsword', source: 'weapon', damage: { dice: '1d8', type: 'slashing' }, properties: [{ name: 'Versatile' }] }],
-          armor: [{ name: 'Chain Mail', source: 'armor', category: 'armor', acBonus: 6, description: { text: 'Heavy armor' } }],
+          weapons: [{ name: 'Longsword', source: 'weapon', damage: '1d8' }],
+          armor: [{ name: 'Chain Mail', source: 'armor', category: 'armor', acBonus: 6 }],
           items: [],
           accessories: [],
         }}
