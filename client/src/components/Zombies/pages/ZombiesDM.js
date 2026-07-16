@@ -27,7 +27,7 @@ import { calculateCharacterHitPoints, calculateCharacterMovementSpeed } from '..
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
 import DamageDiceCanvas from '../attributes/DamageDiceCanvas';
-import { calculateDamage } from '../attributes/PlayerTurnActions';
+import { calculateDamage, createCriticalDamageFormula, isCriticalAttackRoll } from '../attributes/PlayerTurnActions';
 import { rollSkillWithDiceBox } from '../attributes/Skills';
 import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
 import D20RollerModal, { DEFAULT_DICE_COLOR } from '../common/D20RollerModal';
@@ -1773,6 +1773,7 @@ export default function ZombiesDM() {
     const [enemyHealthAdjustments, setEnemyHealthAdjustments] = useState({});
     const [enemyHealthSaving, setEnemyHealthSaving] = useState({});
     const [latestEnemyRoll, setLatestEnemyRoll] = useState(null);
+    const [pendingEnemyCriticalAttack, setPendingEnemyCriticalAttack] = useState(null);
     const [showEnemyTokenPicker, setShowEnemyTokenPicker] = useState(false);
     const [enemyTokenSelection, setEnemyTokenSelection] = useState({
       figurineImageUrl: null,
@@ -2964,7 +2965,9 @@ export default function ZombiesDM() {
         });
         const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
         const actionName = action.name || 'Action';
-        const segments = [`${d20} (d20)`];
+        const naturalRoll = d20;
+        const isCriticalHit = isCriticalAttackRoll(naturalRoll);
+        const segments = [`${naturalRoll} (d20)`];
         if (bonus) {
           const sign = bonus >= 0 ? '+' : '-';
           segments.push(`${sign} ${Math.abs(bonus)} Attack Bonus`);
@@ -2976,13 +2979,13 @@ export default function ZombiesDM() {
               value: result,
               breakdown: segments.join(' '),
               source: `${enemyName} ${actionName} Attack Roll`,
-              critical: d20 === 20,
-              fumble: d20 === 1,
+              critical: isCriticalHit,
+              fumble: naturalRoll === 1,
               rollLabel: 'Attack Roll',
               diceRolls: [
                 {
                   sides: 20,
-                  value: d20,
+                  value: naturalRoll,
                   type: 'Attack Roll',
                   category: 'base',
                 },
@@ -2994,7 +2997,7 @@ export default function ZombiesDM() {
         displayEnemyDiceResults([
           {
             sides: 20,
-            value: d20,
+            value: naturalRoll,
             type: 'Attack Roll',
             category: 'base',
           },
@@ -3011,6 +3014,15 @@ export default function ZombiesDM() {
           total: result,
           breakdown: segments.join(' '),
           rollType: 'attack',
+          isCriticalHit,
+          naturalRoll,
+        });
+        setPendingEnemyCriticalAttack({
+          enemyId: enemy.enemyId,
+          actionName,
+          isCriticalHit,
+          naturalRoll,
+          total: result,
         });
       },
       [displayEnemyDiceResults, showEnemyDiceOverlay]
@@ -3031,7 +3043,14 @@ export default function ZombiesDM() {
           return;
         }
 
-        const validation = calculateDamage(damageString);
+        const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
+        const actionName = action.name || 'Action';
+        const isCriticalDamage = Boolean(
+          pendingEnemyCriticalAttack?.isCriticalHit &&
+          pendingEnemyCriticalAttack?.enemyId === enemy.enemyId &&
+          pendingEnemyCriticalAttack?.actionName === actionName
+        );
+        const validation = calculateDamage(damageString, 0, isCriticalDamage);
         if (!validation) {
           setStatus({
             type: 'warning',
@@ -3074,7 +3093,7 @@ export default function ZombiesDM() {
               );
             });
 
-            result = calculateDamage(damageString, 0, false, (count, sides) => {
+            result = calculateDamage(damageString, 0, isCriticalDamage, (count, sides) => {
               const queue = rolledValuesBySides.get(sides) || [];
               return Array.from({ length: count }, () => {
                 const nextValue = queue.shift();
@@ -3096,19 +3115,17 @@ export default function ZombiesDM() {
           return;
         }
 
-        const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
-        const actionName = action.name || 'Action';
         window.dispatchEvent(
           new CustomEvent('damage-roll', {
             detail: {
               value: result.total,
               breakdown: result.breakdown,
-              source: `${enemyName} ${actionName}`,
-              rollLabel: 'Damage',
+              source: isCriticalDamage ? `${enemyName} ${actionName} Critical Damage` : `${enemyName} ${actionName}`,
+              rollLabel: isCriticalDamage ? 'Critical Damage' : 'Damage',
               diceRolls: result.diceRolls,
               sourceLabel: `${enemyName} ${actionName}`,
-              actionLabel: 'Damage',
-              expression: damageString,
+              actionLabel: isCriticalDamage ? 'Critical Damage' : 'Damage',
+              expression: isCriticalDamage ? createCriticalDamageFormula(damageString) : damageString,
             },
           })
         );
@@ -3126,12 +3143,16 @@ export default function ZombiesDM() {
           actionName,
           total: result.total,
           breakdown: result.breakdown,
-          damageFormula: damageString,
+          damageFormula: isCriticalDamage ? createCriticalDamageFormula(damageString) : damageString,
           rollType: 'damage',
+          isCriticalDamage,
         });
+        if (pendingEnemyCriticalAttack?.enemyId === enemy.enemyId && pendingEnemyCriticalAttack?.actionName === actionName) {
+          setPendingEnemyCriticalAttack(null);
+        }
 
       },
-      [displayEnemyDiceResults, getEnemyActionDamageString, setStatus, showEnemyDiceOverlay]
+      [displayEnemyDiceResults, getEnemyActionDamageString, pendingEnemyCriticalAttack, setStatus, showEnemyDiceOverlay]
     );
 
     const challengeRatingOptions = useMemo(() => {

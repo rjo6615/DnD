@@ -63,6 +63,25 @@ function formatDamageRolls(rolls) {
 
 const DEFAULT_DAMAGE_TYPE_KEY = '__default__';
 
+export const DEFAULT_CRITICAL_RANGE_MINIMUM = 20;
+
+export function isCriticalAttackRoll(naturalRoll, criticalRangeMinimum = DEFAULT_CRITICAL_RANGE_MINIMUM) {
+  const natural = Number(naturalRoll);
+  const minimum = Number(criticalRangeMinimum);
+  return Number.isFinite(natural) && Number.isFinite(minimum) && natural >= minimum;
+}
+
+export function createCriticalDamageFormula(damageString) {
+  if (typeof damageString !== 'string') return '';
+  return damageString.replace(/\b(\d+)d(\d+)\b/gi, (_match, count, sides) => {
+    const doubled = Math.max(0, parseInt(count, 10) * 2);
+    return `${doubled}d${sides}`;
+  });
+}
+
+const getWeaponAttackRollId = (slot, weapon) => `weapon:${slot || 'unknown'}:${weapon?.id || weapon?._id || weapon?.name || 'unnamed'}`;
+const getSpellAttackRollId = (spell) => `spell:${spell?.id || spell?._id || spell?.name || 'unnamed'}:${spell?.casterType || spell?.caster || ''}`;
+
 const DAMAGE_TYPE_CLASS_TOKEN_IGNORE = new Set([
   '',
   'and',
@@ -638,6 +657,7 @@ const PlayerTurnActions = React.forwardRef(
 //--------------------------------------------Critical status------------------------------------------------
 const [isCritical, setIsCritical] = useState(false);
 const [isFumble, setIsFumble] = useState(false);
+const [pendingCriticalAttack, setPendingCriticalAttack] = useState(null);
 const manualCriticalRef = useRef(false);
   const equipmentProvided = useMemo(
     () => typeof form?.equipment === 'object' && form.equipment !== null,
@@ -1772,10 +1792,12 @@ const manualCriticalRef = useRef(false);
       const damageString = getDamageStringForHandSelection(slot, weapon);
       if (typeof damageString !== 'string' || !damageString.trim()) return;
 
+      const attackRollId = getWeaponAttackRollId(slot, weapon);
+      const isCriticalDamage = Boolean(pendingCriticalAttack?.isCriticalHit && pendingCriticalAttack?.attackId === attackRollId) || isCritical;
       const result = await rollDamageExpression({
         damageString,
         ability,
-        crit: isCritical,
+        crit: isCriticalDamage,
         options: {
           character: form,
           attack: {
@@ -1813,8 +1835,8 @@ const manualCriticalRef = useRef(false);
         diceRolls: result.diceRolls,
         rollValues: result.rollValues,
         sourceLabel: weaponLabel,
-        actionLabel: 'Damage',
-        expression: expression || undefined,
+        actionLabel: isCriticalDamage ? 'Critical Damage' : 'Damage',
+        expression: isCriticalDamage ? createCriticalDamageFormula(expression || damageString) : (expression || undefined),
         modifierValues: [
           ...(modifierValues || []),
           ...((result.modifiers || []).map((modifier) => {
@@ -1831,9 +1853,12 @@ const manualCriticalRef = useRef(false);
       updateDamageValueWithAnimation(
         result.total,
         result.breakdown,
-        weapon.name,
+        isCriticalDamage ? `${weapon.name} Critical Damage` : weapon.name,
         extraDetails,
       );
+      if (pendingCriticalAttack?.attackId === attackRollId) {
+        setPendingCriticalAttack(null);
+      }
     },
     [
       abilityForWeapon,
@@ -1842,6 +1867,7 @@ const manualCriticalRef = useRef(false);
       getWeaponDisplayName,
       form,
       isCritical,
+      pendingCriticalAttack,
       isUnarmedAttack,
       onCharacterChange,
       rollDamageExpression,
@@ -1877,14 +1903,17 @@ const manualCriticalRef = useRef(false);
       segments.push(`${sign} ${Math.abs(bonus)} Attack Bonus`);
     }
 
+    const naturalRoll = keptD20 ?? d20;
+    const isCriticalHit = isCriticalAttackRoll(naturalRoll);
+
     window.dispatchEvent(
       new CustomEvent('damage-roll', {
         detail: {
           value: result,
           breakdown: segments.join(' '),
           source: `${weaponLabel}${actualRollMode === 'normal' ? '' : ` with ${actualRollMode === 'advantage' ? 'Advantage' : 'Disadvantage'}`} Attack Roll`,
-          critical: d20 === 20,
-          fumble: d20 === 1,
+          critical: isCriticalHit,
+          fumble: naturalRoll === 1,
           rollLabel: 'Attack Roll',
           rollMode: actualRollMode,
           advantageSources: rollModeResult.advantageSources,
@@ -1892,7 +1921,7 @@ const manualCriticalRef = useRef(false);
           diceRolls: [
             {
               sides: 20,
-              value: keptD20 ?? d20,
+              value: naturalRoll,
               rolled: rolledD20s,
               type: 'Attack Roll',
               category: 'base',
@@ -1901,6 +1930,14 @@ const manualCriticalRef = useRef(false);
         },
       })
     );
+    setPendingCriticalAttack({
+      attackId: getWeaponAttackRollId(slot, weapon),
+      naturalRoll,
+      total: result,
+      isCriticalHit,
+      isNaturalOne: naturalRoll === 1,
+      sourceLabel: weaponLabel,
+    });
   };
 
   const handleSpellAttackRoll = useCallback(
@@ -1931,7 +1968,7 @@ const manualCriticalRef = useRef(false);
             value: result,
             breakdown: segments.join(' '),
             source: `${spell?.name || 'Spell'} Spell Attack Roll`,
-            critical: d20 === 20,
+            critical: isCriticalAttackRoll(d20),
             fumble: d20 === 1,
             rollLabel: 'Attack Roll',
             diceRolls: [
@@ -1946,6 +1983,14 @@ const manualCriticalRef = useRef(false);
           },
         }),
       );
+      setPendingCriticalAttack({
+        attackId: getSpellAttackRollId(spell),
+        naturalRoll: d20,
+        total: result,
+        isCriticalHit: isCriticalAttackRoll(d20),
+        isNaturalOne: d20 === 1,
+        sourceLabel: spell?.name || 'Spell',
+      });
     },
     [
       diceFaceColor,
@@ -2044,12 +2089,17 @@ const [pendingSpell, setPendingSpell] = useState(null);
 
   const handleSpellsButtonClick = (spell, crit = false) => {
     if (!spell?.damage) return;
+    const attackRollId = getSpellAttackRollId(spell);
+    const isCriticalDamage = Boolean(pendingCriticalAttack?.isCriticalHit && pendingCriticalAttack?.attackId === attackRollId) || crit || isCritical;
+    if (pendingCriticalAttack?.attackId === attackRollId) {
+      setPendingCriticalAttack(null);
+    }
     if (spell.higherLevels) {
-      setPendingSpell({ spell, crit: crit || isCritical });
+      setPendingSpell({ spell, crit: isCriticalDamage });
       setShowUpcast(true);
       return;
     }
-    applyUpcast(spell, spell.level, crit || isCritical);
+    applyUpcast(spell, spell.level, isCriticalDamage);
   };
 
 const handleDamageClick = useCallback(() => {
@@ -2702,6 +2752,8 @@ const isDamageRollResultVisible = hasDamageRoll && !isDiceRollPending;
                       : 'None';
                   const versatileDice = getVersatileDamageDice(weapon);
                   const isVersatile = Boolean(versatileDice);
+                  const weaponAttackRollId = getWeaponAttackRollId(slot, weapon);
+                  const weaponHasPendingCritical = Boolean(pendingCriticalAttack?.isCriticalHit && pendingCriticalAttack?.attackId === weaponAttackRollId);
                   const handSelection = getHandSelectionForWeapon(slot, weapon);
                   const oneHandedDamage = getDamageStringForHandSelection(
                     slot,
@@ -2889,8 +2941,9 @@ const isDamageRollResultVisible = hasDamageRoll && !isDiceRollPending;
                             handleCloseAttack();
                           }}
                           variant="link"
-                          aria-label="Roll damage"
-                          className="attack-card__roll"
+                          aria-label={weaponHasPendingCritical ? 'Roll critical damage' : 'Roll damage'}
+                          title={weaponHasPendingCritical ? 'Roll Critical Damage' : 'Roll damage'}
+                          className={`attack-card__roll ${weaponHasPendingCritical ? 'critical-active' : ''}`}
                         >
                           <Swords size={18} aria-hidden="true" />
                         </Button>
@@ -2962,6 +3015,7 @@ const isDamageRollResultVisible = hasDamageRoll && !isDiceRollPending;
                     .map((spell, idx) => {
                       const details = getSpellAttackDetails(spell);
                       const showAttack = Boolean(details);
+                      const spellHasPendingCritical = Boolean(pendingCriticalAttack?.isCriticalHit && pendingCriticalAttack?.attackId === getSpellAttackRollId(spell));
                       return (
                         <div className="attack-card" key={idx}>
                           <div className="attack-card__title">{spell.name}</div>
@@ -3017,8 +3071,9 @@ const isDamageRollResultVisible = hasDamageRoll && !isDiceRollPending;
                                 handleCloseAttack();
                               }}
                               variant="link"
-                              aria-label="Roll damage"
-                              className="attack-card__roll"
+                              aria-label={spellHasPendingCritical ? 'Roll critical damage' : 'Roll damage'}
+                              title={spellHasPendingCritical ? 'Roll Critical Damage' : 'Roll damage'}
+                              className={`attack-card__roll ${spellHasPendingCritical ? 'critical-active' : ''}`}
                             >
                               <i className="fa-solid fa-dice-d20"></i>
                             </Button>
