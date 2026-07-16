@@ -77,6 +77,32 @@ export function StatCard({ label, value, detail, className, children }) {
   return <Card className={join('realm-stat-card', className)}><span>{label}</span><strong>{value}</strong>{detail && <small>{detail}</small>}{children}</Card>;
 }
 
+export function ActionCard({ as: Component = 'button', className, selected, disabled, children, ...props }) {
+  return (
+    <Component
+      className={join('realm-action-card', selected && 'is-selected', disabled && 'is-disabled', className)}
+      disabled={Component === 'button' ? disabled : undefined}
+      aria-pressed={Component === 'button' && selected ? true : undefined}
+      aria-disabled={disabled || undefined}
+      {...props}
+    >
+      {children}
+    </Component>
+  );
+}
+
+export function ClassCard({ className, children, ...props }) {
+  return <ActionCard className={join('realm-class-card', className)} {...props}>{children}</ActionCard>;
+}
+
+export function ConfirmationDialog({ className, children, ...props }) {
+  return <InfoCard className={join('realm-confirmation-dialog', className)} {...props}>{children}</InfoCard>;
+}
+
+export function MobileBottomSheet({ className, children, ...props }) {
+  return <BottomSheet className={join('realm-mobile-bottom-sheet', className)} {...props}>{children}</BottomSheet>;
+}
+
 export function ActionBar({ className, children, ...props }) {
   return <div className={join('realm-action-bar', className)} {...props}>{children}</div>;
 }

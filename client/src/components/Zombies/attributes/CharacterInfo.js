@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { Card, Modal, Button } from "react-bootstrap";
+import { Modal } from "react-bootstrap";
 import DockControls from '../components/DockControls';
-import levelup from "../../../images/levelup.png";
-import LevelUp from "./LevelUp"; // Import LevelUp component
+import LevelUp from "./LevelUp";
+import { ModalShell, ModalHeader, ModalBody, ModalFooter, Section, StatCard, ActionCard, ClassCard, Button } from "../common/HudPrimitives";
+import { getCharacterTotalLevel, getMulticlassSummary } from "./characterProgression";
 
 export default function CharacterInfo({
   form,
@@ -19,7 +20,7 @@ export default function CharacterInfo({
   handleOpenTokenPicker,
   tokenPickerSaving = false,
 }) {
-  const totalLevel = form.occupation.reduce((total, el) => total + Number(el.Level), 0);
+  const totalLevel = getCharacterTotalLevel(form);
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
 
   const handleShowLevelUpModal = () => {
@@ -203,12 +204,16 @@ export default function CharacterInfo({
     handleOpenTokenPicker();
   }, [canOpenTokenPicker, handleOpenTokenPicker, tokenPickerSaving]);
 
+  const sortedClasses = [...(form.occupation || [])].sort((a, b) => Number(b.Level || 0) - Number(a.Level || 0));
+  const primaryClass = sortedClasses[0]?.Occupation || 'Adventurer';
+  const characterName = form.name || form.characterName || 'Unnamed Hero';
+
   return (
     <Modal
-      className={modalClassName}
+      className={`${modalClassName} character-info-modal`}
       show={show}
       onHide={handleModalHide}
-      size="lg"
+      size="xl"
       centered={!isDocked}
       scrollable
       backdrop={isDocked ? false : true}
@@ -216,152 +221,95 @@ export default function CharacterInfo({
       restoreFocus={!isDocked}
       dialogClassName={dialogClassName}
     >
-      <Card className="modern-card text-center">
-        <Card.Header className="modal-header">
-          <DockControls
-            dockedSide={dockedSide}
-            onDockChange={onDockChange}
-            isDocked={isDocked}
-          />
-          <Card.Title className="modal-title">Character Info</Card.Title>
-        </Card.Header>
-        <Card.Body className="modal-body character-info-body" style={{ maxHeight: "60vh" }}>
-          <div className="character-info-figurine">
-            <div className="character-info-figurine__preview" aria-live="polite">
+      <ModalShell className="character-info-shell">
+        <ModalHeader
+          title="Character Overview"
+          subtitle={`${primaryClass} dossier`}
+          onClose={handleModalHide}
+          actions={
+            <DockControls
+              dockedSide={dockedSide}
+              onDockChange={onDockChange}
+              isDocked={isDocked}
+            />
+          }
+        >
+          <div className="character-summary-header">
+            <div className="character-summary-header__portrait" aria-live="polite">
               {characterFigurine?.figurineImageUrl ? (
-                <img
-                  src={characterFigurine.figurineImageUrl}
-                  alt="Selected figurine token"
-                  className="character-info-figurine__image"
-                />
+                <img src={characterFigurine.figurineImageUrl} alt="Selected figurine token" />
               ) : (
-                <div className="character-info-figurine__placeholder" aria-hidden="true">
-                  <i className="fas fa-chess-king"></i>
+                <i className="fas fa-chess-king" aria-hidden="true"></i>
+              )}
+            </div>
+            <div className="character-summary-header__copy">
+              <h3>{characterName}</h3>
+              <p>{form.race?.name || 'Unknown race'} • Level {totalLevel}</p>
+              <span>{getMulticlassSummary(form)}</span>
+              {form.background?.name && <small>{form.background.name} background</small>}
+            </div>
+          </div>
+        </ModalHeader>
+        <ModalBody className="character-info-body">
+          <div className="character-info-layout">
+            <Section className="character-info-panel character-info-panel--progression">
+              <div className="character-info-section-heading"><span>Progression</span><h4>Level & classes</h4></div>
+              <div className="character-stat-grid character-stat-grid--compact">
+                <StatCard label="Total Level" value={totalLevel} detail={`Next: ${totalLevel + 1}`} />
+                <StatCard label="Classes" value={(form.occupation || []).length || '—'} detail="Multiclass count" />
+                <StatCard label="Proficiency" value={form.proficiencyBonus || form.proficiency || '—'} detail="If tracked" />
+              </div>
+              <div className="character-class-list" aria-label="Character classes">
+                {sortedClasses.length ? sortedClasses.map((el, i) => (
+                  <ClassCard as="div" key={`${el.Occupation}-${i}`} className={i === 0 ? 'is-primary-class' : ''}>
+                    <span className="class-card__icon" aria-hidden="true">✦</span>
+                    <div><strong>{el.Occupation}</strong><small>{el.Subclass || el.subclass || (i === 0 ? 'Primary class' : 'Class')}</small></div>
+                    <span className="character-class-list__level">Level {el.Level}</span>
+                  </ClassCard>
+                )) : <div className="character-info-empty">No classes recorded.</div>}
+              </div>
+            </Section>
+
+            <Section className="character-info-panel character-info-panel--identity">
+              <div className="character-info-section-heading"><span>Identity</span><h4>Details</h4></div>
+              <div className="character-stat-grid">
+                <StatCard label="Race" value={form.race?.name || '—'} detail={[goliathAncestryName, dragonbornAncestryName, elvenLineageName, tieflingLegacySubtext].filter(Boolean).join(' • ')} className="character-info-item" />
+                <StatCard label="Background" value={form.background?.name || '—'} className="character-info-item"><Button variant="ghost" onClick={onShowBackground} aria-label="Show Background" className="stat-card-view"><i className="fa-solid fa-eye"></i></Button></StatCard>
+                <StatCard label="Languages" value={raceLanguages || '—'} className="character-info-item" />
+                <StatCard label="Age" value={form.age || '—'} className="character-info-item" />
+                <StatCard label="Sex" value={form.sex || '—'} className="character-info-item" />
+                <StatCard label="Size" value={displaySize} className="character-info-item" />
+                <StatCard label="Weight" value={form.weight ? `${form.weight} lbs` : '—'} className="character-info-item" />
+              </div>
+            </Section>
+
+            <Section className="character-info-panel character-info-panel--recovery">
+              <div className="character-info-section-heading"><span>Rest & recovery</span><h4>Recover resources</h4></div>
+              <div className="rest-action-grid">
+                <ActionCard type="button" className="rest-action-card rest-action-card--short" onClick={onShortRest}>
+                  <strong>Short Rest</strong><span>Recover short-rest resources and spend recovery as supported.</span>
+                </ActionCard>
+                <ActionCard type="button" className="rest-action-card rest-action-card--long" onClick={onLongRest}>
+                  <strong>Long Rest</strong><span>Restore hit points and long-rest resources through existing rest rules.</span>
+                </ActionCard>
+              </div>
+              <div className="character-info-figurine">
+                <div className="character-info-figurine__preview" aria-live="polite">
+                  {characterFigurine?.figurineImageUrl ? <img src={characterFigurine.figurineImageUrl} alt="Selected figurine token" className="character-info-figurine__image" /> : <div className="character-info-figurine__placeholder" aria-hidden="true"><i className="fas fa-chess-king"></i></div>}
+                  <div className="character-info-figurine__details">{hasFigurineSelection ? 'Figurine selected' : 'No figurine selected'}</div>
                 </div>
-              )}
-              {!characterFigurine?.figurineImageUrl && hasFigurineSelection && (
-                <div className="character-info-figurine__details">Figurine selected</div>
-              )}
-              {!hasFigurineSelection && (
-                <div className="character-info-figurine__details">No figurine selected</div>
-              )}
-            </div>
-            <Button
-              variant="outline-light"
-              size="sm"
-              onClick={handleFigurineButtonClick}
-              disabled={isFigurineButtonDisabled}
-            >
-              {figurineButtonLabel}
-            </Button>
+                <Button variant="ghost" size="sm" onClick={handleFigurineButtonClick} disabled={isFigurineButtonDisabled}>{figurineButtonLabel}</Button>
+              </div>
+            </Section>
           </div>
-          <div className="character-info-grid">
-            <div className="character-info-item">
-              <div className="character-info-label">Level</div>
-              <div className="character-info-value">{totalLevel}</div>
-            </div>
-            <div className="character-info-item">
-              <div className="character-info-label">Classes</div>
-              <div className="character-info-value character-info-value--stacked">
-                {form.occupation.length
-                  ? form.occupation.map((el, i) => (
-                      <span key={`${el.Occupation}-${i}`}>
-                        {el.Level} {el.Occupation}
-                      </span>
-                    ))
-                  : "—"}
-              </div>
-            </div>
-            <div className="character-info-item">
-              <div className="character-info-label">Race</div>
-              <div className="character-info-value character-info-value--stacked">
-                <span>{form.race?.name || "—"}</span>
-                {isGoliath && goliathAncestryName && (
-                  <span className="character-info-subtext">{goliathAncestryName}</span>
-                )}
-                {isDragonborn && dragonbornAncestryName && (
-                  <span className="character-info-subtext">{dragonbornAncestryName}</span>
-                )}
-                {isElf && elvenLineageName && (
-                  <span className="character-info-subtext">{elvenLineageName}</span>
-                )}
-                {isTiefling && tieflingLegacySubtext && (
-                  <span className="character-info-subtext">{tieflingLegacySubtext}</span>
-                )}
-              </div>
-            </div>
-            <div className="character-info-item">
-              <div className="character-info-label">Background</div>
-              <div className="character-info-value">
-                <span>{form.background?.name || "—"}</span>
-                <Button
-                  onClick={onShowBackground}
-                  variant="link"
-                  aria-label="Show Background"
-                  className="stat-card-view"
-                  size="sm"
-                >
-                  <i className="fa-solid fa-eye"></i>
-                </Button>
-              </div>
-            </div>
-            <div className="character-info-item">
-              <div className="character-info-label">Languages</div>
-              <div className="character-info-value">
-                {raceLanguages || "—"}
-              </div>
-            </div>
-            <div className="character-info-item">
-              <div className="character-info-label">Age</div>
-              <div className="character-info-value">{form.age || "—"}</div>
-            </div>
-            <div className="character-info-item">
-              <div className="character-info-label">Sex</div>
-              <div className="character-info-value">{form.sex || "—"}</div>
-            </div>
-            <div className="character-info-item">
-              <div className="character-info-label">Size</div>
-              <div className="character-info-value">{displaySize}</div>
-            </div>
-            <div className="character-info-item">
-              <div className="character-info-label">Weight</div>
-              <div className="character-info-value">
-                {form.weight ? `${form.weight} lbs` : "—"}
-              </div>
-            </div>
-          </div>
-        </Card.Body>
-        <Card.Footer className="modal-footer">
-          <Button
-            className="action-btn"
-            variant="secondary"
-            onClick={handleShowLevelUpModal}
-          >
-            <img src={levelup} alt="Level Up" height="24" />
-          </Button>
-          <Button
-            className="action-btn"
-            variant="secondary"
-            onClick={onLongRest}
-          >
-            Long Rest
-          </Button>
-          <Button
-            className="action-btn"
-            variant="secondary"
-            onClick={onShortRest}
-          >
-            Short Rest
-          </Button>
-          <Button
-            className="action-btn close-btn"
-            variant="primary"
-            onClick={handleModalHide}
-          >
-            Close
-          </Button>
-        </Card.Footer>
-      </Card>
+        </ModalBody>
+        <ModalFooter className="character-info-footer">
+          <Button className="progression-entry-button" variant="primary" onClick={handleShowLevelUpModal}>Level Up <span>Level {totalLevel} → {totalLevel + 1}</span></Button>
+          <Button variant="secondary" onClick={onLongRest}>Long Rest</Button>
+          <Button variant="ghost" onClick={onShortRest}>Short Rest</Button>
+          <Button variant="ghost" onClick={handleModalHide}>Close</Button>
+        </ModalFooter>
+      </ModalShell>
       <LevelUp show={showLevelUpModal} handleClose={handleCloseLevelUpModal} form={form} />
     </Modal>
   );
