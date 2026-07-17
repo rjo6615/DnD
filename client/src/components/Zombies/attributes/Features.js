@@ -1763,6 +1763,16 @@ export default function Features({
                 isDocked={isDocked}
               />
               <Card.Title className="modal-title">Character Features</Card.Title>
+              <Button
+                type="button"
+                variant="outline-light"
+                className="abilities-modal-close"
+                aria-label="Close character features"
+                title="Close character features"
+                onClick={handleModalHide}
+              >
+                <span aria-hidden="true">×</span>
+              </Button>
             </Card.Header>
             <Card.Body className="abilities-codex-body">
               {error && (

@@ -13283,3 +13283,57 @@ ul.spellbook-tabs.nav-tabs {
     z-index: 5;
   }
 }
+
+/* Keep a close affordance visible in the Character Features modal header on small screens. */
+.abilities-codex-card .modal-header {
+  padding-right: 128px !important;
+}
+
+.abilities-codex-card .dock-control--right {
+  right: 72px;
+}
+
+.abilities-modal-close.btn {
+  position: absolute;
+  right: 18px;
+  top: 0.75rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border-color: var(--realm-border-strong);
+  background: rgba(9, 18, 34, .82);
+  color: var(--realm-text);
+  font-size: 1.6rem;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+  z-index: 11;
+}
+
+.abilities-modal-close.btn:hover,
+.abilities-modal-close.btn:focus-visible {
+  background: rgba(34, 52, 86, .96);
+  color: #fff;
+}
+
+@media (max-width: 575px) {
+  .abilities-codex-card .modal-header {
+    padding-left: 64px !important;
+    padding-right: 116px !important;
+  }
+
+  .abilities-codex-card .dock-control--left {
+    left: 12px;
+  }
+
+  .abilities-codex-card .dock-control--right {
+    right: 64px;
+  }
+
+  .abilities-modal-close.btn {
+    right: 12px;
+  }
+}
