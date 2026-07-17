@@ -12842,3 +12842,125 @@ ul.spellbook-tabs.nav-tabs {
   .feature-card-actions { justify-content: flex-start; }
   .ability-inspector { border-radius: 1.1rem 1.1rem 0 0; }
 }
+
+/* Character Abilities Codex refinements */
+.abilities-codex-body {
+  max-height: calc(100vh - 12rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 1rem !important;
+}
+
+.abilities-codex-layout {
+  max-height: none;
+  overflow: visible;
+  align-items: stretch;
+}
+
+.abilities-grid {
+  justify-items: center;
+  align-content: start;
+}
+
+.feature-card.ability-card {
+  width: min(100%, 38rem);
+}
+
+.ability-card .feature-card-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.ability-card .feature-card-name {
+  overflow-wrap: anywhere;
+  line-height: 1.22;
+}
+
+.ability-card .feature-card-meta {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ability-card .feature-card-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  padding-left: 4rem;
+  margin-top: -0.25rem;
+}
+
+.ability-card .feature-card-actions .btn {
+  min-width: 2.45rem;
+  min-height: 2.45rem;
+}
+
+.abilities-codex-footer {
+  justify-content: flex-end !important;
+  padding: 0.85rem 1.5rem !important;
+}
+
+.abilities-codex-footer .close-btn {
+  width: auto !important;
+  min-width: 8.5rem;
+  margin-left: auto;
+  padding-inline: 1.75rem;
+}
+
+@media (max-width: 991px) {
+  .abilities-codex-body {
+    max-height: calc(100vh - 11rem);
+  }
+
+  .abilities-codex-layout {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .feature-card.ability-card {
+    width: min(100%, 36rem);
+  }
+}
+
+@media (max-width: 575px) {
+  .abilities-codex-body {
+    max-height: calc(100vh - 10rem);
+  }
+
+  .abilities-codex-shell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .abilities-codex-toolbar,
+  .abilities-codex-layout,
+  .abilities-grid,
+  .abilities-codex-sidebar,
+  .ability-inspector {
+    width: 100%;
+  }
+
+  .abilities-grid {
+    justify-items: center;
+    padding-inline: 0.25rem;
+  }
+
+  .feature-card.ability-card {
+    width: min(100%, 32rem);
+    margin-inline: auto;
+  }
+
+  .ability-card .feature-card-actions {
+    justify-content: center;
+    padding-left: 0;
+    margin-top: 0.15rem;
+  }
+
+  .abilities-codex-footer {
+    justify-content: flex-end !important;
+  }
+
+  .abilities-codex-footer .close-btn {
+    min-width: 7.5rem;
+  }
+}

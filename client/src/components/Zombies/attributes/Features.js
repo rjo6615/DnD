@@ -2288,7 +2288,7 @@ export default function Features({
                 <div className="text-center text-muted">No features found</div>
               ) : null}
             </Card.Body>
-            <Card.Footer className="modal-footer">
+            <Card.Footer className="modal-footer abilities-codex-footer">
               <Button
                 className="action-btn close-btn"
                 onClick={handleModalHide}
