@@ -12612,3 +12612,233 @@ ul.spellbook-tabs.nav-tabs {
 .combat-inspector__close:hover, .combat-inspector__close:focus { border-color: rgba(215,180,106,.62); color: #ffe39a; outline: none; }
 @media (min-width: 1101px) { .combat-inspector__close { opacity: .74; } }
 @media (max-width: 1100px) { .combat-inspector__close { top: .6rem; right: .6rem; width: 42px; height: 42px; background: rgba(13,20,39,.92); } }
+
+/* Character Abilities Codex */
+.abilities-codex-body {
+  max-height: 78vh;
+  overflow: hidden;
+  padding: 0 !important;
+  background:
+    radial-gradient(circle at top left, rgba(83, 139, 255, 0.18), transparent 32rem),
+    radial-gradient(circle at bottom right, rgba(162, 91, 255, 0.16), transparent 34rem),
+    linear-gradient(135deg, rgba(5, 12, 28, 0.96), rgba(13, 18, 39, 0.94));
+}
+
+.abilities-codex-shell {
+  color: #edf6ff;
+  text-align: left;
+  padding: 1rem;
+}
+
+.abilities-codex-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding: 1rem;
+  border: 1px solid rgba(139, 190, 255, 0.18);
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, rgba(7, 19, 43, 0.94), rgba(22, 18, 50, 0.9));
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.abilities-codex-kicker {
+  color: #8fc8ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.abilities-codex-title-row,
+.abilities-codex-controls,
+.abilities-codex-layout,
+.ability-card-title-block,
+.ability-card-tags,
+.ability-resource-strip,
+.ability-inspector-meta,
+.ability-inspector-actions {
+  display: flex;
+  gap: 0.85rem;
+}
+
+.abilities-codex-title-row {
+  align-items: end;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+}
+
+.abilities-codex-title-row h2 {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  color: #fff7d6;
+  text-shadow: 0 0 20px rgba(105, 171, 255, 0.25);
+}
+
+.abilities-codex-title-row p {
+  margin: 0.25rem 0 0;
+  color: rgba(224, 238, 255, 0.74);
+  max-width: 44rem;
+}
+
+.abilities-codex-count {
+  min-width: 8rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 215, 128, 0.22);
+}
+
+.abilities-codex-count strong { display: block; color: #ffd982; font-size: 1.6rem; line-height: 1; }
+.abilities-codex-count span { color: rgba(255,255,255,.72); font-size: .78rem; }
+
+.abilities-codex-controls { margin-top: 1rem; }
+.abilities-codex-controls .form-control,
+.abilities-codex-controls .form-select {
+  min-height: 44px;
+  color: #f7fbff;
+  border-color: rgba(139, 190, 255, 0.26);
+  background-color: rgba(2, 11, 27, 0.72);
+}
+.abilities-codex-search { flex: 1 1 auto; }
+.abilities-codex-controls .form-select { flex: 0 0 13rem; }
+
+.abilities-codex-layout {
+  align-items: flex-start;
+  margin-top: 1rem;
+  overflow: auto;
+  max-height: calc(78vh - 11rem);
+}
+
+.abilities-codex-sidebar,
+.ability-inspector {
+  position: sticky;
+  top: 0;
+  flex: 0 0 13.5rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(139, 190, 255, 0.16);
+  border-radius: 1.1rem;
+  background: rgba(3, 13, 32, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.abilities-filter-pill {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .45rem;
+  padding: .65rem .75rem;
+  color: rgba(238,246,255,.82);
+  border: 1px solid transparent;
+  border-radius: .85rem;
+  background: rgba(255,255,255,.04);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+.abilities-filter-pill:hover,
+.abilities-filter-pill:focus-visible,
+.abilities-filter-pill.is-active {
+  transform: translateX(2px);
+  border-color: rgba(126, 189, 255, .45);
+  background: linear-gradient(135deg, rgba(42, 105, 180, .32), rgba(108, 70, 180, .24));
+  outline: none;
+}
+
+.abilities-grid { flex: 1 1 auto; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); align-items: stretch; }
+
+.feature-card.ability-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 14rem;
+  border-color: rgba(126, 189, 255, .2);
+  background: linear-gradient(145deg, rgba(9, 23, 50, .88), rgba(15, 18, 43, .78));
+  box-shadow: 0 14px 35px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  cursor: pointer;
+}
+.feature-card.ability-card:hover,
+.feature-card.ability-card:focus-visible,
+.feature-card.ability-card.is-selected {
+  transform: translateY(-3px);
+  border-color: rgba(255, 218, 137, .5);
+  box-shadow: 0 22px 48px rgba(0,0,0,.38), 0 0 0 1px rgba(139,190,255,.18), inset 0 0 38px rgba(91, 151, 255, .1);
+  outline: none;
+}
+.ability-card--signature { grid-column: span 2; }
+.ability-card-accent { position: absolute; inset: 0 auto 0 0; width: 5px; background: #7fc8ff; box-shadow: 0 0 24px #7fc8ff; }
+.ability-card--combat .ability-card-accent { background: #ff9a4f; box-shadow: 0 0 24px #ff7a45; }
+.ability-card--passive .ability-card-accent { background: #70b7ff; }
+.ability-card--racial .ability-card-accent { background: #65e6a5; }
+.ability-card--subclass .ability-card-accent { background: #ffd36a; }
+
+.ability-card-title-block { align-items: center; min-width: 0; }
+.ability-card-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 3.15rem;
+  height: 3.15rem;
+  border-radius: 1rem;
+  font-size: 1.55rem;
+  background: radial-gradient(circle, rgba(255,255,255,.16), rgba(255,255,255,.04));
+  border: 1px solid rgba(255,255,255,.14);
+}
+.ability-card-tags { flex-wrap: wrap; margin-top: auto; }
+.ability-card-tags span,
+.ability-resource-strip span,
+.ability-inspector-meta span {
+  padding: .28rem .55rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  color: rgba(238,246,255,.86);
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.1);
+}
+.ability-resource-strip { align-items: center; justify-content: space-between; margin-top: .25rem; }
+.ability-status-passive { color: #9fe6ff !important; }
+.ability-status-ready { color: #ffe09a !important; }
+.ability-favorite-btn { color: #ffd36a !important; }
+
+.ability-inspector { flex-basis: 18rem; color: rgba(238,246,255,.86); }
+.ability-inspector-art {
+  display: grid;
+  place-items: center;
+  height: 9rem;
+  margin-bottom: .85rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255,255,255,.12);
+  background: radial-gradient(circle at 50% 35%, rgba(130, 188, 255, .32), rgba(64, 38, 119, .24) 45%, rgba(2, 9, 24, .72));
+}
+.ability-inspector-art span { font-size: 3rem; filter: drop-shadow(0 0 24px rgba(143, 200, 255, .55)); }
+.ability-inspector h3 { margin: .25rem 0; color: #fff7d6; font-family: 'Cinzel', serif; }
+.ability-inspector-meta { flex-wrap: wrap; margin-bottom: .8rem; }
+.ability-inspector p { max-height: 11rem; overflow: auto; line-height: 1.5; color: rgba(238,246,255,.78); }
+.ability-inspector dl div { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid rgba(255,255,255,.08); padding: .45rem 0; }
+.ability-inspector dt { color: #8fc8ff; }
+.ability-inspector dd { margin: 0; color: #fff7d6; text-transform: capitalize; }
+
+@media (max-width: 991px) {
+  .abilities-codex-body { max-height: 82vh; }
+  .abilities-codex-title-row,
+  .abilities-codex-controls,
+  .abilities-codex-layout { flex-direction: column; }
+  .abilities-codex-layout { max-height: calc(82vh - 13rem); }
+  .abilities-codex-sidebar,
+  .ability-inspector { position: static; flex: 1 1 auto; width: 100%; }
+  .abilities-codex-sidebar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }
+  .abilities-filter-pill { margin: 0; }
+  .abilities-codex-controls .form-select { flex-basis: auto; }
+  .ability-card--signature { grid-column: auto; }
+}
+
+@media (max-width: 575px) {
+  .abilities-codex-shell { padding: .65rem; }
+  .abilities-codex-toolbar { padding: .8rem; }
+  .abilities-codex-sidebar { grid-template-columns: 1fr; }
+  .abilities-grid { grid-template-columns: 1fr; }
+  .feature-card-header { flex-direction: column; }
+  .feature-card-actions { justify-content: flex-start; }
+  .ability-inspector { border-radius: 1.1rem 1.1rem 0 0; }
+}
