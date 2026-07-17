@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import apiFetch from '../../../utils/apiFetch';
-import { Modal, Card, Button, Form, Tabs, Tab } from 'react-bootstrap';
+import { Modal, Card, Button, Form, Tabs, Tab, Badge } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 import UpcastModal from './UpcastModal';
 import { normalizeEquipmentMap } from './equipmentNormalization';
@@ -70,6 +70,51 @@ const SPELLCASTING_CLASSES = {
   wizard: 'full',
   paladin: 'half',
   ranger: 'half',
+};
+
+
+const SCHOOL_ICONS = {
+  abjuration: 'fa-shield-halved',
+  conjuration: 'fa-circle-nodes',
+  divination: 'fa-eye',
+  enchantment: 'fa-heart',
+  evocation: 'fa-fire-flame-curved',
+  illusion: 'fa-masks-theater',
+  necromancy: 'fa-skull',
+  transmutation: 'fa-wand-magic-sparkles',
+};
+
+const CLASS_ICONS = {
+  bard: 'fa-music',
+  cleric: 'fa-sun',
+  druid: 'fa-leaf',
+  paladin: 'fa-shield-heart',
+  ranger: 'fa-feather',
+  sorcerer: 'fa-bolt',
+  warlock: 'fa-hand-sparkles',
+  wizard: 'fa-hat-wizard',
+};
+
+const normalizeToken = (value) =>
+  typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+const spellIconClass = (spell) => {
+  const text = `${spell?.name || ''} ${spell?.school || ''} ${spell?.description || ''}`.toLowerCase();
+  if (/fire|flame|burn|scorch/.test(text)) return 'fa-fire-flame-curved';
+  if (/ice|cold|frost|sleet/.test(text)) return 'fa-snowflake';
+  if (/heal|cure|restore|reviv/.test(text)) return 'fa-hand-holding-heart';
+  if (/poison|acid|venom/.test(text)) return 'fa-flask-vial';
+  if (/lightning|thunder|storm|bolt/.test(text)) return 'fa-bolt-lightning';
+  if (/charm|suggest|friend|dominat/.test(text)) return 'fa-heart';
+  if (/dead|death|necrotic|zombie/.test(text)) return 'fa-skull';
+  if (/invisible|illusion|mirror|phantom/.test(text)) return 'fa-masks-theater';
+  return SCHOOL_ICONS[normalizeToken(spell?.school)] || 'fa-sparkles';
+};
+
+const summarizeSpell = (description = '') => {
+  const clean = String(description || '').replace(/\s+/g, ' ').trim();
+  if (!clean) return 'An arcane entry from the RealmTracker archives.';
+  return clean.length > 150 ? `${clean.slice(0, 147)}…` : clean;
 };
 
 const STAT_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
@@ -240,6 +285,16 @@ export default function SpellSelector({
   const [spellsKnown, setSpellsKnown] = useState({});
   const [showUpcast, setShowUpcast] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [schoolFilter, setSchoolFilter] = useState('all');
+  const [castingFilter, setCastingFilter] = useState('all');
+  const [rangeFilter, setRangeFilter] = useState('all');
+  const [traitFilters, setTraitFilters] = useState({
+    concentration: false,
+    ritual: false,
+    cantrip: false,
+    known: false,
+  });
 
   const getScaledDamage = useCallback(
     (spell) => {
@@ -375,12 +430,52 @@ export default function SpellSelector({
     fetchSpellsKnown();
   }, [classesInfo, chaMod, wisMod]);
 
+  const spellList = useMemo(() => Object.values(allSpells), [allSpells]);
+
+  const filterOptions = useMemo(() => {
+    const schools = new Set();
+    const castingTimes = new Set();
+    const ranges = new Set();
+    spellList.forEach((spell) => {
+      if (spell.school) schools.add(spell.school);
+      if (spell.castingTime) castingTimes.add(spell.castingTime);
+      if (spell.range) ranges.add(spell.range);
+    });
+    return {
+      schools: Array.from(schools).sort(),
+      castingTimes: Array.from(castingTimes).sort(),
+      ranges: Array.from(ranges).sort(),
+    };
+  }, [spellList]);
+
+  const selectedSpellSet = useMemo(() => new Set(selectedSpells), [selectedSpells]);
+
+  const filteredSpellsForClass = useCallback(
+    (cls) => {
+      const term = searchTerm.trim().toLowerCase();
+      return spellList.filter((spell) => {
+        if (!spellSupportsClass(spell, cls)) return false;
+        if (spell.level !== Number(selectedLevels[cls])) return false;
+        if (term) {
+          const haystack = `${spell.name || ''} ${spell.school || ''} ${spell.description || ''}`.toLowerCase();
+          if (!haystack.includes(term)) return false;
+        }
+        if (schoolFilter !== 'all' && spell.school !== schoolFilter) return false;
+        if (castingFilter !== 'all' && spell.castingTime !== castingFilter) return false;
+        if (rangeFilter !== 'all' && spell.range !== rangeFilter) return false;
+        const duration = String(spell.duration || '').toLowerCase();
+        if (traitFilters.concentration && !duration.includes('concentration')) return false;
+        if (traitFilters.ritual && !spell.ritual) return false;
+        if (traitFilters.cantrip && spell.level !== 0) return false;
+        if (traitFilters.known && !selectedSpellSet.has(spell.name)) return false;
+        return true;
+      });
+    },
+    [castingFilter, rangeFilter, schoolFilter, searchTerm, selectedLevels, selectedSpellSet, spellList, traitFilters]
+  );
+
   function spellsForClass(cls) {
-    return Object.values(allSpells).filter(
-      (spell) =>
-        spellSupportsClass(spell, cls) &&
-        spell.level === Number(selectedLevels[cls])
-    );
+    return filteredSpellsForClass(cls);
   }
 
   useEffect(() => {
@@ -421,20 +516,162 @@ export default function SpellSelector({
     saveSpells(updatedSpells, updatedCasters);
   }
 
+  const handleModalHide = useCallback(() => {
+    if (isDocked) {
+      if (typeof onDockClose === 'function') {
+        onDockClose();
+      }
+      return;
+    }
+
+    handleClose?.();
+  }, [handleClose, isDocked, onDockClose]);
+
+  const castSpell = useCallback(
+    (spell, isSelected) => {
+      if (!isSelected) return;
+      if (spell.higherLevels) {
+        setPendingSpell(spell);
+        setShowUpcast(true);
+      } else {
+        const damage = getScaledDamage(spell);
+        onCastSpell?.({
+          level: spell.level,
+          damage,
+          castingTime: spell.castingTime,
+          name: spell.name,
+        });
+        handleModalHide();
+      }
+    },
+    [getScaledDamage, handleModalHide, onCastSpell]
+  );
+
+  const FilterPanel = ({ cls }) => (
+    <aside className="spellbook-sidebar" aria-label="Spell filters">
+      <div className="spellbook-filter-group spellbook-filter-group--classes">
+        <span className="spellbook-filter-label">Class</span>
+        <div className="spellbook-class-list" role="list">
+          {classesInfo.map(({ name }) => {
+            const key = normalizeToken(name);
+            return (
+              <button
+                type="button"
+                key={name}
+                className={`spellbook-class-pill${activeClass === name ? ' is-active' : ''}`}
+                onClick={() => setActiveClass(name)}
+                aria-pressed={activeClass === name}
+              >
+                <i className={`fa-solid ${CLASS_ICONS[key] || 'fa-book-sparkles'}`} aria-hidden="true" />
+                <span>{name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <Form.Group className="spellbook-filter-group">
+        <Form.Label htmlFor={`spellLevel-${cls}`} className="spellbook-filter-label">Level</Form.Label>
+        <Form.Select
+          id={`spellLevel-${cls}`}
+          value={selectedLevels[cls]}
+          onChange={(e) => setSelectedLevels((prev) => ({ ...prev, [cls]: Number(e.target.value) }))}
+          className="spellbook-select"
+        >
+          {(levelOptions[cls] || []).map((lvl) => (
+            <option key={lvl} value={lvl}>{lvl}</option>
+          ))}
+        </Form.Select>
+      </Form.Group>
+
+      <Form.Group className="spellbook-filter-group">
+        <Form.Label className="spellbook-filter-label">School</Form.Label>
+        <Form.Select value={schoolFilter} onChange={(e) => setSchoolFilter(e.target.value)} className="spellbook-select" aria-label="Spell school">
+          <option value="all">All Schools</option>
+          {filterOptions.schools.map((school) => <option key={school} value={school}>{school}</option>)}
+        </Form.Select>
+      </Form.Group>
+
+      <Form.Group className="spellbook-filter-group">
+        <Form.Label className="spellbook-filter-label">Casting Time</Form.Label>
+        <Form.Select value={castingFilter} onChange={(e) => setCastingFilter(e.target.value)} className="spellbook-select" aria-label="Casting time">
+          <option value="all">Any Time</option>
+          {filterOptions.castingTimes.map((time) => <option key={time} value={time}>{time}</option>)}
+        </Form.Select>
+      </Form.Group>
+
+      <Form.Group className="spellbook-filter-group">
+        <Form.Label className="spellbook-filter-label">Range</Form.Label>
+        <Form.Select value={rangeFilter} onChange={(e) => setRangeFilter(e.target.value)} className="spellbook-select" aria-label="Range">
+          <option value="all">Any Range</option>
+          {filterOptions.ranges.map((range) => <option key={range} value={range}>{range}</option>)}
+        </Form.Select>
+      </Form.Group>
+
+      <div className="spellbook-filter-group spellbook-rune-toggles" aria-label="Spell traits">
+        {[['concentration', 'Concentration'], ['ritual', 'Ritual'], ['cantrip', 'Cantrip'], ['known', 'Known only']].map(([key, label]) => (
+          <button
+            type="button"
+            key={key}
+            className={`spellbook-rune-toggle${traitFilters[key] ? ' is-active' : ''}`}
+            onClick={() => setTraitFilters((prev) => ({ ...prev, [key]: !prev[key] }))}
+            aria-pressed={traitFilters[key]}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </aside>
+  );
+
+  const SpellInspector = ({ spell, cls }) => {
+    const activeSpell = spell && spellSupportsClass(spell, cls) ? spell : null;
+    if (!activeSpell) {
+      return <aside className="spellbook-inspector spellbook-inspector--empty">Select a spell to open its illuminated page.</aside>;
+    }
+    const isSelected = selectedSpellSet.has(activeSpell.name);
+    const disableSelection = !isSelected && (pointsLeft[cls] || 0) <= 0;
+    return (
+      <aside className="spellbook-inspector" aria-label="Selected spell details">
+        <div className="spellbook-art"><i className={`fa-solid ${spellIconClass(activeSpell)}`} aria-hidden="true" /></div>
+        <div className="spellbook-inspector-heading">
+          <span className="spell-level-badge">Level {activeSpell.level}</span>
+          <h3>{activeSpell.name}</h3>
+          <p>{activeSpell.school || 'Unknown School'}</p>
+        </div>
+        <div className="spellbook-stat-grid">
+          {['castingTime','range','duration','damage'].map((key) => activeSpell[key] ? <div key={key}><span>{key === 'castingTime' ? 'Casting' : key}</span><strong>{activeSpell[key]}</strong></div> : null)}
+          {activeSpell.components?.length ? <div><span>Components</span><strong>{activeSpell.components.join(', ')}</strong></div> : null}
+        </div>
+        <p className="spellbook-description">{activeSpell.description || 'No description recorded.'}</p>
+        {activeSpell.higherLevels ? <p className="spellbook-higher"><strong>Higher Levels.</strong> {activeSpell.higherLevels}</p> : null}
+        <div className="spellbook-inspector-actions">
+          <Button className="spellbook-learn-btn" disabled={disableSelection} onClick={() => toggleSpell(activeSpell.name, cls)}>{isSelected ? 'Remove' : 'Learn'}</Button>
+          <Button className="spellbook-preview-btn" disabled={!isSelected} onClick={() => castSpell(activeSpell, isSelected)}><i className="fa-solid fa-wand-sparkles" /> Preview</Button>
+        </div>
+      </aside>
+    );
+  };
+
   const renderSpellCards = (cls) => {
     const spells = spellsForClass(cls);
     if (!spells.length) {
-      return <div className="text-light">No spells available.</div>;
+      return <div className="spellbook-empty">No spells match these runes.</div>;
     }
 
     return (
-      <div className="spell-card-grid">
+      <div className="spell-card-grid spellbook-card-grid">
         {spells.map((spell) => {
-          const isSelected = selectedSpells.includes(spell.name);
+          const isSelected = selectedSpellSet.has(spell.name);
           const disableSelection = !isSelected && (pointsLeft[cls] || 0) <= 0;
+          const duration = String(spell.duration || '');
 
           return (
-            <div key={spell.name} className="spell-card">
+            <article key={spell.name} className={`spell-card spellbook-card${isSelected ? ' is-selected' : ''}`} tabIndex={0} onClick={() => setViewSpell(spell)} onKeyDown={(e) => { if (e.key === 'Enter') setViewSpell(spell); }}>
+              <div className="spellbook-card-topline">
+                <div className="spellbook-icon"><i className={`fa-solid ${spellIconClass(spell)}`} aria-hidden="true" /></div>
+                <Badge className="spell-level-badge">{spell.level === 0 ? 'Cantrip' : `Lv ${spell.level}`}</Badge>
+              </div>
               <div className="spell-card-header">
                 <Form.Check
                   id={`spell-${cls}-${spell.name}`}
@@ -442,55 +679,26 @@ export default function SpellSelector({
                   label={spell.name}
                   checked={isSelected}
                   disabled={disableSelection}
+                  onClick={(e) => e.stopPropagation()}
                   onChange={() => toggleSpell(spell.name, cls)}
                 />
                 <div className="spell-card-actions">
-                  <Button
-                    variant="link"
-                    onClick={() => setViewSpell(spell)}
-                  >
-                    <i className="fa-solid fa-eye"></i>
-                  </Button>
-                  <Button
-                    variant="link"
-                    disabled={!isSelected}
-                    className={!isSelected ? 'text-secondary' : ''}
-                    onClick={() => {
-                      if (!isSelected) return;
-                      if (spell.higherLevels) {
-                        setPendingSpell(spell);
-                        setShowUpcast(true);
-                      } else {
-                        const damage = getScaledDamage(spell);
-                        onCastSpell?.({
-                          level: spell.level,
-                          damage,
-                          castingTime: spell.castingTime,
-                          name: spell.name,
-                        });
-                        handleModalHide();
-                      }
-                    }}
-                  >
-                    <i className="fa-solid fa-wand-sparkles" />
-                  </Button>
+                  <Button variant="link" aria-label={`View ${spell.name}`} onClick={(e) => { e.stopPropagation(); setViewSpell(spell); }}><i className="fa-solid fa-eye"></i></Button>
+                  <Button variant="link" aria-label={`Preview ${spell.name}`} disabled={!isSelected} className={!isSelected ? 'text-secondary' : ''} onClick={(e) => { e.stopPropagation(); castSpell(spell, isSelected); }}><i className="fa-solid fa-wand-sparkles" /></Button>
                 </div>
               </div>
               <div className="spell-card-details">
-                <span>
-                  <strong>School:</strong> {spell.school}
-                </span>
-                <span>
-                  <strong>Casting Time:</strong> {spell.castingTime}
-                </span>
-                <span>
-                  <strong>Range:</strong> {spell.range}
-                </span>
-                <span>
-                  <strong>Duration:</strong> {spell.duration}
-                </span>
+                <span><strong>School:</strong> {spell.school}</span>
+                <span><strong>Casting Time:</strong> {spell.castingTime}</span>
+                <span><strong>Range:</strong> {spell.range}</span>
+                <span><strong>Duration:</strong> {spell.duration}</span>
               </div>
-            </div>
+              <p className="spellbook-card-preview">{summarizeSpell(spell.description)}</p>
+              <div className="spellbook-card-traits">
+                {duration.toLowerCase().includes('concentration') && <span>Concentration</span>}
+                {spell.ritual && <span>Ritual</span>}
+              </div>
+            </article>
           );
         })}
       </div>
@@ -573,17 +781,6 @@ export default function SpellSelector({
     return classes.join(' ');
   }, [isDocked]);
 
-  const handleModalHide = useCallback(() => {
-    if (isDocked) {
-      if (typeof onDockClose === 'function') {
-        onDockClose();
-      }
-      return;
-    }
-
-    handleClose?.();
-  }, [handleClose, isDocked, onDockClose]);
-
   return (
     <>
       <Modal
@@ -606,129 +803,63 @@ export default function SpellSelector({
             />
             <Card.Title className="modal-title">Spells</Card.Title>
           </Card.Header>
-          <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+          <Card.Body className="spellbook-modal-body">
             {error && <div className="text-danger mb-2">{error}</div>}
             {classesInfo.length === 0 ? (
               <div className="text-light">No spellcasting classes available.</div>
-            ) : classesInfo.length === 1 ? (
-              (() => {
-                const cls = classesInfo[0].name;
-                return (
-                  <>
-                    <Form className="mb-3">
-                      <Form.Group>
-                        <Form.Label htmlFor={`spellLevel-${cls}`}>
-                          Level
-                        </Form.Label>
-                        <Form.Select
-                          id={`spellLevel-${cls}`}
-                          value={selectedLevels[cls]}
-                          onChange={(e) =>
-                            setSelectedLevels((prev) => ({
-                              ...prev,
-                              [cls]: Number(e.target.value),
-                            }))
-                          }
-                        >
-                          {levelOptions[cls].map((lvl) => (
-                            <option key={lvl} value={lvl}>
-                              {lvl}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Form>
-                    <div className="points-container" style={{ display: 'flex' }}>
-                      <span className="points-label text-light">
-                        Points Left:
-                      </span>
-                      <span className="points-value">
-                        {pointsLeft[cls] === Infinity
-                          ? '∞'
-                          : pointsLeft[cls] || 0}
-                      </span>
-                    </div>
-                    {renderSpellCards(cls)}
-                  </>
-                );
-              })()
             ) : (
-              <Tabs
-                activeKey={activeClass}
-                onSelect={(k) => setActiveClass(k || '')}
-                className="mb-3"
-              >
-                {classesInfo.map(({ name }) => (
-                  <Tab eventKey={name} title={name} key={name}>
-                    <Form className="mb-3">
-                      <Form.Group>
-                        <Form.Label htmlFor={`spellLevel-${name}`}>
-                          Level
-                        </Form.Label>
-                        <Form.Select
-                          id={`spellLevel-${name}`}
-                          value={selectedLevels[name]}
-                          onChange={(e) =>
-                            setSelectedLevels((prev) => ({
-                              ...prev,
-                              [name]: Number(e.target.value),
-                            }))
-                          }
-                        >
-                          {levelOptions[name].map((lvl) => (
-                            <option key={lvl} value={lvl}>
-                              {lvl}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Form>
-                    <div className="points-container" style={{ display: 'flex' }}>
-                      <span className="points-label text-light">
-                        Points Left:
-                      </span>
-                      <span className="points-value">
-                        {pointsLeft[name] === Infinity
-                          ? '∞'
-                          : pointsLeft[name] || 0}
-                      </span>
-                    </div>
-                    {renderSpellCards(name)}
-                  </Tab>
-                ))}
-              </Tabs>
+              <div className="spellbook-shell">
+                <div className="spellbook-hero">
+                  <div>
+                    <span className="spellbook-kicker">Arcane Library</span>
+                    <h2>Spell Selection</h2>
+                    <p>Search, filter, learn, and preview your character's magic without leaving the tome.</p>
+                  </div>
+                  <div className="spellbook-search-wrap">
+                    <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
+                    <Form.Control
+                      type="search"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Search the stacks..."
+                      aria-label="Search spells"
+                      className="spellbook-search"
+                    />
+                  </div>
+                  <div className={`spellbook-points ${(pointsLeft[activeClass] || 0) <= 1 ? 'is-low' : ''}`}>
+                    <span>Spell Points Remaining</span>
+                    <strong>{pointsLeft[activeClass] === Infinity ? '∞' : pointsLeft[activeClass] || 0}</strong>
+                    <small>{activeClass || 'Class'} • Level {selectedLevels[activeClass] ?? '—'}</small>
+                  </div>
+                </div>
+
+                <Tabs activeKey={activeClass} onSelect={(k) => setActiveClass(k || '')} className="spellbook-tabs mb-3">
+                  {classesInfo.map(({ name }) => (
+                    <Tab eventKey={name} title={name} key={name}>
+                      <div className="spellbook-layout">
+                        <FilterPanel cls={name} />
+                        <main className="spellbook-library" aria-label={`${name} spell library`}>
+                          <div className="spellbook-library-header">
+                            <div>
+                              <span className="points-label">Points Left:</span>
+                              <span className="points-value">{pointsLeft[name] === Infinity ? '∞' : pointsLeft[name] || 0}</span>
+                            </div>
+                            <span>{spellsForClass(name).length} spells discovered</span>
+                          </div>
+                          {renderSpellCards(name)}
+                        </main>
+                        <SpellInspector spell={viewSpell} cls={name} />
+                      </div>
+                    </Tab>
+                  ))}
+                </Tabs>
+              </div>
             )}
           </Card.Body>
           <Card.Footer className="modal-footer">
             <Button
               className="action-btn close-btn"
               onClick={handleModalHide}
-            >
-              Close
-            </Button>
-          </Card.Footer>
-        </Card>
-      </Modal>
-      <Modal
-        show={!!viewSpell}
-        onHide={() => setViewSpell(null)}
-        centered
-        size="lg"
-        className="dnd-modal modern-modal"
-      >
-        <Card className="modern-card text-center">
-          <Card.Header className="modal-header">
-            <Card.Title className="modal-title">
-              {viewSpell?.name}
-            </Card.Title>
-          </Card.Header>
-          <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-            {viewSpell?.description}
-          </Card.Body>
-          <Card.Footer className="modal-footer">
-            <Button
-              className="action-btn close-btn"
-              onClick={() => setViewSpell(null)}
             >
               Close
             </Button>
