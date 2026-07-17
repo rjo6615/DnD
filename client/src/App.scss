@@ -12489,3 +12489,17 @@ body.character-creation-modal-open {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 }
+
+/* Visually remove duplicated Bootstrap class tab pills while preserving tab semantics. */
+ul.spellbook-tabs.nav-tabs {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
