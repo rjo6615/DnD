@@ -13217,3 +13217,42 @@ ul.spellbook-tabs.nav-tabs {
     overflow: visible !important;
   }
 }
+
+/* Character Abilities Codex deterministic scroll panes */
+@media (min-width: 992px) {
+  .abilities-codex-card .abilities-codex-body {
+    overflow: hidden !important;
+    padding-bottom: 0 !important;
+  }
+
+  .abilities-codex-card .abilities-codex-shell {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .abilities-codex-card .abilities-codex-layout {
+    display: flex;
+    height: clamp(18rem, 42vh, 34rem) !important;
+    min-height: 0 !important;
+    max-height: clamp(18rem, 42vh, 34rem) !important;
+    overflow: hidden !important;
+  }
+
+  .abilities-codex-card .abilities-codex-sidebar,
+  .abilities-codex-card .abilities-grid,
+  .abilities-codex-card .ability-inspector {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .abilities-codex-card .abilities-grid,
+  .abilities-codex-card .ability-inspector {
+    padding-bottom: 1.25rem;
+    scroll-padding-bottom: 1.25rem;
+  }
+}
