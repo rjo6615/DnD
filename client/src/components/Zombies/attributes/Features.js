@@ -2290,7 +2290,7 @@ export default function Features({
             </Card.Body>
             <Card.Footer className="modal-footer abilities-codex-footer">
               <Button
-                className="action-btn close-btn"
+                className="action-btn close-btn abilities-codex-close-button"
                 onClick={handleModalHide}
               >
                 Close

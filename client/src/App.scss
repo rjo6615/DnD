@@ -12964,3 +12964,74 @@ ul.spellbook-tabs.nav-tabs {
     min-width: 7.5rem;
   }
 }
+
+/* Character Abilities Codex sticky rail + compact close refinements */
+.abilities-codex-body {
+  overflow: hidden;
+}
+
+.abilities-codex-layout {
+  max-height: calc(100vh - 21rem);
+  overflow: hidden;
+}
+
+.abilities-codex-sidebar,
+.ability-inspector {
+  align-self: flex-start;
+  max-height: calc(100vh - 21rem);
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+}
+
+.abilities-grid {
+  max-height: calc(100vh - 21rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+  scrollbar-gutter: stable;
+}
+
+.dnd-modal .abilities-codex-footer.modal-footer {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end !important;
+}
+
+.dnd-modal .abilities-codex-footer .abilities-codex-close-button.close-btn.action-btn.btn {
+  width: auto !important;
+  max-width: none !important;
+  min-width: 6.75rem !important;
+  flex: 0 0 auto !important;
+  margin-right: 0 !important;
+  margin-left: auto !important;
+  padding: 0.5rem 1.1rem !important;
+  border-radius: 0.7rem !important;
+}
+
+@media (max-width: 991px) {
+  .abilities-codex-body {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .abilities-codex-layout,
+  .abilities-grid,
+  .abilities-codex-sidebar,
+  .ability-inspector {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .abilities-codex-sidebar,
+  .ability-inspector {
+    position: static;
+  }
+}
+
+@media (max-width: 575px) {
+  .dnd-modal .abilities-codex-footer .abilities-codex-close-button.close-btn.action-btn.btn {
+    min-width: 6.5rem !important;
+    padding-inline: 1rem !important;
+  }
+}
