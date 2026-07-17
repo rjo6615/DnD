@@ -12567,3 +12567,28 @@ ul.spellbook-tabs.nav-tabs {
 .combat-inspector__buttons { display: flex; flex-wrap: wrap; gap: .5rem; }
 @media (max-width: 1100px) { .combat-arsenal__layout { grid-template-columns: 1fr; } .combat-arsenal__sidebar { position: static; display: flex; overflow-x: auto; } .combat-category { white-space: nowrap; } .combat-inspector { position: fixed; left: 10px; right: 10px; bottom: 10px; top: auto; z-index: 20; max-height: 46vh; border-radius: 24px; box-shadow: 0 -20px 60px rgba(0,0,0,.55); animation: combatSheetIn .24s ease both; } @keyframes combatSheetIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } } .combat-arsenal__footer { padding-bottom: calc(46vh + 1.25rem); } }
 @media (max-width: 720px) { .combat-arsenal-modal .modal-dialog { max-width: 100vw; margin: 0; min-height: 100vh; } .combat-arsenal-modal .modal-content { min-height: 100vh; border-radius: 0; } .combat-arsenal__header { grid-template-columns: 1fr; padding: .95rem; } .combat-arsenal__quick-filters { flex-wrap: nowrap; overflow-x: auto; padding-bottom: .25rem; } .combat-attack-grid { grid-template-columns: 1fr; } .combat-action-card { min-height: 236px; } .combat-action-card__stats { grid-template-columns: 1fr; } .combat-roll-button { flex: 1 1 130px; min-height: 42px; } .combat-inspector__art { height: 92px; font-size: 2.5rem; } }
+
+/* Combat Arsenal viewport and scroll refinements */
+.combat-arsenal-modal .modal-content { max-height: calc(100dvh - 32px); overflow: hidden; }
+.combat-arsenal { max-height: calc(100dvh - 32px); display: flex; flex-direction: column; }
+.combat-arsenal__body { min-height: 0; overflow-y: auto; padding-bottom: 1.25rem; scrollbar-color: rgba(143, 200, 255, .44) rgba(7, 13, 28, .45); }
+.combat-arsenal__layout { min-height: 0; }
+.combat-arsenal__main { min-width: 0; }
+.combat-arsenal__footer { flex-shrink: 0; background: linear-gradient(180deg, rgba(7,13,28,.7), rgba(7,13,28,.96)); border-top: 1px solid rgba(143,200,255,.14); }
+.combat-action-card__actions { padding-bottom: .15rem; }
+
+@media (max-width: 1100px) {
+  .combat-arsenal-modal .modal-content,
+  .combat-arsenal { max-height: 100dvh; }
+  .combat-arsenal__body { padding-bottom: calc(46vh + 1.5rem); -webkit-overflow-scrolling: touch; }
+  .combat-arsenal__footer { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 720px) {
+  .combat-arsenal-modal { padding: 0 !important; }
+  .combat-arsenal-modal .modal-dialog { height: 100dvh; min-height: 100dvh; }
+  .combat-arsenal-modal .modal-content,
+  .combat-arsenal { height: 100dvh; max-height: 100dvh; }
+  .combat-arsenal__body { overflow-y: auto; padding-bottom: calc(46vh + 5rem); }
+  .combat-arsenal__sidebar { margin-bottom: .5rem; }
+}

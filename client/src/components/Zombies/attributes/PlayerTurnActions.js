@@ -1434,14 +1434,6 @@ const manualCriticalRef = useRef(false);
     });
   }, []);
 
-  const toggleAttackFilter = useCallback((filter) => {
-    setActiveAttackFilters((prev) => {
-      const next = new Set(prev);
-      if (next.has(filter)) next.delete(filter);
-      else next.add(filter);
-      return next;
-    });
-  }, []);
 
   const diceFaceColor = useMemo(
     () => normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR,
@@ -2828,23 +2820,6 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
             </div>
           </Card.Header>
           <Card.Body className="combat-arsenal__body">
-            <div className="combat-arsenal__quick-filters" aria-label="Attack quick filters">
-              {[
-                ['weapons', 'Weapons'], ['spells', 'Spells'], ['cantrips', 'Cantrips'],
-                ['bonus', 'Bonus Actions'], ['reaction', 'Reactions'], ['favorites', 'Favorites'],
-                ['equipped', 'Equipped Only'], ['melee', 'Melee'], ['ranged', 'Ranged'],
-              ].map(([key, label]) => (
-                <Button
-                  key={key}
-                  type="button"
-                  variant="link"
-                  className={`combat-filter-chip ${activeAttackFilters.has(key) ? 'is-active' : ''}`}
-                  onClick={() => toggleAttackFilter(key)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
             <div className="combat-arsenal__layout">
               <aside className="combat-arsenal__sidebar" aria-label="Attack categories">
                 {[
