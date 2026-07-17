@@ -6,8 +6,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
-import { Button, Modal, Card, OverlayTrigger, Popover, Form } from "react-bootstrap";
-import { Swords } from 'lucide-react';
+import { Button, Modal, Card, Form } from "react-bootstrap";
 import spellsData from '../../../data/spells';
 import UpcastModal from './UpcastModal';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
@@ -458,6 +457,13 @@ const PlayerTurnActions = React.forwardRef(
   ) => {
   // -----------------------------------------------------------Modal for attacks------------------------------------------------------------------------
   const [showAttack, setShowAttack] = useState(false);
+  const [attackSearch, setAttackSearch] = useState('');
+  const [activeAttackCategory, setActiveAttackCategory] = useState('all');
+  const [activeAttackFilters, setActiveAttackFilters] = useState(() => new Set());
+  const [attackSort, setAttackSort] = useState('favorites');
+  const [selectedAttackId, setSelectedAttackId] = useState('');
+  const [favoriteAttackIds, setFavoriteAttackIds] = useState(() => new Set());
+  const [recentAttackIds, setRecentAttackIds] = useState([]);
   const [showDiceRoller, setShowDiceRoller] = useState(false);
   const handleCloseAttack = () => setShowAttack(false);
   const handleShowAttack = useCallback(() => setShowAttack(true), []);
@@ -501,7 +507,7 @@ const PlayerTurnActions = React.forwardRef(
     setShowDiceRoller(false);
   };
 
-  const [footerHeight, setFooterHeight] = useState(0);
+  const [, setFooterHeight] = useState(0);
   // -----------------------------------------Dice roller for damage-------------------------------------------------------------------
   const [damageValue, setDamageValue] = useState(0);
   const [hasDamageRoll, setHasDamageRoll] = useState(false);
@@ -1389,6 +1395,45 @@ const manualCriticalRef = useRef(false);
 
     return 'Attack';
   };
+
+
+  const getAttackIcon = useCallback((attack = {}) => {
+    const haystack = `${attack.name || ''} ${attack.damageText || ''} ${attack.damageType || ''} ${attack.weaponType || ''} ${attack.school || ''}`.toLowerCase();
+    if (/fire|flame|burn/.test(haystack)) return '🔥';
+    if (/cold|ice|frost/.test(haystack)) return '❄️';
+    if (/lightning|thunder|storm/.test(haystack)) return '⚡';
+    if (/radiant|holy|divine|heal/.test(haystack)) return '☀️';
+    if (/necrotic|shadow|death/.test(haystack)) return '☠️';
+    if (/poison|acid|toxin/.test(haystack)) return '☣️';
+    if (/force|arcane|magic missile/.test(haystack)) return '✦';
+    if (/bow|crossbow|arrow|ranged/.test(haystack)) return '🏹';
+    if (/dagger|knife/.test(haystack)) return '🗡️';
+    if (/hammer|mace|maul|club/.test(haystack)) return '🔨';
+    if (/breath|dragon/.test(haystack)) return '🐉';
+    if (attack.kind === 'spell' || attack.kind === 'cantrip') return '🔮';
+    if (attack.kind === 'feature') return '🌟';
+    return '⚔️';
+  }, []);
+
+  const extractDamageTypeText = useCallback((damage = '') => {
+    if (typeof damage !== 'string') return '';
+    const types = damage.match(/\b(acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder)\b/gi);
+    return types ? [...new Set(types.map(toTitleCase))].join(', ') : '';
+  }, []);
+
+  const makeRecent = useCallback((id) => {
+    setRecentAttackIds((prev) => [id, ...prev.filter((value) => value !== id)].slice(0, 5));
+  }, []);
+
+  const toggleAttackFavorite = useCallback((id) => {
+    setFavoriteAttackIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
 
   const diceFaceColor = useMemo(
     () => normalizeDiceColor(form?.diceColor) || DEFAULT_DICE_COLOR,
@@ -2493,6 +2538,34 @@ const damageAmountStyle = {
 };
 const isDamageRollSurfaceVisible = hasDamageRoll || isDiceRollPending;
 const isDamageRollResultVisible = hasDamageRoll && !isDiceRollPending;
+
+const attackArsenalItems = useMemo(() => {
+  const weaponItems = equippedWeapons.map(({ slot, weapon }) => {
+    const damageString = getDamageStringForHandSelection(slot, weapon) || 'Unknown';
+    const details = getWeaponPropertyDetails(weapon);
+    const mastery = getWeaponMasteryDetails(weapon);
+    const id = getWeaponAttackRollId(slot, weapon);
+    return { id, kind: isUnarmedAttack(weapon) ? 'unarmed' : 'weapon', category: isUnarmedAttack(weapon) ? 'unarmed' : 'weapons', name: getWeaponDisplayName(slot, weapon), source: getWeaponTypeLabel(weapon), actionType: 'Attack', range: weapon?.range || weapon?.normalRange || weapon?.longRange || (isRangedWeapon(weapon) ? 'Ranged' : '5 ft'), damageText: damageString, damageNode: getDamageString(slot, weapon), damageType: extractDamageTypeText(damageString), attackBonus: formatModifier(getAttackBonus(slot, weapon)), sortAccuracy: Number(getAttackBonus(slot, weapon)) || 0, sortDamage: parseInt((damageString.match(/\d+d(\d+)/i) || [])[1] || '0', 10), tags: [getWeaponTypeLabel(weapon), ...(isRangedWeapon(weapon) ? ['Ranged'] : ['Melee']), ...details.map(({ label }) => label), mastery?.label].filter(Boolean), properties: details, mastery, slot, weapon, canAttackRoll: true, canDamageRoll: true };
+  });
+  const breathItems = breathWeaponDetails ? [{ id: 'feature:breath-weapon', kind: 'feature', category: 'racial', name: breathWeaponDetails.label, source: 'Racial Ability', actionType: breathWeaponDetails.save ? `${breathWeaponDetails.save} Save` : 'Action', range: breathWeaponDetails.shape || 'Area', damageText: breathWeaponDetails.damageString, damageNode: formatDamageSegments(breathWeaponDetails.damageString), damageType: extractDamageTypeText(breathWeaponDetails.damageString), attackBonus: `DC ${breathWeaponDetails.saveDC}`, sortAccuracy: Number(breathWeaponDetails.saveDC) || 0, sortDamage: parseInt((breathWeaponDetails.damageString.match(/\d+d(\d+)/i) || [])[1] || '0', 10), tags: ['Breath', breathWeaponDetails.shape, breathWeaponDetails.save].filter(Boolean), properties: [], canDamageRoll: true }] : [];
+  const spellItems = [...(Array.isArray(form.spells) ? sortedSpells.filter((spell) => spell && spell.damage) : []), ...fiendishLegacySpells].map((spell, idx) => { const details = getSpellAttackDetails(spell); const levelNumber = Number(spell.level) || 0; const id = `${getSpellAttackRollId(spell)}:${idx}`; return { id, kind: levelNumber === 0 ? 'cantrip' : 'spell', category: levelNumber === 0 ? 'cantrips' : 'spells', name: spell.name || 'Spell', source: spell.casterType || spell.caster || (fiendishLegacySpells.includes(spell) ? 'Fiendish Legacy' : 'Spell'), actionType: spell.castingTime || 'Cast', range: spell.range || '—', damageText: spell.damage || 'Unknown', damageNode: formatDamageSegments(spell.damage || ''), damageType: extractDamageTypeText(spell.damage || ''), attackBonus: details ? formatModifier(details.total) : 'Save / Effect', sortAccuracy: details ? Number(details.total) || 0 : 0, sortDamage: parseInt(((spell.damage || '').match(/\d+d(\d+)/i) || [])[1] || '0', 10), spellLevel: levelNumber, school: spell.school, tags: [levelNumber === 0 ? 'Cantrip' : `Level ${levelNumber}`, spell.school, spell.duration, spell.components].filter(Boolean), spell, canAttackRoll: Boolean(details), canDamageRoll: true }; });
+  return [...weaponItems, ...breathItems, ...spellItems].map((item) => ({ ...item, icon: getAttackIcon(item), isFavorite: favoriteAttackIds.has(item.id), isRecent: recentAttackIds.includes(item.id) }));
+}, [equippedWeapons, breathWeaponDetails, form.spells, sortedSpells, fiendishLegacySpells, getAttackIcon, favoriteAttackIds, recentAttackIds, extractDamageTypeText, getSpellAttackDetails]);
+
+const visibleAttackItems = useMemo(() => {
+  const search = attackSearch.trim().toLowerCase();
+  const filters = Array.from(activeAttackFilters);
+  return attackArsenalItems.filter((item) => {
+    if (activeAttackCategory !== 'all' && item.category !== activeAttackCategory) return false;
+    if (search && !`${item.name} ${item.source} ${item.damageText} ${item.tags?.join(' ')}`.toLowerCase().includes(search)) return false;
+    return filters.every((filter) => filter === 'favorites' ? item.isFavorite : filter === 'equipped' ? ['weapon', 'unarmed'].includes(item.kind) : filter === 'weapons' ? ['weapon', 'unarmed'].includes(item.kind) : filter === 'spells' ? item.kind === 'spell' : filter === 'cantrips' ? item.kind === 'cantrip' : filter === 'melee' ? /melee|5 ft/i.test(`${item.range} ${item.tags?.join(' ')}`) : filter === 'ranged' ? /ranged|ft|mile/i.test(`${item.range} ${item.tags?.join(' ')}`) && !/5 ft$/.test(item.range) : filter === 'bonus' ? /bonus/i.test(item.actionType) : filter === 'reaction' ? /reaction/i.test(item.actionType) : true);
+  }).sort((a, b) => { if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1; if (a.isRecent !== b.isRecent) return a.isRecent ? -1 : 1; if (attackSort === 'damage') return b.sortDamage - a.sortDamage || a.name.localeCompare(b.name); if (attackSort === 'accuracy') return b.sortAccuracy - a.sortAccuracy || a.name.localeCompare(b.name); if (attackSort === 'spellLevel') return (a.spellLevel || 0) - (b.spellLevel || 0) || a.name.localeCompare(b.name); if (attackSort === 'weaponType') return (a.source || '').localeCompare(b.source || '') || a.name.localeCompare(b.name); return a.name.localeCompare(b.name); });
+}, [activeAttackCategory, activeAttackFilters, attackArsenalItems, attackSearch, attackSort]);
+
+const selectedAttack = useMemo(() => attackArsenalItems.find((item) => item.id === selectedAttackId) || null, [attackArsenalItems, selectedAttackId]);
+
+const runAttackRoll = useCallback((item) => { if (!item) return; makeRecent(item.id); if (item.kind === 'weapon' || item.kind === 'unarmed') handleWeaponAttackRoll(item.slot, item.weapon); else if (item.spell) handleSpellAttackRoll(item.spell); handleCloseAttack(); }, [handleSpellAttackRoll, makeRecent]);
+const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item.id); if (item.kind === 'weapon' || item.kind === 'unarmed') handleWeaponAttack(item.slot, item.weapon); else if (item.id === 'feature:breath-weapon') handleBreathWeaponAttack(); else if (item.spell) handleSpellsButtonClick(item.spell); handleCloseAttack(); }, [handleBreathWeaponAttack, handleSpellsButtonClick, makeRecent]);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div
@@ -2720,450 +2793,157 @@ const isDamageRollResultVisible = hasDamageRoll && !isDiceRollPending;
 {/* Attack Modal */}
 
       <Modal
-        size="lg"
-        className="dnd-modal modern-modal"
+        size="xl"
+        className="dnd-modal modern-modal combat-arsenal-modal"
         centered
         scrollable
         show={showAttack}
         onHide={handleCloseAttack}
       >
-        <Card className="modern-card">
-          <Card.Header className="modal-header">
-            <Card.Title className="modal-title">Attacks</Card.Title>
-          </Card.Header>
-          <Card.Body className="modal-body attack-modal__body">
-            <Card.Title className="modal-title">Weapons</Card.Title>
-            <div className="attack-card-grid">
-              {equippedWeapons.length === 0 ? (
-                <div className="attack-card attack-card--empty">
-                  <p className="text-muted mb-0">No weapons equipped.</p>
-                </div>
-              ) : (
-                equippedWeapons.map(({ slot, weapon }) => {
-                  const weaponTypeLabel = getWeaponTypeLabel(weapon);
-                  const propertyDetails = getWeaponPropertyDetails(weapon);
-                  const propertyLabels = propertyDetails.map(({ label }) => label);
-                  const popoverId = `weapon-properties-${slot}`;
-                  const masteryDetail = getWeaponMasteryDetails(weapon);
-                  const masteryPopoverId = `weapon-mastery-${slot}`;
-                  const propertiesDisplay =
-                    propertyLabels.length > 0
-                      ? propertyLabels.join(', ')
-                      : 'None';
-                  const versatileDice = getVersatileDamageDice(weapon);
-                  const isVersatile = Boolean(versatileDice);
-                  const weaponAttackRollId = getWeaponAttackRollId(slot, weapon);
-                  const weaponHasPendingCritical = Boolean(pendingCriticalAttack?.isCriticalHit && pendingCriticalAttack?.attackId === weaponAttackRollId);
-                  const handSelection = getHandSelectionForWeapon(slot, weapon);
-                  const oneHandedDamage = getDamageStringForHandSelection(
-                    slot,
-                    weapon,
-                    HAND_SELECTIONS.ONE_HANDED
-                  );
-                  const twoHandedDamage = isVersatile
-                    ? getDamageStringForHandSelection(
-                        slot,
-                        weapon,
-                        HAND_SELECTIONS.TWO_HANDED
-                      )
-                    : '';
-
-                  const propertiesPopover = (
-                    <Popover id={popoverId}>
-                      <Popover.Header as="h3">Weapon Properties</Popover.Header>
-                      <Popover.Body>
-                        {propertyDetails.map(({ label, description }) => (
-                          <div className="weapon-property" key={`${popoverId}-${label}`}>
-                            <div className="weapon-property__name">{label}</div>
-                            <div className="weapon-property__description">{description}</div>
-                          </div>
-                        ))}
-                      </Popover.Body>
-                    </Popover>
-                  );
-
-                  const masteryPopover = masteryDetail
-                    ? (
-                        <Popover id={masteryPopoverId}>
-                          <Popover.Header as="h3">Weapon Mastery</Popover.Header>
-                          <Popover.Body>
-                            <div className="weapon-mastery">
-                              <div className="weapon-mastery__name">{masteryDetail.label}</div>
-                              <div className="weapon-mastery__description">
-                                {masteryDetail.description}
-                              </div>
-                            </div>
-                          </Popover.Body>
-                        </Popover>
-                      )
-                    : null;
-
-                  return (
-                    <div
-                      className="attack-card"
-                      key={`${slot}-${weapon.name || slot}`}
-                    >
-                      <div className="attack-card__title text-capitalize">
-                        {weapon.name || 'Unknown'}
-                      </div>
-                      <div className="attack-card__meta">
-                        <div className="attack-card__meta-item">
-                          <span className="attack-card__meta-label">Weapon Type:</span>
-                          <span className="attack-card__meta-value">{weaponTypeLabel}</span>
-                        </div>
-                      </div>
-                      <div className="attack-card__details">
-                        <div className="attack-card__row">
-                          <span className="attack-card__label">Attack Bonus</span>
-                          <span className="attack-card__value">
-                            {getAttackBonus(slot, weapon)}
-                          </span>
-                        </div>
-                        {isFinesseWeapon(weapon) && (
-                          <div className="attack-card__row">
-                            <span className="attack-card__label">Ability</span>
-                            <span className="attack-card__value">
-                              <Form.Select
-                                id={`weapon-ability-${slot}`}
-                                aria-label={`Select ability for ${weapon.name || slot}`}
-                                value={getAbilityKeyForWeapon(slot, weapon)}
-                                onChange={(event) => {
-                                  const selected = event.target.value === 'dex' ? 'dex' : 'str';
-                                  setWeaponAbilitySelections((prev) => ({
-                                    ...prev,
-                                    [slot]: selected,
-                                  }));
-                                }}
-                                size="sm"
-                              >
-                                <option value="str">
-                                  Strength ({formatModifier(numericStrMod)})
-                                </option>
-                                <option value="dex">
-                                  Dexterity ({formatModifier(numericDexMod)})
-                                </option>
-                              </Form.Select>
-                            </span>
-                          </div>
-                        )}
-                        {isVersatile && (
-                          <div className="attack-card__row">
-                            <span className="attack-card__label">Grip</span>
-                            <span className="attack-card__value">
-                              <Form.Select
-                                id={`weapon-grip-${slot}`}
-                                aria-label={`Select grip for ${weapon.name || slot}`}
-                                value={handSelection}
-                                onChange={(event) => {
-                                  const selectedHand =
-                                    event.target.value === HAND_SELECTIONS.TWO_HANDED
-                                      ? HAND_SELECTIONS.TWO_HANDED
-                                      : HAND_SELECTIONS.ONE_HANDED;
-                                  setWeaponHandSelections((prev) => ({
-                                    ...prev,
-                                    [slot]: selectedHand,
-                                  }));
-                                }}
-                                size="sm"
-                              >
-                                <option value={HAND_SELECTIONS.ONE_HANDED}>
-                                  One-Handed ({oneHandedDamage || 'Unknown'})
-                                </option>
-                                <option value={HAND_SELECTIONS.TWO_HANDED}>
-                                  Two-Handed ({twoHandedDamage || 'Unknown'})
-                                </option>
-                              </Form.Select>
-                            </span>
-                          </div>
-                        )}
-                        <div className="attack-card__row">
-                          <span className="attack-card__label">Damage</span>
-                          <span className="attack-card__value">
-                            {getDamageString(slot, weapon)}
-                          </span>
-                        </div>
-                        <div className="attack-card__row attack-card__row--properties">
-                          <span className="attack-card__label">Properties</span>
-                          <span className="attack-card__value attack-card__properties">
-                            {propertiesDisplay}
-                            {propertyDetails.length > 0 && (
-                              <OverlayTrigger
-                                trigger="click"
-                                placement="auto"
-                                overlay={propertiesPopover}
-                                rootClose
-                              >
-                                <Button
-                                  type="button"
-                                  variant="link"
-                                  className="attack-card__properties-button"
-                                  aria-label="View weapon property descriptions"
-                                >
-                                  <i className="fa-solid fa-eye" aria-hidden="true"></i>
-                                </Button>
-                              </OverlayTrigger>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="attack-card__actions">
-                        {masteryDetail && masteryPopover && (
-                          <OverlayTrigger
-                            trigger="click"
-                            placement="auto"
-                            overlay={masteryPopover}
-                            rootClose
-                          >
-                            <Button
-                              type="button"
-                              variant="link"
-                              className="attack-card__roll attack-card__mastery"
-                              aria-label={`View ${masteryDetail.label} mastery description`}
-                            >
-                              <i className="fa-solid fa-crown" aria-hidden="true"></i>
-                            </Button>
-                          </OverlayTrigger>
-                        )}
-                        <Button
-                          onClick={() => {
-                            handleWeaponAttackRoll(slot, weapon);
-                            handleCloseAttack();
-                          }}
-                          variant="link"
-                          aria-label="Roll to hit"
-                          className="attack-card__roll"
-                        >
-                          <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            handleWeaponAttack(slot, weapon);
-                            handleCloseAttack();
-                          }}
-                          variant="link"
-                          aria-label={weaponHasPendingCritical ? 'Roll critical damage' : 'Roll damage'}
-                          title={weaponHasPendingCritical ? 'Roll Critical Damage' : 'Roll damage'}
-                          className={`attack-card__roll ${weaponHasPendingCritical ? 'critical-active' : ''}`}
-                        >
-                          <Swords size={18} aria-hidden="true" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+        <Card className="modern-card combat-arsenal">
+          <Card.Header className="combat-arsenal__header">
+            <div>
+              <span className="combat-arsenal__eyebrow">Combat Arsenal</span>
+              <Card.Title className="combat-arsenal__title">Attacks</Card.Title>
+              <p className="combat-arsenal__subtitle">Choose, inspect, favorite, and roll without leaving the fight.</p>
             </div>
-            {breathWeaponDetails && (
-              <>
-                <Card.Title className="modal-title mt-4">Breath Attack</Card.Title>
-                <div className="attack-card-grid">
-                  <div className="attack-card">
-                    <div className="attack-card__title">
-                      {breathWeaponDetails.label}
-                    </div>
-                    <div className="attack-card__details">
-                      <div className="attack-card__row">
-                        <span className="attack-card__label">Save DC</span>
-                        <span className="attack-card__value">
-                          {breathWeaponDetails.saveDC}
-                        </span>
-                      </div>
-                      <div className="attack-card__row">
-                        <span className="attack-card__label">Damage</span>
-                        <span className="attack-card__value">
-                          {formatDamageSegments(breathWeaponDetails.damageString)}
-                        </span>
-                      </div>
-                      {(breathWeaponDetails.shape || breathWeaponDetails.save) && (
-                        <div className="attack-card__row">
-                          <span className="attack-card__label">Shape</span>
-                          <span className="attack-card__value">
-                            {breathWeaponDetails.shape}
-                            {breathWeaponDetails.shape && breathWeaponDetails.save
-                              ? ' • '
-                              : ''}
-                            {breathWeaponDetails.save
-                              ? `${breathWeaponDetails.save} Save`
-                              : ''}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="attack-card__actions">
-                      <Button
-                        onClick={() => {
-                          handleBreathWeaponAttack();
-                          handleCloseAttack();
-                        }}
-                        variant="link"
-                        aria-label="Roll damage"
-                        className="attack-card__roll"
-                      >
-                        <i className="fa-solid fa-dice-d20"></i>
-                      </Button>
-                    </div>
-                  </div>
+            <div className="combat-arsenal__search-wrap">
+              <i className="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input
+                className="combat-arsenal__search"
+                type="search"
+                value={attackSearch}
+                onChange={(event) => setAttackSearch(event.target.value)}
+                placeholder="Search attacks..."
+                aria-label="Search attacks"
+              />
+            </div>
+          </Card.Header>
+          <Card.Body className="combat-arsenal__body">
+            <div className="combat-arsenal__layout">
+              <aside className="combat-arsenal__sidebar" aria-label="Attack categories">
+                {[
+                  ['all', 'All Attacks', '✦'], ['weapons', 'Weapons', '⚔️'], ['spells', 'Spells', '🔮'],
+                  ['cantrips', 'Cantrips', '✨'], ['class', 'Class Abilities', '🌟'], ['racial', 'Racial Abilities', '🐉'],
+                  ['unarmed', 'Unarmed', '👊'], ['improvised', 'Improvised', '🪨'], ['magic-items', 'Magic Items', '💎'],
+                  ['favorites', 'Favorites', '⭐'],
+                ].map(([key, label, icon]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`combat-category ${activeAttackCategory === key ? 'is-active' : ''}`}
+                    onClick={() => {
+                      setActiveAttackCategory(key);
+                      if (key === 'favorites') setActiveAttackFilters((prev) => new Set([...prev, 'favorites']));
+                    }}
+                  >
+                    <span>{icon}</span>{label}
+                  </button>
+                ))}
+              </aside>
+              <main className="combat-arsenal__main">
+                <div className="combat-arsenal__toolbar">
+                  <span>{visibleAttackItems.length} available actions</span>
+                  <Form.Select
+                    value={attackSort}
+                    onChange={(event) => setAttackSort(event.target.value)}
+                    aria-label="Sort attacks"
+                    size="sm"
+                  >
+                    <option value="favorites">Favorites / Recent</option>
+                    <option value="alpha">Alphabetical</option>
+                    <option value="damage">Highest Damage</option>
+                    <option value="accuracy">Most Accurate</option>
+                    <option value="spellLevel">Spell Level</option>
+                    <option value="weaponType">Weapon Type</option>
+                  </Form.Select>
                 </div>
-              </>
-            )}
-            {Array.isArray(form.spells) && form.spells.some((s) => s?.damage) && (
-              <>
-                <Card.Title className="modal-title mt-4">Spells</Card.Title>
-                <div className="attack-card-grid">
-                  {sortedSpells
-                    .filter((s) => s && s.damage)
-                    .map((spell, idx) => {
-                      const details = getSpellAttackDetails(spell);
-                      const showAttack = Boolean(details);
-                      const spellHasPendingCritical = Boolean(pendingCriticalAttack?.isCriticalHit && pendingCriticalAttack?.attackId === getSpellAttackRollId(spell));
-                      return (
-                        <div className="attack-card" key={idx}>
-                          <div className="attack-card__title">{spell.name}</div>
-                          <div className="attack-card__meta">
-                            <span>{spell.casterType || spell.caster || 'Unknown'}</span>
-                            <span>• Level {spell.level}</span>
-                          </div>
-                          <div className="attack-card__details">
-                            {showAttack && details && (
-                              <div className="attack-card__row">
-                                <span className="attack-card__label">Attack Bonus</span>
-                                <span className="attack-card__value">
-                                  {formatModifier(details.total)}
-                                </span>
-                              </div>
-                            )}
-                            <div className="attack-card__row">
-                              <span className="attack-card__label">Damage</span>
-                              <span className="attack-card__value">
-                                {formatDamageSegments(spell.damage)}
-                              </span>
-                            </div>
-                            <div className="attack-card__row">
-                              <span className="attack-card__label">Casting Time</span>
-                              <span className="attack-card__value">{spell.castingTime}</span>
-                            </div>
-                            <div className="attack-card__row">
-                              <span className="attack-card__label">Range</span>
-                              <span className="attack-card__value">{spell.range}</span>
-                            </div>
-                            <div className="attack-card__row">
-                              <span className="attack-card__label">Duration</span>
-                              <span className="attack-card__value">{spell.duration}</span>
-                            </div>
-                          </div>
-                          <div className="attack-card__actions">
-                            {showAttack && (
-                              <Button
-                                onClick={() => {
-                                  handleSpellAttackRoll(spell);
-                                  handleCloseAttack();
-                                }}
-                                variant="link"
-                                aria-label="Roll spell attack"
-                                className="attack-card__roll"
-                              >
-                                <i className="fa-solid fa-bullseye"></i>
-                              </Button>
-                            )}
-                            <Button
-                              onClick={() => {
-                                handleSpellsButtonClick(spell);
-                                handleCloseAttack();
-                              }}
-                              variant="link"
-                              aria-label={spellHasPendingCritical ? 'Roll critical damage' : 'Roll damage'}
-                              title={spellHasPendingCritical ? 'Roll Critical Damage' : 'Roll damage'}
-                              className={`attack-card__roll ${spellHasPendingCritical ? 'critical-active' : ''}`}
-                            >
-                              <i className="fa-solid fa-dice-d20"></i>
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </>
-            )}
-            {fiendishLegacySpells.length > 0 && (
-              <>
-                <Card.Title className="modal-title mt-4">Fiendish Legacy</Card.Title>
-                <div className="attack-card-grid">
-                  {fiendishLegacySpells.map((spell, idx) => {
-                    const details = getSpellAttackDetails(spell);
-                    const showAttack = Boolean(details);
+                <div className="attack-card-grid combat-attack-grid">
+                  {visibleAttackItems.length === 0 ? (
+                    <div className="attack-card attack-card--empty combat-action-card">No attacks match your filters.</div>
+                  ) : visibleAttackItems.map((item) => {
+                    const pendingId = item.kind === 'weapon' || item.kind === 'unarmed' ? getWeaponAttackRollId(item.slot, item.weapon) : item.spell ? getSpellAttackRollId(item.spell) : item.id;
+                    const hasPendingCritical = Boolean(pendingCriticalAttack?.isCriticalHit && pendingCriticalAttack?.attackId === pendingId);
                     return (
-                      <div className="attack-card" key={`fiendish-${idx}`}>
-                        <div className="attack-card__title">{spell.name}</div>
-                        <div className="attack-card__meta">
-                          <span>{spell.casterType || 'Fiendish Legacy'}</span>
-                          <span>• Level {spell.level}</span>
-                        </div>
-                        <div className="attack-card__details">
-                          {showAttack && details && (
-                            <div className="attack-card__row">
-                              <span className="attack-card__label">Attack Bonus</span>
-                              <span className="attack-card__value">
-                                {formatModifier(details.total)}
-                              </span>
-                            </div>
-                          )}
-                          <div className="attack-card__row">
-                            <span className="attack-card__label">Damage</span>
-                            <span className="attack-card__value">
-                              {formatDamageSegments(spell.damage)}
-                            </span>
-                          </div>
-                          <div className="attack-card__row">
-                            <span className="attack-card__label">Casting Time</span>
-                            <span className="attack-card__value">{spell.castingTime}</span>
-                          </div>
-                          <div className="attack-card__row">
-                            <span className="attack-card__label">Range</span>
-                            <span className="attack-card__value">{spell.range}</span>
-                          </div>
-                          <div className="attack-card__row">
-                            <span className="attack-card__label">Duration</span>
-                            <span className="attack-card__value">{spell.duration}</span>
+                      <article
+                        key={item.id}
+                        className={`attack-card combat-action-card combat-action-card--${item.kind} ${selectedAttack?.id === item.id ? 'is-selected' : ''} ${item.isFavorite ? 'is-favorite' : ''}`}
+                        onClick={() => setSelectedAttackId(item.id)}
+                      >
+                        <div className="combat-action-card__topline"><span>{item.source}</span><span>{item.actionType}</span></div>
+                        <div className="combat-action-card__hero">
+                          <div className="combat-action-card__icon" aria-hidden="true">{item.icon}</div>
+                          <div>
+                            <h3>{item.name}</h3>
+                            <p>{item.kind === 'spell' || item.kind === 'cantrip' ? item.school || 'Arcane attack' : item.damageType || 'Martial attack'}</p>
                           </div>
                         </div>
-                        <div className="attack-card__actions">
-                          {showAttack && (
-                            <Button
-                              onClick={() => {
-                                handleSpellAttackRoll(spell);
-                                handleCloseAttack();
-                              }}
-                              variant="link"
-                              aria-label="Roll spell attack"
-                              className="attack-card__roll"
-                            >
-                              <i className="fa-solid fa-bullseye"></i>
-                            </Button>
-                          )}
-                          <Button
-                            onClick={() => {
-                              handleSpellsButtonClick(spell);
-                              handleCloseAttack();
-                            }}
-                            variant="link"
-                            aria-label="Roll damage"
-                            className="attack-card__roll"
-                          >
-                            <i className="fa-solid fa-dice-d20"></i>
-                          </Button>
+                        <div className="combat-action-card__stats">
+                          <div><strong>{item.damageNode}</strong><span>Damage</span></div>
+                          <div><strong>{item.attackBonus}</strong><span>Hit / DC</span></div>
+                          <div><strong>{item.range}</strong><span>Range</span></div>
                         </div>
-                      </div>
+                        <div className="attack-card__details visually-hidden">
+                          <div className="attack-card__row"><span className="attack-card__label">{item.kind === 'feature' ? 'Save DC' : 'Attack Bonus'}</span><span className="attack-card__value">{item.kind === 'feature' ? String(item.attackBonus).replace(/^DC\s*/, '') : item.attackBonus}</span></div>
+                          {(item.kind === 'weapon' || item.kind === 'unarmed') && <div className="attack-card__meta-item"><span className="attack-card__meta-label">Weapon Type:</span><span className="attack-card__meta-value">{item.source}</span></div>}
+                        </div>
+                        <div className="combat-action-card__tags">
+                          {(item.tags || []).slice(0, 5).map((tag, tagIndex) => <span key={`${item.id}-${tag}-${tagIndex}`}>{tag}</span>)}
+                        </div>
+                        <div className="combat-action-card__actions" onClick={(event) => event.stopPropagation()}>
+                          <Button type="button" variant="link" className={`combat-icon-button ${item.isFavorite ? 'is-active' : ''}`} onClick={() => toggleAttackFavorite(item.id)} aria-label={`Favorite ${item.name}`}>⭐</Button>
+                          <Button type="button" variant="link" className="combat-icon-button" onClick={() => setSelectedAttackId(item.id)} aria-label={`Inspect ${item.name}`}>📖</Button>
+                          {item.canAttackRoll && <Button type="button" aria-label={item.spell ? 'Roll spell attack' : 'Roll to hit'} className="combat-roll-button combat-roll-button--attack" onClick={() => runAttackRoll(item)}>🎲 Roll Attack</Button>}
+                          {item.canDamageRoll && <Button type="button" aria-label={hasPendingCritical ? 'Roll critical damage' : 'Roll damage'} className={`combat-roll-button ${hasPendingCritical ? 'critical-active' : ''}`} onClick={() => runDamageRoll(item)}>💥 {hasPendingCritical ? 'Roll Critical' : 'Roll Damage'}</Button>}
+                        </div>
+                      </article>
                     );
                   })}
                 </div>
-              </>
-            )}
+              </main>
+              <aside className="combat-inspector" aria-live="polite">
+                {selectedAttack ? (
+                  <>
+                    <button
+                      type="button"
+                      className="combat-inspector__close"
+                      onClick={() => setSelectedAttackId('')}
+                      aria-label="Close attack preview"
+                    >
+                      <span aria-hidden="true">×</span>
+                    </button>
+                    <div className={`combat-inspector__art combat-inspector__art--${selectedAttack.kind}`}><span>{selectedAttack.icon}</span></div>
+                    <div className="combat-inspector__preview">
+                      <h3>{selectedAttack.name}</h3>
+                      <div><span>{selectedAttack.attackBonus}</span><small>to Hit / DC</small></div>
+                      <div><span>{selectedAttack.damageNode}</span><small>Damage</small></div>
+                      <div><span>{selectedAttack.range}</span><small>Reach</small></div>
+                    </div>
+                    <p className="combat-inspector__description">{selectedAttack.source} • {selectedAttack.actionType}{selectedAttack.damageType ? ` • ${selectedAttack.damageType}` : ''}</p>
+                    {(selectedAttack.kind === 'weapon' || selectedAttack.kind === 'unarmed') && isFinesseWeapon(selectedAttack.weapon) && (
+                      <Form.Select size="sm" value={getAbilityKeyForWeapon(selectedAttack.slot, selectedAttack.weapon)} onChange={(event) => setWeaponAbilitySelections((prev) => ({ ...prev, [selectedAttack.slot]: event.target.value === 'dex' ? 'dex' : 'str' }))} aria-label={`Select ability for ${selectedAttack.name}`}>
+                        <option value="str">Strength ({formatModifier(numericStrMod)})</option>
+                        <option value="dex">Dexterity ({formatModifier(numericDexMod)})</option>
+                      </Form.Select>
+                    )}
+                    <div className="combat-inspector__properties">
+                      {(selectedAttack.properties || []).map(({ label, description }) => <div key={`${selectedAttack.id}-${label}`}><strong>{label}</strong><span>{description}</span></div>)}
+                      {selectedAttack.mastery && <div><strong>Mastery: {selectedAttack.mastery.label}</strong><span>{selectedAttack.mastery.description}</span></div>}
+                      {(selectedAttack.tags || []).length === 0 && <div><strong>Properties</strong><span>No special properties listed.</span></div>}
+                    </div>
+                    <div className="combat-inspector__buttons">
+                      {selectedAttack.canAttackRoll && <Button type="button" aria-label={selectedAttack.spell ? 'Roll spell attack' : 'Roll to hit'} className="combat-roll-button combat-roll-button--attack" onClick={() => runAttackRoll(selectedAttack)}>🎲 Roll Attack</Button>}
+                      {selectedAttack.canDamageRoll && <Button type="button" aria-label="Roll damage" className="combat-roll-button" onClick={() => runDamageRoll(selectedAttack)}>💥 Roll Damage</Button>}
+                      <Button type="button" variant="link" className={`combat-favorite-button ${selectedAttack.isFavorite ? 'is-active' : ''}`} onClick={() => toggleAttackFavorite(selectedAttack.id)}>⭐ Favorite</Button>
+                    </div>
+                  </>
+                ) : <p className="text-muted">Select an attack to inspect its combat profile.</p>}
+              </aside>
+            </div>
           </Card.Body>
-            <Card.Footer className="modal-footer">
-              <Button className="close-btn" variant="secondary" onClick={handleCloseAttack}>
-                Close
-              </Button>
-            </Card.Footer>
+          <Card.Footer className="modal-footer combat-arsenal__footer">
+            <Button className="close-btn" variant="secondary" onClick={handleCloseAttack}>Close Arsenal</Button>
+          </Card.Footer>
         </Card>
       </Modal>
       <UpcastModal
