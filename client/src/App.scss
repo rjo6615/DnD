@@ -12592,3 +12592,17 @@ ul.spellbook-tabs.nav-tabs {
   .combat-arsenal__body { overflow-y: auto; padding-bottom: calc(46vh + 5rem); }
   .combat-arsenal__sidebar { margin-bottom: .5rem; }
 }
+
+/* Combat Arsenal independent column scrolling */
+@media (min-width: 1101px) {
+  .combat-arsenal__body { overflow: hidden; }
+  .combat-arsenal__layout { height: 100%; overflow: hidden; align-items: start; }
+  .combat-arsenal__sidebar,
+  .combat-inspector { position: sticky; top: 0; align-self: start; max-height: calc(100dvh - 235px); overflow-y: auto; scrollbar-color: rgba(143, 200, 255, .44) rgba(7, 13, 28, .45); }
+  .combat-arsenal__main { max-height: calc(100dvh - 235px); overflow-y: auto; padding-right: .35rem; scrollbar-color: rgba(143, 200, 255, .44) rgba(7, 13, 28, .45); }
+}
+
+@media (max-width: 1100px) {
+  .combat-arsenal__body { overflow-y: auto; }
+  .combat-arsenal__main { overflow: visible; max-height: none; }
+}
