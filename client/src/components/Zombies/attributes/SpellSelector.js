@@ -634,6 +634,15 @@ export default function SpellSelector({
     return (
       <aside className="spellbook-inspector" aria-label="Selected spell details">
         <div className="spellbook-art"><i className={`fa-solid ${spellIconClass(activeSpell)}`} aria-hidden="true" /></div>
+        <Button
+          type="button"
+          variant="link"
+          className="spellbook-inspector-dismiss"
+          aria-label="Close selected spell details"
+          onClick={() => setViewSpell(null)}
+        >
+          <i className="fa-solid fa-xmark" aria-hidden="true" />
+        </Button>
         <div className="spellbook-inspector-heading">
           <span className="spell-level-badge">Level {activeSpell.level}</span>
           <h3>{activeSpell.name}</h3>
@@ -858,7 +867,7 @@ export default function SpellSelector({
           </Card.Body>
           <Card.Footer className="modal-footer">
             <Button
-              className="action-btn close-btn"
+              className="spellbook-modal-close-btn"
               onClick={handleModalHide}
             >
               Close
