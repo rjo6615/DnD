@@ -2904,6 +2904,14 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
               <aside className="combat-inspector" aria-live="polite">
                 {selectedAttack ? (
                   <>
+                    <button
+                      type="button"
+                      className="combat-inspector__close"
+                      onClick={() => setSelectedAttackId('')}
+                      aria-label="Close attack preview"
+                    >
+                      <span aria-hidden="true">×</span>
+                    </button>
                     <div className={`combat-inspector__art combat-inspector__art--${selectedAttack.kind}`}><span>{selectedAttack.icon}</span></div>
                     <div className="combat-inspector__preview">
                       <h3>{selectedAttack.name}</h3>
