@@ -13035,3 +13035,59 @@ ul.spellbook-tabs.nav-tabs {
     padding-inline: 1rem !important;
   }
 }
+
+/* Character Abilities Codex viewport-safe shell */
+.abilities-codex-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+}
+
+.abilities-codex-card .modal-header,
+.abilities-codex-card .abilities-codex-footer {
+  flex: 0 0 auto;
+}
+
+.abilities-codex-card .abilities-codex-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.abilities-codex-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.abilities-codex-toolbar {
+  flex: 0 0 auto;
+}
+
+.abilities-codex-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+.abilities-grid,
+.abilities-codex-sidebar,
+.ability-inspector {
+  max-height: 100%;
+}
+
+.abilities-grid,
+.ability-inspector {
+  padding-bottom: 1.25rem;
+  scroll-padding-bottom: 1.25rem;
+}
+
+@media (max-width: 991px) {
+  .abilities-codex-card {
+    max-height: calc(100vh - 1rem);
+  }
+
+  .abilities-codex-shell {
+    height: auto;
+  }
+}

@@ -1755,7 +1755,7 @@ export default function Features({
         dialogClassName={dialogClassName}
       >
         <div className="text-center">
-          <Card className="modern-card">
+          <Card className="modern-card abilities-codex-card">
             <Card.Header className="modal-header">
               <DockControls
                 dockedSide={dockedSide}
