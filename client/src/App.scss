@@ -13091,3 +13091,49 @@ ul.spellbook-tabs.nav-tabs {
     height: auto;
   }
 }
+
+/* Character Abilities Codex scroll restoration */
+.abilities-codex-card .abilities-codex-body {
+  max-height: calc(100vh - 10rem) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-bottom: 5rem !important;
+}
+
+.abilities-codex-card .abilities-codex-shell {
+  height: auto !important;
+  min-height: auto !important;
+}
+
+.abilities-codex-card .abilities-codex-layout {
+  max-height: none !important;
+  overflow: visible !important;
+  min-height: auto !important;
+}
+
+.abilities-codex-card .abilities-grid,
+.abilities-codex-card .ability-inspector {
+  max-height: none !important;
+  overflow: visible !important;
+  padding-bottom: 1.5rem;
+}
+
+.abilities-codex-card .abilities-codex-sidebar {
+  max-height: calc(100vh - 13rem);
+  overflow-y: auto;
+  position: sticky;
+  top: 1rem;
+}
+
+@media (max-width: 991px) {
+  .abilities-codex-card .abilities-codex-body {
+    max-height: calc(100vh - 8rem) !important;
+    padding-bottom: 5.5rem !important;
+  }
+
+  .abilities-codex-card .abilities-codex-sidebar {
+    max-height: none;
+    overflow: visible;
+    position: static;
+  }
+}
