@@ -364,7 +364,6 @@ export default function Help({
               <Card.Title id="settings-help-title" className="modal-title">Settings & Help</Card.Title>
               <p>Player preferences, guidance, campaigns, account, and character safety.</p>
             </div>
-            <Button className="settings-help-close" variant="outline-light" onClick={handleModalHide} aria-label="Close Settings & Help">×</Button>
           </Card.Header>
           <Card.Body className="settings-help-body">
             {campaignNotification && <Alert variant="danger" dismissible onClose={clearNotification} className="mb-3">{campaignNotification}</Alert>}
@@ -386,6 +385,9 @@ export default function Help({
               </main>
             </div>
           </Card.Body>
+          <Card.Footer className="modal-footer settings-help-footer">
+            <Button className="action-btn close-btn" onClick={handleModalHide}>Close</Button>
+          </Card.Footer>
         </Card>
       </Modal>
       <Modal className="dnd-modal modern-modal delete-character-modal" size="md" aria-labelledby="delete-character-title" centered show={showDeleteCharacter} onHide={() => setShowDeleteCharacter(false)}>
