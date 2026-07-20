@@ -72,6 +72,13 @@ test('calls rest handlers when buttons clicked', () => {
   expect(onShortRest).toHaveBeenCalled();
 });
 
+test('does not render a header close button', () => {
+  renderCharacterInfo();
+
+  expect(screen.queryByRole('button', { name: 'Close' })).toBeInTheDocument();
+  expect(document.querySelector('.realm-modal-header__close')).not.toBeInTheDocument();
+});
+
 test('renders goliath subrace within race card when ancestry selected', () => {
   renderCharacterInfo({
     form: {

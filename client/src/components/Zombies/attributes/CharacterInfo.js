@@ -225,7 +225,6 @@ export default function CharacterInfo({
         <ModalHeader
           title="Character Overview"
           subtitle={`${primaryClass} dossier`}
-          onClose={handleModalHide}
           actions={
             <DockControls
               dockedSide={dockedSide}
