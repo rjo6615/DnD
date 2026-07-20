@@ -13361,3 +13361,17 @@ ul.spellbook-tabs.nav-tabs {
     scroll-padding-bottom: 5rem;
   }
 }
+
+/* Reserve the same footer clearance for the independently scrolling feat grid. */
+.feats-grid {
+  box-sizing: border-box;
+  padding-bottom: 5.5rem;
+  scroll-padding-bottom: 5.5rem;
+}
+
+@media (max-width: 575px) {
+  .feats-grid {
+    padding-bottom: 5rem;
+    scroll-padding-bottom: 5rem;
+  }
+}
