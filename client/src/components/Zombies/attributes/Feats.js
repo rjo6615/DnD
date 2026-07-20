@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { SKILLS } from "../skillSchema";
 import { calculateFeatPointsLeft } from '../../../utils/featUtils';
 import DockControls from '../components/DockControls';
+import { Check, Lock, Search, Shield, Sparkles, Sword, WandSparkles, X } from 'lucide-react';
 
 // Tools and musical instruments that can be selected for proficiency.
 // This list is not exhaustive to every possible item in the game but
@@ -55,6 +56,24 @@ const ALL_SKILLS = [...SKILLS, ...TOOL_OPTIONS];
 
 // Maximum number of selectable proficiencies a feat may grant.
 const SKILL_SELECT_LIMIT = 3;
+const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+const categoryFor = (feat) => {
+  if (feat.category) return feat.category;
+  const text = `${feat.featName || ''} ${feat.notes || ''}`.toLowerCase();
+  if (/spell|magic|caster|ritual|arcana/.test(text)) return 'Magic';
+  if (/armor|shield|tough|resilien|defen/.test(text)) return 'Defensive';
+  if (/weapon|battle|fighter|attack|martial/.test(text)) return 'Combat';
+  return 'General';
+};
+const requirementsFor = (feat) => {
+  const value = feat?.prerequisites || feat?.prerequisite || feat?.requirements;
+  if (Array.isArray(value)) return value.map(String);
+  if (value) return [String(value)];
+  if (feat?.minLevel || feat?.requiredLevel) return [`Requires level ${feat.minLevel || feat.requiredLevel}`];
+  return [];
+};
+const bonusesFor = (feat) => ABILITIES.filter((ability) => Number(feat?.[ability])).map((ability) => ({ ability, value: Number(feat[ability]) }));
+const descriptionFor = (notes) => String(notes || 'A defining talent that broadens your hero’s legend.').replace(/\s+/g, ' ').trim();
 
 export default function Feats({
   form,
@@ -80,6 +99,8 @@ export default function Feats({
   const [abilitySelections, setAbilitySelections] = useState({});
   const [skillSelections, setSkillSelections] = useState([]);
   const [notification, setNotification] = useState(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('All Feats');
 
   const skillChoiceFields = [
     'skillChoiceCount',
@@ -202,6 +223,19 @@ export default function Feats({
   // ---------------------------------------Feats left-----------------------------------------------------
   const featPointsLeft = calculateFeatPointsLeft(form.occupation, form.feat);
   const showFeatBtn = featPointsLeft > 0 ? "" : "none";
+  const characterLevel = Math.max(0, ...(form.occupation || []).map((entry) => Number(entry.Level) || 0));
+  const featStatus = useCallback((item) => {
+    if (form.feat.some((owned) => owned.featName === item.featName)) return { key: 'owned', label: 'Owned', reason: 'Already part of your legend.' };
+    const requiredLevel = Number(item.minLevel || item.requiredLevel || 0);
+    if (requiredLevel > characterLevel) return { key: 'locked', label: 'Locked', reason: `Requires Level ${requiredLevel}` };
+    if (featPointsLeft <= 0) return { key: 'unavailable', label: 'Unavailable', reason: 'No feat selections remaining.' };
+    return { key: 'available', label: 'Available', reason: requirementsFor(item).join(' • ') || 'Ready to unlock.' };
+  }, [characterLevel, featPointsLeft, form.feat]);
+  const filteredFeats = useMemo(() => feat.feat.filter((item) => {
+    const status = featStatus(item);
+    const query = `${item.featName} ${item.notes || ''} ${categoryFor(item)} ${requirementsFor(item).join(' ')}`.toLowerCase();
+    return query.includes(search.toLowerCase()) && (filter === 'All Feats' || filter === categoryFor(item) || (filter === 'Ability Score Increase' && (bonusesFor(item).length || item.abilityIncreaseOptions)) || (filter === 'Owned' && status.key === 'owned') || (filter === 'Available' && status.key === 'available') || (filter === 'Locked' && status.key === 'locked'));
+  }).sort((a, b) => a.featName.localeCompare(b.featName)), [feat.feat, featStatus, filter, search]);
 
   // ----------------------------------------Fetch Feats-----------------------------------
   useEffect(() => {
@@ -356,218 +390,19 @@ export default function Feats({
           />
           <Card.Title className="modal-title">Feats</Card.Title>
         </Card.Header>
-            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
-              <div className="points-container" style={{ display: showFeatBtn }}>
-                <span className="points-label text-light">Points Left:</span>
-                <span className="points-value" id="featPointLeft">{featPointsLeft}</span>
+            <Card.Body className="feats-library__body">
+              <section className="feats-library__hero">
+                <div><span className="feats-library__eyebrow">Heroic progression</span><h2>Feat Library</h2><p>Choose a legend-defining talent for your next milestone.</p></div>
+                <div className="feats-library__points"><Sparkles size={18} /><strong id="featPointLeft">{featPointsLeft}</strong><span>{featPointsLeft === 1 ? 'selection remaining' : 'selections remaining'}</span></div>
+              </section>
+              <div className="feats-library__toolbar">
+                <label className="feats-search"><Search size={18} /><span className="visually-hidden">Search feats</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search feats, benefits, and requirements…" /></label>
               </div>
-              <div className="feat-card-grid">
-                {form.feat.map((el, index) => {
-                  const skillValues = [];
-                  if (el.skills) {
-                    Object.keys(el.skills).forEach((key) => {
-                      const skill = ALL_SKILLS.find((s) => s.key === key);
-                      const label = skill ? skill.label : key;
-                      skillValues.push(`${label}: proficient`);
-                    });
-                  }
-                  SKILLS.forEach(({ label, key }) => {
-                    const val = el[key];
-                    if (val && val !== "0" && val !== "") {
-                      skillValues.push(`${label}: ${val}`);
-                    }
-                  });
-
-                  const abilityValues = [];
-                  abilityLabels.forEach((label) => {
-                    const prop = label.toLowerCase();
-                    const val = el[prop];
-                    if (val && val !== "0" && val !== "") {
-                      abilityValues.push(`${label}: ${val}`);
-                    }
-                  });
-                  extraAbilityLabels.forEach(({ label, key }) => {
-                    const val = el[key];
-                    if (val && val !== "0" && val !== "") {
-                      abilityValues.push(`${label}: ${val}`);
-                    }
-                  });
-
-                  return (
-                    <div className="feat-card" key={`${el.featName}-${index}`}>
-                      <div className="feat-card-header">
-                        <div className="feat-card-name">{el.featName}</div>
-                        <div
-                          className="feat-card-actions"
-                          style={{ display: showDeleteFeatBtn }}
-                        >
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="view-link-btn"
-                            onClick={() => {
-                              handleShowFeatNotes();
-                              setModalFeatData(el);
-                            }}
-                          >
-                            <i className="fa-solid fa-eye" aria-hidden="true"></i>
-                            <span className="visually-hidden">View notes</span>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            className="action-btn"
-                            onClick={() => {
-                              deleteFeats(index);
-                            }}
-                          >
-                            <i className="fa-solid fa-trash" aria-hidden="true"></i>
-                            <span className="visually-hidden">Delete feat</span>
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="feat-card-body">
-                        {skillValues.length > 0 && (
-                          <div
-                            className="feat-card-section"
-                            style={{ display: showDeleteFeatBtn }}
-                          >
-                            <div className="feat-card-section-title">Skills &amp; Tools</div>
-                            <ul className="feat-card-list">
-                              {skillValues.map((skill) => (
-                                <li key={skill}>{skill}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {abilityValues.length > 0 && (
-                          <div
-                            className="feat-card-section"
-                            style={{ display: showDeleteFeatBtn }}
-                          >
-                            <div className="feat-card-section-title">Ability Bonuses</div>
-                            <ul className="feat-card-list">
-                              {abilityValues.map((ab) => (
-                                <li key={ab}>{ab}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="feats-library__layout">
+                <aside className="feats-sidebar" aria-label="Feat filters"><span className="feats-sidebar__label">Browse collection</span>{['All Feats', 'Combat', 'Magic', 'Defensive', 'Ability Score Increase', 'Available', 'Locked', 'Owned'].map((item) => <button type="button" key={item} className={filter === item ? 'is-active' : ''} onClick={() => setFilter(item)}>{item}</button>)}</aside>
+                <section className="feats-grid" aria-live="polite">{filteredFeats.map((item) => { const status = featStatus(item); const category = categoryFor(item); const Icon = category === 'Combat' ? Sword : category === 'Magic' ? WandSparkles : category === 'Defensive' ? Shield : Sparkles; const selected = selectedFeatData?.featName === item.featName; return <button type="button" key={item.featName} className={`feat-library-card feat-library-card--${status.key}${selected ? ' is-selected' : ''}`} onClick={() => handleSelectFeat({ target: { value: item.featName } })} aria-pressed={selected}><span className="feat-library-card__art"><Icon size={30} /></span><span className="feat-library-card__topline"><span>{category}</span><span className={`feat-status feat-status--${status.key}`}>{status.key === 'owned' ? <Check size={13} /> : status.key !== 'available' ? <Lock size={13} /> : <Sparkles size={13} />}{status.label}</span></span><strong>{item.featName}</strong><span className="feat-library-card__description">{descriptionFor(item.notes)}</span><span className="feat-library-card__badges">{bonusesFor(item).map(({ ability, value }) => <span key={ability} className={`ability-chip ability-chip--${ability}`}>+{value} {ability.toUpperCase()}</span>)}{requirementsFor(item).slice(0, 1).map((requirement) => <span key={requirement} className="requirement-chip">{requirement}</span>)}</span></button>; })}{!filteredFeats.length && <div className="feats-empty">No feats match this search. Try a different term or filter.</div>}</section>
+                <aside className="feat-inspector" aria-label="Feat inspector">{selectedFeatData ? <><button type="button" className="feat-inspector__close" onClick={() => { setSelectedFeatData(null); setChosenFeat(''); }} aria-label="Close feat inspector"><X size={18} /></button><div className="feat-inspector__art"><Sparkles size={40} /></div><span className="feats-library__eyebrow">{categoryFor(selectedFeatData)} feat</span><h3>{selectedFeatData.featName}</h3><p>{descriptionFor(selectedFeatData.notes)}</p><div className="feat-inspector__section"><b>Ability bonuses</b><div>{bonusesFor(addFeat || selectedFeatData).length ? bonusesFor(addFeat || selectedFeatData).map(({ ability, value }) => <span key={ability} className={`ability-chip ability-chip--${ability}`}>+{value} {ability.toUpperCase()}</span>) : <span className="muted">No direct ability increase.</span>}</div></div><div className="feat-inspector__section"><b>Requirements</b>{requirementsFor(selectedFeatData).length ? requirementsFor(selectedFeatData).map((requirement) => <span key={requirement} className="requirement-row"><Check size={15} /> {requirement}</span>) : <span className="requirement-row"><Check size={15} /> No prerequisites</span>}<span className={`feat-inspector__reason feat-inspector__reason--${featStatus(selectedFeatData).key}`}>{featStatus(selectedFeatData).reason}</span></div><Form onSubmit={addFeatToDb}>{featStatus(selectedFeatData).key === 'owned' && <Button type="button" className="action-btn feat-inspector__remove" onClick={() => deleteFeats(form.feat.findIndex((item) => item.featName === selectedFeatData.featName))}>Remove feat</Button>}{selectedFeatData.abilityIncreaseOptions?.map((option, idx) => { const abilities = Array.isArray(option) ? option : option.abilities || []; return <Form.Group className="feat-choice" key={idx}><Form.Label>Choose an ability increase</Form.Label><Form.Select value={abilitySelections[idx] || ''} onChange={(event) => handleAbilityChoice(idx, event.target.value)}><option value="" disabled>Select ability</option>{abilities.map((opt) => <option key={opt} value={opt}>{opt.toUpperCase()}</option>)}</Form.Select></Form.Group>; })}{hasSkillChoice && <Form.Group className="feat-choice"><Form.Label>Skill/Tool Proficiencies (choose up to {skillLimit})</Form.Label><Form.Select multiple value={skillSelections} onChange={handleSkillChoice}>{ALL_SKILLS.map(({ key, label }) => { const selected = skillSelections.includes(key); return <option key={key} value={key} disabled={!selected && (skillSelections.length >= skillLimit || existingProficiencies.has(key))}>{label}</option>; })}</Form.Select></Form.Group>}<Button disabled={featStatus(selectedFeatData).key !== 'available' || (selectedFeatData.abilityIncreaseOptions && Object.keys(abilitySelections).length !== selectedFeatData.abilityIncreaseOptions.length) || (hasSkillChoice && skillSelections.length === 0)} className="action-btn feat-inspector__action" type="submit">{featStatus(selectedFeatData).key === 'locked' ? 'Requirement not met' : featStatus(selectedFeatData).key === 'unavailable' ? 'No selections remaining' : 'Select feat'}</Button></Form>}</> : <div className="feat-inspector__placeholder"><Sparkles size={32} /><b>Choose a feat</b><span>Explore the library, then inspect a feat to make it part of your story.</span></div>}</aside>
               </div>
-              <Row>
-                <Col style={{ display: showFeatBtn }}>
-                  <Form onSubmit={addFeatToDb}>
-                    <Form.Group className="mb-3 mx-5">
-                      <Form.Label className="text-light">Select Feat</Form.Label>
-                      <div className="d-flex">
-                        <Form.Select
-                          onChange={handleSelectFeat}
-                          defaultValue=""
-                          type="text"
-                          style={{ maxHeight: '200px', overflowY: 'auto' }}
-                        >
-                          <option value="" disabled>
-                            Select your feat
-                          </option>
-                          {feat.feat.map((el) => (
-                            <option key={el.featName} value={el.featName}>
-                              {el.featName}
-                            </option>
-                          ))}
-                        </Form.Select>
-                        <Button
-                          variant="link"
-                          className="view-link-btn"
-                          disabled={!selectedFeatData}
-                          onClick={() => {
-                            setModalFeatData(selectedFeatData);
-                            handleShowFeatNotes();
-                          }}
-                        >
-                          <i className="fa-solid fa-eye"></i>
-                        </Button>
-                      </div>
-                    </Form.Group>
-
-                    {selectedFeatData?.abilityIncreaseOptions &&
-                      selectedFeatData.abilityIncreaseOptions.map((option, idx) => {
-                        const abilities = Array.isArray(option)
-                          ? option
-                          : option.abilities || [];
-                        return (
-                          <Form.Group className="mb-3 mx-5" key={idx}>
-                            <Form.Label className="text-light">Ability Increase</Form.Label>
-                            <Form.Select
-                              value={abilitySelections[idx] || ""}
-                              onChange={(e) => handleAbilityChoice(idx, e.target.value)}
-                              defaultValue=""
-                            >
-                              <option value="" disabled>
-                                Select ability
-                              </option>
-                              {abilities.map((opt) => (
-                                <option key={opt} value={opt}>
-                                  {opt.toUpperCase()}
-                                </option>
-                              ))}
-                            </Form.Select>
-                          </Form.Group>
-                        );
-                      })}
-
-                    {hasSkillChoice && (
-                      <Form.Group className="mb-3 mx-5">
-                        <Form.Label className="text-light">
-                          Skill/Tool Proficiencies
-                        </Form.Label>
-                        <Form.Select
-                          multiple
-                          value={skillSelections}
-                          onChange={handleSkillChoice}
-                        >
-                          {ALL_SKILLS.map(({ key, label }) => {
-                            const selected = skillSelections.includes(key);
-                            const alreadyProficient = existingProficiencies.has(key);
-                            const disabled =
-                              (!selected && skillSelections.length >= skillLimit) ||
-                              (!selected && alreadyProficient);
-                            return (
-                              <option key={key} value={key} disabled={disabled}>
-                                {label}
-                              </option>
-                            );
-                          })}
-                        </Form.Select>
-                        <Form.Text className="text-light">
-                          Select up to {skillLimit}
-                        </Form.Text>
-                        {skillSelections.length >= skillLimit && (
-                          <Form.Text className="text-danger">
-                            Maximum skill selections reached
-                          </Form.Text>
-                        )}
-                      </Form.Group>
-                    )}
-
-                    <Button
-                      disabled={
-                        !chosenFeat ||
-                        (selectedFeatData?.abilityIncreaseOptions &&
-                          Object.keys(abilitySelections).length !==
-                            selectedFeatData.abilityIncreaseOptions.length) ||
-                        (hasSkillChoice && skillSelections.length === 0)
-                      }
-                      className="action-btn" type="submit"
-                    >
-                      Add
-                    </Button>
-                  </Form>
-                </Col>
-              </Row>
             </Card.Body>
             <Card.Footer className="modal-footer">
               <Button className="action-btn close-btn" onClick={handleModalHide}>
