@@ -381,7 +381,7 @@ export default function Feats({
         dialogClassName={dialogClassName}
       >
         <div className="text-center">
-          <Card className="modern-card">
+          <Card className="modern-card feats-library">
         <Card.Header className="modal-header">
           <DockControls
             dockedSide={dockedSide}
