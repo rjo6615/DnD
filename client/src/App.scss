@@ -13296,3 +13296,114 @@ ul.spellbook-tabs.nav-tabs {
     left: 12px;
   }
 }
+
+/* Legendary Feat Library */
+.feats-library { overflow: hidden; background: linear-gradient(145deg, rgba(5,17,43,.98), rgba(18,13,48,.98)); }.feats-library__body { padding: 1rem !important; overflow: hidden; }.feats-library__hero { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:.9rem; }.feats-library__hero h2 { margin:.12rem 0; color:#fff3d1; font-family:'Cinzel',serif; font-size:1.4rem; }.feats-library__hero p { margin:0; color:rgba(213,232,255,.7); font-size:.83rem; }.feats-library__eyebrow { color:#96c9ff; font-size:.69rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }.feats-library__points { display:flex; align-items:center; gap:.45rem; padding:.6rem .75rem; color:#ffe1a0; border:1px solid rgba(255,211,122,.3); border-radius:.8rem; background:rgba(194,140,46,.11); }.feats-library__points strong { font-size:1.25rem; }.feats-library__toolbar { margin-bottom:.8rem; }.feats-search { display:flex; align-items:center; gap:.5rem; padding:.65rem .75rem; color:#9dccff; border:1px solid rgba(136,187,255,.2); border-radius:.75rem; background:rgba(3,12,34,.55); }.feats-search input { width:100%; color:#f4f8ff; border:0; outline:0; background:transparent; }.feats-search input::placeholder { color:rgba(217,232,255,.52); }.feats-library__layout { display:grid; grid-template-columns:10.5rem minmax(0,1fr) 18.5rem; gap:.85rem; min-height:31rem; }.feats-sidebar,.feat-inspector { border:1px solid rgba(138,187,255,.16); border-radius:1rem; background:rgba(3,12,34,.54); }.feats-sidebar { padding:.6rem; }.feats-sidebar__label { display:block; padding:.45rem .5rem; color:rgba(197,219,255,.57); font-size:.68rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }.feats-sidebar button { width:100%; padding:.55rem .6rem; text-align:left; color:rgba(230,242,255,.78); border:1px solid transparent; border-radius:.65rem; background:transparent; }.feats-sidebar button:hover,.feats-sidebar button.is-active { color:#fff4d1; border-color:rgba(129,190,255,.28); background:linear-gradient(90deg,rgba(42,102,175,.38),rgba(88,58,165,.26)); }.feats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(13rem,1fr)); align-content:start; gap:.75rem; overflow-y:auto; max-height:38rem; padding:.1rem .25rem .5rem; }.feat-library-card { display:flex; flex-direction:column; min-height:16rem; padding:.85rem; text-align:left; color:#eef6ff; border:1px solid rgba(133,185,255,.2); border-radius:1rem; background:radial-gradient(circle at 85% 0%,rgba(97,146,233,.2),transparent 34%),linear-gradient(145deg,rgba(12,31,68,.92),rgba(20,16,51,.88)); box-shadow:inset 0 1px rgba(255,255,255,.08),0 10px 22px rgba(0,0,0,.16); transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }.feat-library-card:hover,.feat-library-card:focus-visible,.feat-library-card.is-selected { transform:translateY(-3px); border-color:rgba(255,214,129,.68); box-shadow:0 16px 30px rgba(0,0,0,.34),0 0 18px rgba(119,179,255,.18); outline:none; }.feat-library-card--owned { border-color:rgba(95,226,163,.6); }.feat-library-card--locked,.feat-library-card--unavailable { opacity:.64; filter:saturate(.6); }.feat-library-card__art { display:grid; place-items:center; width:3rem; height:3rem; margin-bottom:.6rem; color:#d9b772; border:1px solid rgba(255,224,154,.25); border-radius:.85rem; background:radial-gradient(circle,rgba(255,217,130,.22),rgba(85,70,171,.08)); }.feat-library-card__topline,.feat-library-card__badges { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.3rem; color:#9ccaff; font-size:.67rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; }.feat-library-card strong { margin:.45rem 0; font-family:'Cinzel',serif; font-size:1rem; color:#fff3d1; }.feat-library-card__description { display:-webkit-box; overflow:hidden; color:rgba(226,239,255,.76); font-size:.79rem; line-height:1.45; -webkit-line-clamp:3; -webkit-box-orient:vertical; }.feat-library-card__badges { justify-content:flex-start; margin-top:auto; padding-top:.65rem; }.feat-status,.ability-chip,.requirement-chip { display:inline-flex; align-items:center; gap:.22rem; padding:.22rem .38rem; border-radius:99px; font-size:.63rem; letter-spacing:.03em; }.feat-status--owned { color:#9ff0bf; background:rgba(59,170,103,.17); }.feat-status--available { color:#b7dcff; background:rgba(69,140,226,.18); }.feat-status--locked,.feat-status--unavailable,.requirement-chip { color:#ffd1ce; background:rgba(177,66,77,.2); }.ability-chip { color:#fff; background:rgba(100,135,215,.25); }.ability-chip--str {background:rgba(191,73,73,.35)}.ability-chip--dex{background:rgba(56,160,118,.33)}.ability-chip--con{background:rgba(202,135,57,.34)}.ability-chip--int{background:rgba(70,130,207,.35)}.ability-chip--wis{background:rgba(126,94,185,.36)}.ability-chip--cha{background:rgba(191,75,151,.35)}.feats-empty { grid-column:1/-1; padding:2rem; text-align:center; color:#aac8ec; border:1px dashed rgba(138,187,255,.26); border-radius:1rem; }.feat-inspector { position:relative; padding:.85rem; overflow-y:auto; color:#e9f3ff; }.feat-inspector__close { position:absolute; top:.65rem; right:.65rem; color:#d6eaff; border:0; background:transparent; }.feat-inspector__art { display:grid; place-items:center; height:6.5rem; margin-bottom:.7rem; color:#ffdc92; border:1px solid rgba(255,224,154,.17); border-radius:.85rem; background:radial-gradient(circle at 50% 30%,rgba(117,172,255,.36),rgba(80,49,146,.27) 50%,rgba(4,15,40,.5)); }.feat-inspector h3 { margin:.2rem 0 .5rem; font-family:'Cinzel',serif; color:#fff2ce; }.feat-inspector p { color:rgba(222,237,255,.76); font-size:.87rem; line-height:1.5; }.feat-inspector__section { display:flex; flex-direction:column; gap:.4rem; margin:.8rem 0; padding-top:.7rem; border-top:1px solid rgba(148,193,255,.13); }.feat-inspector__section>div { display:flex; flex-wrap:wrap; gap:.3rem; }.requirement-row { display:flex; align-items:center; gap:.35rem; color:#a9ecc2; font-size:.8rem; }.feat-inspector__reason { padding:.45rem; font-size:.76rem; border-radius:.55rem; }.feat-inspector__reason--locked,.feat-inspector__reason--unavailable { color:#ffd2cf; background:rgba(167,55,67,.19); }.feat-inspector__reason--owned { color:#a8f1c5; background:rgba(46,145,90,.16); }.feat-choice { margin:.7rem 0; }.feat-choice .form-label { color:#cfe4ff; font-size:.78rem; }.feat-choice .form-select { color:#edf7ff; border-color:rgba(145,192,255,.28); background-color:rgba(9,23,54,.86); }.feat-choice select[multiple] { min-height:8rem; }.feat-inspector__action { width:100%; margin-top:.25rem; }.feat-inspector__placeholder { display:grid; place-items:center; gap:.55rem; height:100%; min-height:14rem; text-align:center; color:#acc9ed; }.feat-inspector__placeholder b {color:#fff0c6}.muted {color:rgba(213,231,255,.58);font-size:.8rem}@media(max-width:991px){.feats-library__layout{grid-template-columns:9rem minmax(0,1fr)}.feat-inspector{grid-column:1/-1;max-height:25rem}.feats-grid{max-height:29rem}}@media(max-width:575px){.feats-library__body{padding:.65rem!important}.feats-library__hero{align-items:flex-start;flex-direction:column}.feats-library__layout{display:block}.feats-sidebar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.2rem;margin-bottom:.65rem}.feats-sidebar__label{grid-column:1/-1}.feats-grid{grid-template-columns:1fr;max-height:none;overflow:visible}.feat-library-card{min-height:12.5rem}.feat-inspector{margin-top:.7rem;max-height:none}.modal-footer{display:none}}
+@media (max-width: 575px) { .feat-inspector { position: fixed; z-index: 1080; right: 0; bottom: 0; left: 0; max-height: 78vh; margin: 0; border-radius: 1.25rem 1.25rem 0 0; background: #0b1e45; box-shadow: 0 -12px 42px rgba(0,0,0,.52); } }
+
+/* Keep the library's final actions visible without making the whole modal scroll. */
+.feats-library__footer {
+  display: flex !important;
+  justify-content: flex-end !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+.feats-library__footer .close-btn {
+  width: auto !important;
+  min-width: 8rem;
+  margin-left: auto;
+  padding-inline: 1.5rem;
+}
+
+.feat-inspector {
+  height: 38rem;
+  max-height: 38rem;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(135, 191, 255, 0.55) rgba(5, 17, 43, 0.45);
+}
+
+.feat-inspector__action {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  box-shadow: 0 -0.75rem 1rem rgba(3, 12, 34, 0.92);
+}
+
+@media (max-width: 991px) {
+  .feat-inspector { height: auto; max-height: 25rem; }
+}
+
+@media (max-width: 575px) {
+  .feats-library__footer.modal-footer { display: flex !important; }
+  .feat-inspector { max-height: 78vh; }
+  .feats-library__footer .close-btn { min-width: 7.5rem; }
+}
+
+/* Feat Library footer/inspector safeguards. The shared .action-btn defaults to flex: 1. */
+.feats-library__footer .close-btn.action-btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+}
+
+.feat-inspector {
+  box-sizing: border-box;
+  padding-bottom: 5.5rem;
+  scroll-padding-bottom: 5.5rem;
+}
+
+.feat-inspector__action {
+  bottom: 0.75rem;
+}
+
+@media (max-width: 575px) {
+  .feat-inspector {
+    padding-bottom: 5rem;
+    scroll-padding-bottom: 5rem;
+  }
+}
+
+/* Reserve the same footer clearance for the independently scrolling feat grid. */
+.feats-grid {
+  box-sizing: border-box;
+  padding-bottom: 5.5rem;
+  scroll-padding-bottom: 5.5rem;
+}
+
+@media (max-width: 575px) {
+  .feats-grid {
+    padding-bottom: 5rem;
+    scroll-padding-bottom: 5rem;
+  }
+}
+
+/* Mobile Feat Library: cards remain the primary surface until a card opens the inspector sheet. */
+@media (max-width: 575px) {
+  .modern-card:has(.feats-library) {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
+
+  .modern-card:has(.feats-library) .feats-library__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+
+  .modern-card:has(.feats-library) .feats-library__footer {
+    display: flex !important;
+    flex: 0 0 auto;
+  }
+
+  .feats-library .feat-inspector:not(.is-selected) {
+    display: none;
+  }
+
+  .feats-library .feat-inspector.is-selected {
+    display: block;
+    overflow-y: auto;
+  }
+}
