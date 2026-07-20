@@ -76,6 +76,30 @@ test('renders features and opens modal with description', async () => {
   ).toBeInTheDocument();
 });
 
+test('uses the spellbook-style footer close button without a header close icon', async () => {
+  const handleCloseFeatures = jest.fn();
+  apiFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({ features: [] }),
+  });
+
+  render(
+    <Features
+      form={{ occupation: [{ Name: 'Fighter', Level: 1 }] }}
+      showFeatures={true}
+      handleCloseFeatures={handleCloseFeatures}
+      characterId={TEST_CHARACTER_ID}
+    />
+  );
+
+  const closeButton = await screen.findByRole('button', { name: 'Close' });
+  expect(closeButton).toHaveClass('spellbook-modal-close-btn');
+  expect(screen.queryByRole('button', { name: /close character features/i })).not.toBeInTheDocument();
+
+  await userEvent.click(closeButton);
+  expect(handleCloseFeatures).toHaveBeenCalledTimes(1);
+});
+
 test('dragonborn always has damage resistance and gains draconic flight at level 5', async () => {
   apiFetch.mockResolvedValue({
     ok: true,
