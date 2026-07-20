@@ -1763,16 +1763,6 @@ export default function Features({
                 isDocked={isDocked}
               />
               <Card.Title className="modal-title">Character Features</Card.Title>
-              <Button
-                type="button"
-                variant="outline-light"
-                className="abilities-modal-close"
-                aria-label="Close character features"
-                title="Close character features"
-                onClick={handleModalHide}
-              >
-                <span aria-hidden="true">×</span>
-              </Button>
             </Card.Header>
             <Card.Body className="abilities-codex-body">
               {error && (
@@ -2300,7 +2290,7 @@ export default function Features({
             </Card.Body>
             <Card.Footer className="modal-footer abilities-codex-footer">
               <Button
-                className="action-btn close-btn abilities-codex-close-button"
+                className="spellbook-modal-close-btn"
                 onClick={handleModalHide}
               >
                 Close
