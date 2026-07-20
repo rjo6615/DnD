@@ -13407,3 +13407,18 @@ ul.spellbook-tabs.nav-tabs {
     overflow-y: auto;
   }
 }
+
+/* Owned feats only expose their removal action; do not stack a disabled select action beneath it. */
+.feat-inspector__remove {
+  display: block;
+  flex: 0 0 auto !important;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 575px) {
+  .modern-card.feats-library {
+    height: calc(100dvh - 4rem);
+    max-height: calc(100dvh - 4rem);
+  }
+}
