@@ -13338,3 +13338,26 @@ ul.spellbook-tabs.nav-tabs {
   .feat-inspector { max-height: 78vh; }
   .feats-library__footer .close-btn { min-width: 7.5rem; }
 }
+
+/* Feat Library footer/inspector safeguards. The shared .action-btn defaults to flex: 1. */
+.feats-library__footer .close-btn.action-btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+}
+
+.feat-inspector {
+  box-sizing: border-box;
+  padding-bottom: 5.5rem;
+  scroll-padding-bottom: 5.5rem;
+}
+
+.feat-inspector__action {
+  bottom: 0.75rem;
+}
+
+@media (max-width: 575px) {
+  .feat-inspector {
+    padding-bottom: 5rem;
+    scroll-padding-bottom: 5rem;
+  }
+}
