@@ -13375,3 +13375,35 @@ ul.spellbook-tabs.nav-tabs {
     scroll-padding-bottom: 5rem;
   }
 }
+
+/* Mobile Feat Library: cards remain the primary surface until a card opens the inspector sheet. */
+@media (max-width: 575px) {
+  .modern-card:has(.feats-library) {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
+
+  .modern-card:has(.feats-library) .feats-library__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+
+  .modern-card:has(.feats-library) .feats-library__footer {
+    display: flex !important;
+    flex: 0 0 auto;
+  }
+
+  .feats-library .feat-inspector:not(.is-selected) {
+    display: none;
+  }
+
+  .feats-library .feat-inspector.is-selected {
+    display: block;
+    overflow-y: auto;
+  }
+}
