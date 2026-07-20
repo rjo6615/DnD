@@ -29,32 +29,28 @@ async function renderWithFeat(featData, formOverrides = {}) {
       handleCloseFeats={() => {}}
     />
   );
-  await screen.findByRole('option', { name: featData.featName });
-  await userEvent.selectOptions(
-    screen.getByRole('combobox'),
-    featData.featName
-  );
+  await userEvent.click(await screen.findByRole('button', { name: new RegExp(featData.featName) }));
 }
 
 describe('Feats skill selection', () => {
   test('renders for skill choices', async () => {
     await renderWithFeat({ featName: 'SkillFeat', skillChoiceCount: 1 });
     expect(
-      await screen.findByText('Skill/Tool Proficiencies')
+      await screen.findByText(/Skill\/Tool Proficiencies/)
     ).toBeInTheDocument();
   });
 
   test('renders for tool proficiencies', async () => {
     await renderWithFeat({ featName: 'ToolFeat', toolProficiencies: ['smithsTools'] });
     expect(
-      await screen.findByText('Skill/Tool Proficiencies')
+      await screen.findByText(/Skill\/Tool Proficiencies/)
     ).toBeInTheDocument();
   });
 
   test('renders for Skilled feat', async () => {
     await renderWithFeat({ featName: 'Skilled' });
     expect(
-      await screen.findByText('Skill/Tool Proficiencies')
+      await screen.findByText(/Skill\/Tool Proficiencies/)
     ).toBeInTheDocument();
   });
 });
