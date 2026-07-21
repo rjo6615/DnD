@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import LevelUp from './LevelUp';
 
 jest.mock('../../../utils/apiFetch');
@@ -21,4 +21,13 @@ test('fetches classes on mount', async () => {
   render(<LevelUp show={true} handleClose={() => {}} form={{ occupation: [] }} />);
 
   await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/classes'));
+});
+
+test('uses the footer cancel control instead of a duplicate header close button', () => {
+  useUser.mockReturnValue(null);
+
+  render(<LevelUp show={true} handleClose={() => {}} form={{ occupation: [] }} />);
+
+  expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
 });

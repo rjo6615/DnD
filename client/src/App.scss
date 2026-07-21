@@ -11827,6 +11827,7 @@ body.character-creation-modal-open {
 /* Premium character management modals */
 .character-info-modal .modal-dialog { max-width: min(1180px, calc(100vw - 32px)); }
 .progression-modal .modal-dialog { max-width: min(920px, calc(100vw - 32px)); }
+.progression-modal .modal-content { height: min(88dvh, 980px); max-height: min(88dvh, 980px); }
 .character-info-shell,
 .progression-shell {
   display: grid;
@@ -11836,6 +11837,7 @@ body.character-creation-modal-open {
   border: 0;
   background: transparent;
 }
+.progression-shell { height: 100%; max-height: none; }
 .character-info-shell .realm-modal-header,
 .progression-shell .realm-modal-header {
   min-height: 88px;
@@ -11860,7 +11862,14 @@ body.character-creation-modal-open {
 .character-summary-header__copy p, .character-summary-header__copy span, .character-summary-header__copy small { margin: 0; color: rgba(238,246,255,.78); }
 .character-summary-header__copy span { white-space: normal; overflow-wrap: anywhere; }
 .character-info-body,
-.progression-body { min-height: 0; overflow-y: auto; padding: 22px !important; }
+.progression-body {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 22px !important;
+}
 .character-info-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .8fr); gap: 16px; align-items: start; }
 .character-info-panel { padding: 18px; background: linear-gradient(145deg, rgba(15,29,52,.82), rgba(5,10,22,.88)); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
 .character-info-panel--progression { grid-row: span 2; }
@@ -11907,6 +11916,9 @@ body.character-creation-modal-open {
 @media (max-width: 768px) {
   .character-info-modal .modal-dialog, .progression-modal .modal-dialog { max-width: 100%; }
   .character-info-shell, .progression-shell { max-height: 92vh; }
+  .progression-modal .modal-dialog { height: 92dvh; max-height: 92dvh; }
+  .progression-modal .modal-content { height: 92dvh; max-height: 92dvh; }
+  .progression-shell { height: 100%; max-height: none; }
   .character-info-shell .realm-modal-header, .progression-shell .realm-modal-header { padding: 14px 60px 14px 16px; align-items: flex-start; flex-direction: column; }
   .realm-modal-header__actions { order: 0; }
   .character-summary-header__portrait { width: 52px; height: 52px; border-radius: 16px; }
