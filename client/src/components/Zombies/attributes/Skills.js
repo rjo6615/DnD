@@ -5,7 +5,6 @@ import { useParams } from 'react-router-dom';
 
 import { SKILLS } from '../skillSchema';
 import proficiencyBonus from '../../../utils/proficiencyBonus';
-import SkillInfoModal from './SkillInfoModal';
 import { normalizeEquipmentMap } from './equipmentNormalization';
 import DockControls from '../components/DockControls';
 import {
@@ -29,6 +28,14 @@ const ABILITY_LABELS = {
   wis: 'Wisdom',
   cha: 'Charisma',
 };
+
+const ABILITY_ICONS = {
+  str: '✦', dex: '↟', con: '⬡', int: '✧', wis: '◉', cha: '❖',
+};
+
+const ABILITY_ORDER = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
+const formatBonus = (value) => `${Number(value) >= 0 ? '+' : ''}${Number(value)}`;
 
 const formatAdjustmentSegment = (value, label) => {
   if (!value) return null;
@@ -184,8 +191,11 @@ export default function Skills({
   const formExpertisePoints = safeForm.expertisePoints || 0;
   const [skills, setSkills] = useState(formSkills);
   const [error, setError] = useState('');
-  const [showSkillInfo, setShowSkillInfo] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [skillFilter, setSkillFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('ability');
+  const [collapsedAbilities, setCollapsedAbilities] = useState({});
   const [modifierPrompt, setModifierPrompt] = useState(null);
   const [selectedModifierAbility, setSelectedModifierAbility] = useState('');
   const [isRollingSkill, setIsRollingSkill] = useState(false);
@@ -335,6 +345,60 @@ export default function Skills({
 
   const selectableSkills = new Set(safeForm.allowedSkills || []);
   const selectableExpertise = new Set(safeForm.allowedExpertise || []);
+
+  const skillRecords = useMemo(() => SKILLS.map((skill) => {
+    const { key, ability, armorPenalty = 0 } = skill;
+    const current = skills[key] || {};
+    const isProficient = Boolean(current.proficient || lockedProficiencies.has(key));
+    const expertise = Boolean(current.expertise || lockedExpertise.has(key));
+    const armorPenaltyValue = armorPenalty ? armorPenalty * totalCheckPenalty : 0;
+    const proficiencyValue = profBonus * (expertise ? 2 : isProficient ? 1 : 0);
+    return {
+      ...skill,
+      proficient: isProficient,
+      expertise,
+      armorPenaltyValue,
+      proficiencyValue,
+      itemBonus: itemTotals[key],
+      featBonus: featTotals[key],
+      raceBonus: raceTotals[key],
+      total: modMap[ability] + proficiencyValue + armorPenaltyValue + itemTotals[key] + featTotals[key] + raceTotals[key],
+    };
+  }), [skills, lockedProficiencies, lockedExpertise, totalCheckPenalty, profBonus, itemTotals, featTotals, raceTotals, strMod, dexMod, conMod, intMod, wisMod, chaMod]);
+
+  const visibleSkillGroups = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const filtered = skillRecords.filter((skill) => {
+      const matchesQuery = !query || [skill.label, ABILITY_LABELS[skill.ability], skill.description]
+        .some((value) => value.toLowerCase().includes(query));
+      const matchesFilter = skillFilter === 'all'
+        || (skillFilter === 'proficient' && skill.proficient)
+        || (skillFilter === 'expertise' && skill.expertise)
+        || (skillFilter === 'untrained' && !skill.proficient)
+        || skillFilter === skill.ability;
+      return matchesQuery && matchesFilter;
+    });
+    const byAbility = ABILITY_ORDER.map((ability) => ({
+      ability,
+      skills: filtered.filter((skill) => skill.ability === ability).sort((a, b) => {
+        if (sortOrder === 'highest') return b.total - a.total || a.label.localeCompare(b.label);
+        if (sortOrder === 'alphabetical') return a.label.localeCompare(b.label);
+        if (sortOrder === 'proficient') return Number(b.proficient) - Number(a.proficient) || b.total - a.total;
+        if (sortOrder === 'expertise') return Number(b.expertise) - Number(a.expertise) || b.total - a.total;
+        return 0;
+      }),
+    }));
+    return sortOrder === 'highest' || sortOrder === 'alphabetical' || sortOrder === 'proficient' || sortOrder === 'expertise'
+      ? byAbility.filter((group) => group.skills.length)
+      : byAbility.filter((group) => group.skills.length);
+  }, [skillRecords, searchQuery, skillFilter, sortOrder]);
+
+  const strongestSkill = useMemo(
+    () => skillRecords.reduce((best, skill) => (!best || skill.total > best.total ? skill : best), null),
+    [skillRecords],
+  );
+  const passivePerception = (skillRecords.find((skill) => skill.key === 'perception')?.total || 0) + 10;
+  const activeSkill = skillRecords.find((skill) => skill.key === selectedSkill) || null;
 
   const dialogClassName = useMemo(() => {
     if (!isDocked) {
@@ -555,12 +619,8 @@ export default function Skills({
 
   const handleView = (skill) => {
     setSelectedSkill(skill);
-    setShowSkillInfo(true);
   };
 
-  const handleCloseSkillInfo = () => {
-    setShowSkillInfo(false);
-  };
 
   return (
     <>
@@ -585,114 +645,94 @@ export default function Skills({
             />
             <Card.Title className="modal-title">Skills</Card.Title>
           </Card.Header>
-          <Card.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          <Card.Body className="skill-codex-body">
             {error && (
               <Alert variant="danger" onClose={() => setError('')} dismissible>
                 {error}
               </Alert>
             )}
-            <div className="points-container" style={{ display: 'flex' }}>
-              <span className="points-label text-light">Proficiencies Left:</span>
-              <span className="points-value">{proficiencyPointsLeft}</span>
-            </div>
-            <div className="points-container" style={{ display: 'flex' }}>
-              <span className="points-label text-light">Expertise Left:</span>
-              <span className="points-value">{expertisePointsLeft}</span>
-            </div>
-            <div className="skills-card-grid">
-              {SKILLS.map(({
-                key,
-                label,
-                ability,
-                armorPenalty = 0,
-              }) => {
-                const { proficient = false, expertise = false } =
-                  skills[key] || {};
-                const penalty = armorPenalty
-                  ? armorPenalty * totalCheckPenalty
-                  : 0;
-                const isProficient = proficient || lockedProficiencies.has(key);
-                const multiplier = expertise ? 2 : isProficient ? 1 : 0;
-                const total =
-                  modMap[ability] +
-                  profBonus * multiplier +
-                  penalty +
-                  itemTotals[key] +
-                  featTotals[key] +
-                  raceTotals[key];
-                const isSelectable = selectableSkills.has(key);
-                const isRaceSkill = raceProficiencies.has(key);
-                const isBackgroundSkill = backgroundProficiencies.has(key);
-                const abilityLabel = ability?.toUpperCase();
-                const proficiencyId = `skill-${key}-proficiency`;
-                const expertiseId = `skill-${key}-expertise`;
+            <section className="skill-codex-summary" aria-label="Skill summary">
+              <div className="skill-codex-summary__title">
+                <span className="skill-codex-kicker">Adventurer's reference</span>
+                <h2>Skill Codex</h2>
+                <p>Master your strengths, chart your training, and roll with confidence.</p>
+              </div>
+              <div className="skill-codex-stats">
+                <div className={`skill-codex-stat ${proficiencyPointsLeft === 0 ? 'is-complete' : ''}`}>
+                  <span>Proficiencies remaining</span><strong>{proficiencyPointsLeft === 0 ? '✓ Complete' : proficiencyPointsLeft}</strong>
+                </div>
+                <div className={`skill-codex-stat ${expertisePointsLeft === 0 ? 'is-complete' : ''}`}>
+                  <span>Expertise remaining</span><strong>{expertisePointsLeft === 0 ? '✓ Complete' : expertisePointsLeft}</strong>
+                </div>
+                <div className="skill-codex-stat"><span>Highest skill</span><strong>{strongestSkill ? `${strongestSkill.label} ${formatBonus(strongestSkill.total)}` : '—'}</strong></div>
+                <div className="skill-codex-stat"><span>Passive perception</span><strong>{passivePerception}</strong></div>
+                <div className="skill-codex-stat"><span>Proficiency bonus</span><strong>{formatBonus(profBonus)}</strong></div>
+              </div>
+            </section>
 
-                return (
-                  <div key={key} className="skill-card">
-                    <div className="skill-card-header">
-                      <div className="skill-card-title">
-                        <span className="skill-card-name">{label}</span>
-                        <span className="skill-card-ability">{abilityLabel}</span>
-                      </div>
-                      <div className="skill-card-actions">
-                        <Button
-                          onClick={() => handleView(key)}
-                          variant="link"
-                          aria-label={`view ${label}`}
-                        >
-                          <i className="fa-solid fa-eye"></i>
-                        </Button>
-                        <Button
-                          onClick={() =>
-                            handleRoll(key, ability, isProficient, expertise)
-                          }
-                          variant="link"
-                          aria-label={`roll ${label}`}
-                        >
-                          <i className="fa-solid fa-dice-d20"></i>
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="skill-card-metrics">
-                      <div className="skill-card-metric">
-                        <span className="skill-card-metric-label">Total</span>
-                        <span className="skill-card-metric-value">{total}</span>
-                      </div>
-                      <div className="skill-card-metric">
-                        <span className="skill-card-metric-label">Mod</span>
-                        <span className="skill-card-metric-value">
-                          {modMap[ability]}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="skill-card-toggles">
-                      <Form.Check
-                        id={proficiencyId}
-                        className="skill-checkbox"
-                        type="checkbox"
-                        label="Proficient"
-                        checked={proficient}
-                        disabled={!isSelectable || isRaceSkill || isBackgroundSkill}
-                        onChange={() => toggleProficient(key)}
-                      />
-                      <Form.Check
-                        id={expertiseId}
-                        className="skill-checkbox"
-                        type="checkbox"
-                        label="Expertise"
-                        checked={expertise}
-                        disabled={
-                          !isProficient ||
-                          !selectableExpertise.has(key) ||
-                          lockedExpertise.has(key) ||
-                          (!expertise && expertisePointsLeft <= 0)
-                        }
-                        onChange={() => toggleExpertise(key)}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <section className="skill-codex-toolbar" aria-label="Search and filter skills">
+              <label className="skill-codex-search">
+                <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
+                <span className="visually-hidden">Search skills</span>
+                <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search skills, abilities, or lore" />
+              </label>
+              <div className="skill-codex-filter-row" role="group" aria-label="Skill status filters">
+                {[
+                  ['all', 'All'], ['proficient', 'Proficient'], ['expertise', 'Expertise'], ['untrained', 'Untrained'],
+                ].map(([value, label]) => <button key={value} type="button" className={`skill-filter-chip ${skillFilter === value ? 'is-active' : ''}`} onClick={() => setSkillFilter(value)} aria-pressed={skillFilter === value}>{label}</button>)}
+              </div>
+              <label className="skill-codex-sort">Sort
+                <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sort skills">
+                  <option value="ability">Ability</option><option value="highest">Highest bonus</option><option value="alphabetical">Alphabetical</option><option value="proficient">Proficient</option><option value="expertise">Expertise</option>
+                </select>
+              </label>
+            </section>
+
+            <div className="skill-codex-layout">
+              <main className="skill-codex-library" aria-live="polite">
+                {visibleSkillGroups.length ? visibleSkillGroups.map(({ ability, skills: abilitySkills }) => (
+                  <section key={ability} className={`skill-ability-group skill-ability-group--${ability}`}>
+                    <button type="button" className="skill-ability-heading" onClick={() => setCollapsedAbilities((previous) => ({ ...previous, [ability]: !previous[ability] }))} aria-expanded={!collapsedAbilities[ability]}>
+                      <span className="skill-ability-icon" aria-hidden="true">{ABILITY_ICONS[ability]}</span>
+                      <span><small>{ABILITY_LABELS[ability]}</small><strong>{formatBonus(modMap[ability])} modifier</strong></span>
+                      <span className="skill-ability-count">{abilitySkills.length} skills <i className={`fa-solid fa-chevron-${collapsedAbilities[ability] ? 'down' : 'up'}`} aria-hidden="true" /></span>
+                    </button>
+                    {!collapsedAbilities[ability] && <div className="skill-codex-grid">
+                      {abilitySkills.map((skill) => {
+                        const isSelectable = selectableSkills.has(skill.key);
+                        const isRaceSkill = raceProficiencies.has(skill.key);
+                        const isBackgroundSkill = backgroundProficiencies.has(skill.key);
+                        const canToggleProficiency = isSelectable && !isRaceSkill && !isBackgroundSkill && (skill.proficient || proficiencyPointsLeft > 0);
+                        const canToggleExpertise = skill.proficient && selectableExpertise.has(skill.key) && !lockedExpertise.has(skill.key) && (skill.expertise || expertisePointsLeft > 0);
+                        const status = skill.expertise ? 'Expertise' : skill.proficient ? 'Proficient' : 'Not trained';
+                        return <article key={skill.key} className={`skill-codex-card ${selectedSkill === skill.key ? 'is-selected' : ''}`}>
+                          <button type="button" className="skill-codex-card__main" onClick={() => handleView(skill.key)} aria-label={`View ${skill.label} details`}>
+                            <span className="skill-codex-card__bonus">{formatBonus(skill.total)}</span>
+                            <span className="skill-codex-card__identity"><strong>{skill.label}</strong><small>{ABILITY_LABELS[skill.ability]} · {skill.ability.toUpperCase()} {formatBonus(modMap[skill.ability])}</small></span>
+                          </button>
+                          <div className="skill-codex-card__actions">
+                            <span className={`skill-status-chip is-${status.toLowerCase().replace(' ', '-')}`}>{status}</span>
+                            <button type="button" className="skill-icon-button" onClick={() => handleRoll(skill.key, skill.ability, skill.proficient, skill.expertise)} aria-label={`roll ${skill.label}`} title="Roll skill check"><i className="fa-solid fa-dice-d20" aria-hidden="true" /></button>
+                          </div>
+                          <div className="skill-codex-card__training" role="group" aria-label={`${skill.label} training`}>
+                            <button type="button" className={`skill-training-chip ${skill.proficient ? 'is-active' : ''}`} disabled={!canToggleProficiency} onClick={() => toggleProficient(skill.key)} aria-pressed={skill.proficient}>Proficient</button>
+                            <button type="button" className={`skill-training-chip skill-training-chip--expertise ${skill.expertise ? 'is-active' : ''}`} disabled={!canToggleExpertise} onClick={() => toggleExpertise(skill.key)} aria-pressed={skill.expertise}>Expertise</button>
+                          </div>
+                        </article>;
+                      })}
+                    </div>}
+                  </section>
+                )) : <div className="skill-codex-empty">No skills match this search. Clear a filter to reveal your full codex.</div>}
+              </main>
+              <aside className={`skill-codex-inspector ${activeSkill ? 'is-open' : ''}`} aria-label="Skill details">
+                {activeSkill ? <>
+                  <div className="skill-codex-inspector__heading"><span className={`skill-status-chip is-${(activeSkill.expertise ? 'expertise' : activeSkill.proficient ? 'proficient' : 'not-trained')}`}>{activeSkill.expertise ? 'Expertise' : activeSkill.proficient ? 'Proficient' : 'Not trained'}</span><button type="button" className="skill-icon-button" onClick={() => setSelectedSkill(null)} aria-label="Close skill details"><i className="fa-solid fa-xmark" /></button></div>
+                  <span className="skill-codex-inspector__ability">{ABILITY_ICONS[activeSkill.ability]} {ABILITY_LABELS[activeSkill.ability]}</span><h3>{activeSkill.label} <strong>{formatBonus(activeSkill.total)}</strong></h3><p>{activeSkill.description}</p>
+                  <h4>Bonus breakdown</h4>
+                  <dl className="skill-breakdown"><div><dt>Ability modifier</dt><dd>{formatBonus(modMap[activeSkill.ability])}</dd></div><div><dt>{activeSkill.expertise ? 'Expertise bonus' : 'Proficiency bonus'}</dt><dd>{formatBonus(activeSkill.proficiencyValue)}</dd></div><div><dt>Equipment & features</dt><dd>{formatBonus(activeSkill.itemBonus + activeSkill.featBonus + activeSkill.raceBonus)}</dd></div>{activeSkill.armorPenaltyValue !== 0 && <div><dt>Armor penalty</dt><dd>{formatBonus(activeSkill.armorPenaltyValue)}</dd></div>}</dl>
+                  <Button className="skill-inspector-roll" onClick={() => handleRoll(activeSkill.key, activeSkill.ability, activeSkill.proficient, activeSkill.expertise)} aria-label={`roll ${activeSkill.label}`}>Roll {activeSkill.label}</Button>
+                </> : <div className="skill-codex-inspector__empty"><i className="fa-solid fa-book-open" aria-hidden="true" /><strong>Skill inspector</strong><p>Select a skill to view its lore, current bonus, and training details.</p></div>}
+              </aside>
             </div>
           </Card.Body>
           <Card.Footer className="modal-footer d-flex">
@@ -743,12 +783,6 @@ export default function Skills({
           </Card.Footer>
         </Card>
       </Modal>
-      <SkillInfoModal
-        show={showSkillInfo}
-        onHide={handleCloseSkillInfo}
-        skillKey={selectedSkill}
-      />
     </>
   );
 }
-
