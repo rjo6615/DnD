@@ -636,7 +636,7 @@ export default function Skills({
         restoreFocus={!isDocked}
         dialogClassName={dialogClassName}
       >
-        <Card className="modern-card text-center">
+        <Card className="modern-card text-center skill-codex-card-shell">
           <Card.Header className="modal-header">
             <DockControls
               dockedSide={dockedSide}
@@ -735,10 +735,10 @@ export default function Skills({
               </aside>
             </div>
           </Card.Body>
-          <Card.Footer className="modal-footer d-flex">
+          <Card.Footer className="modal-footer d-flex skill-codex-footer">
             <Button
               onClick={() => handleCloseSkill()}
-              className="action-btn close-btn flex-fill"
+              className="action-btn close-btn skill-codex-close-button"
             >Close</Button>
           </Card.Footer>
         </Card>
