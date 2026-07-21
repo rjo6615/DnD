@@ -13504,6 +13504,10 @@ ul.spellbook-tabs.nav-tabs {
 
 /* On touch screens, open the skill inspector above the library instead of after it. */
 @media (max-width: 850px) {
+  .skill-codex-inspector:not(.is-open) {
+    display: none;
+  }
+
   .skill-codex-inspector.is-open {
     position: fixed;
     z-index: 1065;
