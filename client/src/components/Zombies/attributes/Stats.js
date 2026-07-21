@@ -248,6 +248,8 @@ export default function Stats({
       const rollResult = await rollSkillWithDiceBox(statMod, {
         diceColor: diceFaceColor,
         rollMode,
+        rollContext: 'ability-check',
+        character: form,
       });
       const { result, d20 } = rollResult;
       const rolledD20s = Array.isArray(rollResult.rolledD20s) && rollResult.rolledD20s.length > 0
@@ -311,6 +313,8 @@ export default function Stats({
       const rollResult = await rollSkillWithDiceBox(statMod + proficiency, {
         diceColor: diceFaceColor,
         rollMode,
+        rollContext: 'saving-throw',
+        character: form,
       });
       const { result, d20 } = rollResult;
       const rolledD20s = Array.isArray(rollResult.rolledD20s) && rollResult.rolledD20s.length > 0

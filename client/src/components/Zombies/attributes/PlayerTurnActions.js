@@ -1934,6 +1934,8 @@ const manualCriticalRef = useRef(false);
     const { result, d20, rolledD20s, keptD20, rollMode } = await rollSkillWithDiceBox(bonus, {
       diceColor: diceFaceColor,
       rollMode: rollModeResult.mode,
+      rollContext: 'attack',
+      character: form,
     });
     onCharacterChange?.((previous) => markBarbarianAttackRoll(previous || form));
     diceBoxThemeRef.current = diceFaceColor;
@@ -1996,6 +1998,9 @@ const manualCriticalRef = useRef(false);
       await prepareDiceRollSurface('Roll');
       const { result, d20 } = await rollSkillWithDiceBox(total, {
         diceColor: diceFaceColor,
+        rollContext: 'attack',
+        character: form,
+        source: spell?.name,
       });
       diceBoxThemeRef.current = diceFaceColor;
       const segments = [`${d20} (d20)`];
