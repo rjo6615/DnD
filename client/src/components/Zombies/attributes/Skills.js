@@ -17,6 +17,7 @@ import {
   applyDiceFaceColor,
 } from '../../../utils/diceColors';
 import { canUsePrimalKnowledgeForSkill, getRageBenefits } from '../utils/barbarian';
+import { emitCriticalRollEvent } from '../../../utils/criticalRolls';
 
 const EMPTY_OBJECT = Object.freeze({});
 
@@ -71,11 +72,6 @@ export function rollSkill(bonus = 0, d20Override = null) {
     normalizedOverride !== null
       ? normalizedOverride
       : Math.floor(Math.random() * 20) + 1;
-  if (d20 === 20) {
-    window.dispatchEvent(new CustomEvent('critical-hit', { detail: 'critical' }));
-  } else if (d20 === 1) {
-    window.dispatchEvent(new CustomEvent('critical-failure', { detail: 'fumble' }));
-  }
   const result = d20 + bonus;
   return { result, d20 };
 }
@@ -115,7 +111,7 @@ const resolveKeptD20 = (values, mode) => {
 };
 
 export async function rollSkillWithDiceBox(bonus = 0, options = {}) {
-  const { diceColor = null, rollMode = 'normal' } = options || {};
+  const { diceColor = null, rollMode = 'normal', rollContext = 'custom-d20', character = null, source = null } = options || {};
   const normalizedRollMode = rollMode === 'advantage' || rollMode === 'disadvantage' ? rollMode : 'normal';
   const normalizedColor = normalizeDiceColor(diceColor) || DEFAULT_DICE_COLOR;
 
@@ -133,8 +129,10 @@ export async function rollSkillWithDiceBox(bonus = 0, options = {}) {
       .slice(0, diceCount);
     if (rolledD20s.length === diceCount) {
       const keptD20 = resolveKeptD20(rolledD20s, normalizedRollMode);
+      const completed = rollSkill(bonus, keptD20);
+      emitCriticalRollEvent({ rawRoll: keptD20, total: completed.result, rollContext, character, source });
       return {
-        ...rollSkill(bonus, keptD20),
+        ...completed,
         d20: keptD20,
         rolledD20s,
         keptD20,
@@ -152,8 +150,10 @@ export async function rollSkillWithDiceBox(bonus = 0, options = {}) {
     () => Math.floor(Math.random() * 20) + 1
   );
   const keptD20 = resolveKeptD20(fallbackRolls, normalizedRollMode);
+  const completed = rollSkill(bonus, keptD20);
+  emitCriticalRollEvent({ rawRoll: keptD20, total: completed.result, rollContext, character, source });
   return {
-    ...rollSkill(bonus, keptD20),
+    ...completed,
     d20: keptD20,
     rolledD20s: fallbackRolls,
     keptD20,
@@ -520,6 +520,9 @@ export default function Skills({
     const { result, d20, rolledD20s, keptD20, rollMode } = await rollSkillWithDiceBox(bonus, {
       diceColor: diceFaceColor,
       rollMode: rollModeResult.mode,
+      rollContext: 'skill-check',
+      character: safeForm,
+      source: skillLabel,
     });
     const actualRollMode = rollMode || rollModeResult.mode;
     const breakdownParts = [actualRollMode === 'advantage' || actualRollMode === 'disadvantage'

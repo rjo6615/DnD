@@ -72,6 +72,7 @@ import TokenPickerModal from '../components/TokenPickerModal';
 import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
 import FooterCharacterSlot from './components/FooterCharacterSlot';
 import { notify } from '../../../utils/notification';
+import { emitCriticalRollEvent } from '../../../utils/criticalRolls';
 import CombatTurnHeader, { HEADER_PADDING } from "../components/CombatTurnHeader";
 
 const MIN_DOCKED_MODAL_WIDTH = 320;
@@ -1601,6 +1602,7 @@ export default function ZombiesCharacterSheet() {
       });
       if (!response.ok) throw new Error(response.statusText || 'Failed to roll death save.');
       const payload = await response.json();
+      if (animatedRoll) emitCriticalRollEvent({ rawRoll: animatedRoll, total: animatedRoll, rollContext: 'death-save', character: form, source: form?.characterName });
       setForm((prev) => prev ? { ...prev, tempHealth: payload.tempHealth ?? prev.tempHealth, deathState: payload.deathState ?? prev.deathState } : prev);
       if (payload.message) notify(payload.message, payload.event === 'dead' ? 'danger' : 'success');
     } catch (error) {

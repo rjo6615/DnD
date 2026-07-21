@@ -8,6 +8,7 @@ import ZombiesCharacterSelect from "./components/Zombies/pages/ZombiesCharacterS
 import ZombiesDM from "./components/Zombies/pages/ZombiesDM";
 import Login from "./components/Login/Login";
 import Notifications from "./components/Notifications";
+import CriticalRollEffectHost from './components/critical/CriticalRollEffectHost';
 import SpellList from "./components/Spells/SpellList";
 import SpellDetail from "./components/Spells/SpellDetail";
 import WeaponList from "./components/Weapons/WeaponList";
@@ -55,6 +56,7 @@ function AppRoutes({ user }) {
   return (
     <>
       <Notifications />
+      <CriticalRollEffectHost />
       <Routes>
         <Route path="/" element={<Zombies />} />
         <Route path="/spells" element={<SpellList />} />
