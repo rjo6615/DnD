@@ -25,7 +25,7 @@ const ABILITY_LABELS = {
 
 const ABILITY_CODEX = {
   str: { icon: 'fa-hammer', accent: 'crimson', skills: ['Athletics'], governs: 'physical power, lifting, and forceful feats', checks: 'breaking restraints, climbing sheer surfaces, and wrestling foes', synergy: 'Barbarian, Fighter, and Paladin builds' },
-  dex: { icon: 'fa-dagger', accent: 'emerald', skills: ['Acrobatics', 'Sleight of Hand', 'Stealth'], governs: 'agility, reflexes, balance, and precision', checks: 'sneaking past a guard, balancing on a ledge, and picking a pocket', synergy: 'Rogue, Ranger, Monk, and agile Fighter builds' },
+  dex: { icon: 'fa-person-running', accent: 'emerald', skills: ['Acrobatics', 'Sleight of Hand', 'Stealth'], governs: 'agility, reflexes, balance, and precision', checks: 'sneaking past a guard, balancing on a ledge, and picking a pocket', synergy: 'Rogue, Ranger, Monk, and agile Fighter builds' },
   con: { icon: 'fa-shield-halved', accent: 'amber', skills: [], governs: 'endurance, stamina, and physical resilience', checks: 'withstanding poison, marching through hardship, and holding your breath', synergy: 'Every adventurer, especially frontline and concentration-focused builds' },
   int: { icon: 'fa-book-open', accent: 'azure', skills: ['Arcana', 'History', 'Investigation', 'Nature', 'Religion'], governs: 'reasoning, memory, lore, and deduction', checks: 'recalling ancient lore, deciphering magic, and finding hidden clues', synergy: 'Wizard, Artificer, and knowledge-focused Rogue builds' },
   wis: { icon: 'fa-eye', accent: 'verdant', skills: ['Animal Handling', 'Insight', 'Medicine', 'Perception', 'Survival'], governs: 'perception, intuition, awareness, and judgment', checks: 'spotting danger, reading intentions, and tracking a trail', synergy: 'Cleric, Druid, Monk, Ranger, and perceptive builds' },
@@ -490,7 +490,7 @@ export default function Stats({
             ))}
           </div>
         </Modal.Body>
-        <Modal.Footer className="modal-footer">
+        <Modal.Footer className="modal-footer stats-modal-footer">
           <Button className="action-btn close-btn" onClick={handleModalHide}>Close</Button>
         </Modal.Footer>
       </Modal>
