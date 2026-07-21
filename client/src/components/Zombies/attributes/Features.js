@@ -1754,8 +1754,7 @@ export default function Features({
         restoreFocus={!isDocked}
         dialogClassName={dialogClassName}
       >
-        <div className="text-center">
-          <Card className="modern-card abilities-codex-card">
+        <Card className="modern-card abilities-codex-card">
             <Card.Header className="modal-header">
               <DockControls
                 dockedSide={dockedSide}
@@ -2296,8 +2295,7 @@ export default function Features({
                 Close
               </Button>
             </Card.Footer>
-          </Card>
-        </div>
+        </Card>
       </Modal>
       <FeatureModal
         show={showModal}

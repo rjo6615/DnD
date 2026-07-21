@@ -13308,6 +13308,25 @@ ul.spellbook-tabs.nav-tabs {
     bottom: 0;
     z-index: 5;
   }
+
+  /* Keep the controls with the content on small screens so they scroll out of
+     view, leaving room to reach the footer close button. */
+  .abilities-codex-card .abilities-codex-toolbar {
+    position: static;
+    padding: 0.75rem;
+  }
+
+  .abilities-codex-card .abilities-codex-title-row h2 {
+    font-size: 1.35rem;
+  }
+
+  .abilities-codex-card .abilities-codex-title-row p {
+    display: none;
+  }
+
+  .abilities-codex-card .abilities-codex-controls {
+    margin-top: 0.65rem;
+  }
 }
 
 @media (max-width: 575px) {
