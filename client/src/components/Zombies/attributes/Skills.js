@@ -724,7 +724,12 @@ export default function Skills({
                   </section>
                 )) : <div className="skill-codex-empty">No skills match this search. Clear a filter to reveal your full codex.</div>}
               </main>
-              <aside className={`skill-codex-inspector ${activeSkill ? 'is-open' : ''}`} aria-label="Skill details">
+              <aside
+                className={`skill-codex-inspector ${activeSkill ? 'is-open' : ''}`}
+                aria-label="Skill details"
+                aria-modal={activeSkill ? 'true' : undefined}
+                role={activeSkill ? 'dialog' : undefined}
+              >
                 {activeSkill ? <>
                   <div className="skill-codex-inspector__heading"><span className={`skill-status-chip is-${(activeSkill.expertise ? 'expertise' : activeSkill.proficient ? 'proficient' : 'not-trained')}`}>{activeSkill.expertise ? 'Expertise' : activeSkill.proficient ? 'Proficient' : 'Not trained'}</span><button type="button" className="skill-icon-button" onClick={() => setSelectedSkill(null)} aria-label="Close skill details"><i className="fa-solid fa-xmark" /></button></div>
                   <span className="skill-codex-inspector__ability">{ABILITY_ICONS[activeSkill.ability]} {ABILITY_LABELS[activeSkill.ability]}</span><h3>{activeSkill.label} <strong>{formatBonus(activeSkill.total)}</strong></h3><p>{activeSkill.description}</p>

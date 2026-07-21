@@ -13462,3 +13462,39 @@ ul.spellbook-tabs.nav-tabs {
     max-height: 92dvh;
   }
 }
+
+/* On touch screens, open the skill inspector above the library instead of after it. */
+@media (max-width: 850px) {
+  .skill-codex-inspector.is-open {
+    position: fixed;
+    z-index: 1065;
+    right: 1rem;
+    bottom: calc(5.75rem + env(safe-area-inset-bottom));
+    left: 1rem;
+    width: min(calc(100vw - 2rem), 38rem);
+    max-height: min(68dvh, 42rem);
+    min-height: 0;
+    margin: 0 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    animation: skill-codex-inspector-in .2s ease-out;
+  }
+
+  .skill-codex-inspector.is-open::before {
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    content: '';
+    background: rgba(2, 7, 17, .42);
+    pointer-events: none;
+  }
+}
+
+@keyframes skill-codex-inspector-in {
+  from { opacity: 0; transform: translateY(1rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-codex-inspector.is-open { animation: none; }
+}
