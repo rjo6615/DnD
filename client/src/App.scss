@@ -11827,6 +11827,7 @@ body.character-creation-modal-open {
 /* Premium character management modals */
 .character-info-modal .modal-dialog { max-width: min(1180px, calc(100vw - 32px)); }
 .progression-modal .modal-dialog { max-width: min(920px, calc(100vw - 32px)); }
+.progression-modal .modal-content { height: min(88dvh, 980px); max-height: min(88dvh, 980px); }
 .character-info-shell,
 .progression-shell {
   display: grid;
@@ -11836,6 +11837,7 @@ body.character-creation-modal-open {
   border: 0;
   background: transparent;
 }
+.progression-shell { height: 100%; max-height: none; }
 .character-info-shell .realm-modal-header,
 .progression-shell .realm-modal-header {
   min-height: 88px;
@@ -11860,7 +11862,14 @@ body.character-creation-modal-open {
 .character-summary-header__copy p, .character-summary-header__copy span, .character-summary-header__copy small { margin: 0; color: rgba(238,246,255,.78); }
 .character-summary-header__copy span { white-space: normal; overflow-wrap: anywhere; }
 .character-info-body,
-.progression-body { min-height: 0; overflow-y: auto; padding: 22px !important; }
+.progression-body {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 22px !important;
+}
 .character-info-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .8fr); gap: 16px; align-items: start; }
 .character-info-panel { padding: 18px; background: linear-gradient(145deg, rgba(15,29,52,.82), rgba(5,10,22,.88)); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
 .character-info-panel--progression { grid-row: span 2; }
@@ -11907,6 +11916,16 @@ body.character-creation-modal-open {
 @media (max-width: 768px) {
   .character-info-modal .modal-dialog, .progression-modal .modal-dialog { max-width: 100%; }
   .character-info-shell, .progression-shell { max-height: 92vh; }
+  /*
+   * Android Chrome can lose painted children when an overflow-scrolling grid is
+   * clipped by the modal content. Let the modal itself be the only mobile
+   * scroll container instead of maintaining a nested scrolling body.
+   */
+  .progression-modal { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .progression-modal .modal-dialog { height: auto; max-height: none; }
+  .progression-modal .modal-content { height: auto; max-height: none; overflow: visible; }
+  .progression-shell { height: auto; max-height: none; overflow: visible; }
+  .progression-body { overflow: visible; overscroll-behavior: auto; }
   .character-info-shell .realm-modal-header, .progression-shell .realm-modal-header { padding: 14px 60px 14px 16px; align-items: flex-start; flex-direction: column; }
   .realm-modal-header__actions { order: 0; }
   .character-summary-header__portrait { width: 52px; height: 52px; border-radius: 16px; }
@@ -12119,9 +12138,10 @@ body.character-creation-modal-open {
 .delete-character-confirmation__portrait { width: 76px; height: 76px; margin: 0 auto; border-radius: 24px; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(248,113,113,.26), rgba(216,183,106,.16)); border: 1px solid rgba(248,113,113,.42); color: #fff8df; font: 900 2rem 'Cinzel', serif; }
 .delete-character-footer { justify-content: flex-end !important; }
 @media (max-width: 767px) {
-  .settings-help-dialog { max-width: 100vw; margin: 0; min-height: 100%; }
-  .settings-help-dialog .modal-content { height: 100vh; min-height: 100vh; border-radius: 0 !important; }
-  .settings-help-shell { display: flex; flex-direction: column; height: 100vh; min-height: 0; border-radius: 0 !important; }
+  /* Use the visible viewport so the full-screen sheet is not hidden by mobile browser chrome. */
+  .settings-help-dialog { max-width: 100vw; margin: 0; min-height: 100vh; min-height: 100dvh; }
+  .settings-help-dialog .modal-content { height: 100vh; height: 100dvh; min-height: 100vh; min-height: 100dvh; border-radius: 0 !important; }
+  .settings-help-shell { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; border-radius: 0 !important; }
   .settings-help-header { min-height: 76px; padding: calc(12px + env(safe-area-inset-top)) 60px 12px 16px !important; justify-content: flex-start; }
   .settings-help-title-block { text-align: left; }
   .settings-help-title-block p { display: none; }
@@ -13307,6 +13327,25 @@ ul.spellbook-tabs.nav-tabs {
     bottom: 0;
     z-index: 5;
   }
+
+  /* Keep the controls with the content on small screens so they scroll out of
+     view, leaving room to reach the footer close button. */
+  .abilities-codex-card .abilities-codex-toolbar {
+    position: static;
+    padding: 0.75rem;
+  }
+
+  .abilities-codex-card .abilities-codex-title-row h2 {
+    font-size: 1.35rem;
+  }
+
+  .abilities-codex-card .abilities-codex-title-row p {
+    display: none;
+  }
+
+  .abilities-codex-card .abilities-codex-controls {
+    margin-top: 0.65rem;
+  }
 }
 
 @media (max-width: 575px) {
@@ -13484,6 +13523,10 @@ ul.spellbook-tabs.nav-tabs {
 
 /* On touch screens, open the skill inspector above the library instead of after it. */
 @media (max-width: 850px) {
+  .skill-codex-inspector:not(.is-open) {
+    display: none;
+  }
+
   .skill-codex-inspector.is-open {
     position: fixed;
     z-index: 1065;
