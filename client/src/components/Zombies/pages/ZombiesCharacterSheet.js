@@ -71,6 +71,9 @@ import proficiencyBonus from '../../../utils/proficiencyBonus';
 import TokenPickerModal from '../components/TokenPickerModal';
 import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
 import FooterCharacterSlot from './components/FooterCharacterSlot';
+import { notify } from '../../../utils/notification';
+import { bindCriticalRollTransport } from '../../../utils/criticalRolls';
+import { emitCriticalRollEvent } from '../../../utils/criticalRolls';
 import CombatTurnHeader, { HEADER_PADDING } from "../components/CombatTurnHeader";
 
 const MIN_DOCKED_MODAL_WIDTH = 320;
@@ -1571,6 +1574,42 @@ export default function ZombiesCharacterSheet() {
     Boolean(encodedCampaignId) &&
     Array.isArray(combatState.participants) &&
     combatState.participants.length > 0;
+
+
+  useEffect(() => {
+    if (!characterId || activeTurnParticipantId !== characterId) return;
+    setForm((prev) => {
+      if (!prev?.deathState?.isDying || prev.deathState.isDead || !prev.deathState.rolledThisTurn) {
+        return prev;
+      }
+      return { ...prev, deathState: { ...prev.deathState, rolledThisTurn: false } };
+    });
+  }, [activeTurnParticipantId, characterId]);
+
+  const handleRollDeathSave = useCallback(async () => {
+    if (!characterId) return;
+    try {
+      let animatedRoll = null;
+      try {
+        const { rolls } = await rollDiceWithBox([{ count: 1, sides: 20 }]);
+        animatedRoll = collectRollValues(rolls)[0] ?? null;
+      } catch (diceError) {
+        console.error('Failed to animate death save roll', diceError);
+      }
+      const response = await apiFetch(`/characters/death-state/${characterId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'roll', ...(animatedRoll ? { roll: animatedRoll } : {}) }),
+      });
+      if (!response.ok) throw new Error(response.statusText || 'Failed to roll death save.');
+      const payload = await response.json();
+      if (animatedRoll) emitCriticalRollEvent({ rawRoll: animatedRoll, total: animatedRoll, rollContext: 'death-save', character: form, source: form?.characterName });
+      setForm((prev) => prev ? { ...prev, tempHealth: payload.tempHealth ?? prev.tempHealth, deathState: payload.deathState ?? prev.deathState } : prev);
+      if (payload.message) notify(payload.message, payload.event === 'dead' ? 'danger' : 'success');
+    } catch (error) {
+      notify(error.message || 'Failed to roll death save.', 'danger');
+    }
+  }, [characterId]);
 
   const handleHealthChange = useCallback(
     (nextTempHealth) => {
@@ -4050,6 +4089,16 @@ export default function ZombiesCharacterSheet() {
         return;
       }
 
+      if (updateIdentifiers.includes(characterId)) {
+        setForm((prev) => prev ? {
+          ...prev,
+          ...(update.tempHealth !== undefined ? { tempHealth: Number.isFinite(Number(update.tempHealth)) ? Number(update.tempHealth) : update.tempHealth } : {}),
+          ...(update.health !== undefined ? { health: Number.isFinite(Number(update.health)) ? Number(update.health) : update.health } : {}),
+          ...(update.deathState && typeof update.deathState === 'object' ? { deathState: update.deathState } : {}),
+        } : prev);
+        if (update.deathEvent?.message) notify(update.deathEvent.message, update.deathEvent.event === 'dead' ? 'danger' : 'success');
+      }
+
       const nextTempHealthValue =
         update.tempHealth !== undefined && update.tempHealth !== null
           ? (() => {
@@ -4129,6 +4178,11 @@ export default function ZombiesCharacterSheet() {
 
         if (nextHealthValue !== undefined && existing.health !== nextHealthValue) {
           updatedCharacter.health = nextHealthValue;
+          didUpdate = true;
+        }
+
+        if (update.deathState && typeof update.deathState === 'object') {
+          updatedCharacter.deathState = update.deathState;
           didUpdate = true;
         }
 
@@ -4383,6 +4437,7 @@ export default function ZombiesCharacterSheet() {
     socket.on('campaign:enemies:update', handleEnemiesUpdate);
     socket.on('campaign:characters:update', handleCharacterMetadataUpdate);
     socket.emit('campaign:join', campaignId);
+    const unbindCriticalRollTransport = bindCriticalRollTransport(socket, campaignId);
 
     return () => {
       socket.off('combat:update', handleCombatUpdate);
@@ -4390,6 +4445,7 @@ export default function ZombiesCharacterSheet() {
       socket.off('campaign:map:update', handleCampaignMapUpdate);
       socket.off('campaign:enemies:update', handleEnemiesUpdate);
       socket.off('campaign:characters:update', handleCharacterMetadataUpdate);
+      unbindCriticalRollTransport();
       socket.emit('campaign:leave', campaignId);
       socket.disconnect();
       socketRef.current = null;
@@ -5763,6 +5819,11 @@ export default function ZombiesCharacterSheet() {
         hiddenResourceCount={footerHiddenResourceCount}
         actions={null}
         onToggleCritical={toggleCriticalFromFooter}
+        deathState={form?.deathState}
+        isActiveTurn={isPlayersTurn}
+        onRollDeathSave={handleRollDeathSave}
+        collapseDeathPanelSignal={mobileHudPanel}
+        isCombatHudPanelOpen={isMobileCombatHudLayout && Boolean(mobileHudPanel)}
       />
       <div className="combat-hud-dock__stat-pills" aria-label="Defenses and conditions">
         <span className="combat-hud-pill"><HeartPulse size={16} /> {footerHealth.current}/{footerHealth.max}</span>

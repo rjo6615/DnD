@@ -27,9 +27,10 @@ import { calculateCharacterHitPoints, calculateCharacterMovementSpeed } from '..
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
 import DamageDiceCanvas from '../attributes/DamageDiceCanvas';
-import { calculateDamage } from '../attributes/PlayerTurnActions';
+import { calculateDamage, createCriticalDamageFormula, isCriticalAttackRoll } from '../attributes/PlayerTurnActions';
 import { rollSkillWithDiceBox } from '../attributes/Skills';
 import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
+import { bindCriticalRollTransport } from '../../../utils/criticalRolls';
 import D20RollerModal, { DEFAULT_DICE_COLOR } from '../common/D20RollerModal';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import ShopVisibilityManager from '../attributes/ShopVisibilityManager';
@@ -72,6 +73,7 @@ import { resolveFigurineImageData } from '../utils/figurineAssets';
 import TokenPickerModal from '../components/TokenPickerModal';
 import ActiveEnemyQuickList from '../components/ActiveEnemyQuickList';
 import CombatTurnHeader from '../components/CombatTurnHeader';
+import { DeathStateBadge } from '../death/DyingStatePanel';
 import { buildEnemyTokenFilterScopeValues } from '../utils/enemyTokenFilters';
 import { sanitizeIdentifierForTestId } from '../utils/sanitizeIdentifierForTestId';
 
@@ -1547,6 +1549,7 @@ export const applyCharacterHealthUpdateToRecords = ({ records, update }) => {
 
   const nextTempHealthValue = normalizeHealthValue(update.tempHealth);
   const nextHealthValue = normalizeHealthValue(update.health);
+  const nextDeathState = update.deathState && typeof update.deathState === 'object' ? update.deathState : undefined;
 
   let didUpdate = false;
 
@@ -1590,6 +1593,11 @@ export const applyCharacterHealthUpdateToRecords = ({ records, update }) => {
 
     if (nextHealthValue !== undefined && record?.health !== nextHealthValue) {
       updatedRecord.health = nextHealthValue;
+      recordUpdated = true;
+    }
+
+    if (nextDeathState !== undefined && record?.deathState !== nextDeathState) {
+      updatedRecord.deathState = nextDeathState;
       recordUpdated = true;
     }
 
@@ -1766,6 +1774,7 @@ export default function ZombiesDM() {
     const [enemyHealthAdjustments, setEnemyHealthAdjustments] = useState({});
     const [enemyHealthSaving, setEnemyHealthSaving] = useState({});
     const [latestEnemyRoll, setLatestEnemyRoll] = useState(null);
+    const [pendingEnemyCriticalAttack, setPendingEnemyCriticalAttack] = useState(null);
     const [showEnemyTokenPicker, setShowEnemyTokenPicker] = useState(false);
     const [enemyTokenSelection, setEnemyTokenSelection] = useState({
       figurineImageUrl: null,
@@ -1838,6 +1847,18 @@ export default function ZombiesDM() {
       [campaignId]
     );
 
+
+    useEffect(() => {
+      if (!user || !encodedCampaign) {
+        return;
+      }
+
+      apiFetch(`/campaigns/${encodedCampaign}/access`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "dm" }),
+      }).catch(() => {});
+    }, [encodedCampaign, user]);
 
     const waitForNextAnimationFrame = useCallback(
       () =>
@@ -2945,7 +2966,9 @@ export default function ZombiesDM() {
         });
         const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
         const actionName = action.name || 'Action';
-        const segments = [`${d20} (d20)`];
+        const naturalRoll = d20;
+        const isCriticalHit = isCriticalAttackRoll(naturalRoll);
+        const segments = [`${naturalRoll} (d20)`];
         if (bonus) {
           const sign = bonus >= 0 ? '+' : '-';
           segments.push(`${sign} ${Math.abs(bonus)} Attack Bonus`);
@@ -2957,13 +2980,13 @@ export default function ZombiesDM() {
               value: result,
               breakdown: segments.join(' '),
               source: `${enemyName} ${actionName} Attack Roll`,
-              critical: d20 === 20,
-              fumble: d20 === 1,
+              critical: isCriticalHit,
+              fumble: naturalRoll === 1,
               rollLabel: 'Attack Roll',
               diceRolls: [
                 {
                   sides: 20,
-                  value: d20,
+                  value: naturalRoll,
                   type: 'Attack Roll',
                   category: 'base',
                 },
@@ -2975,7 +2998,7 @@ export default function ZombiesDM() {
         displayEnemyDiceResults([
           {
             sides: 20,
-            value: d20,
+            value: naturalRoll,
             type: 'Attack Roll',
             category: 'base',
           },
@@ -2992,6 +3015,15 @@ export default function ZombiesDM() {
           total: result,
           breakdown: segments.join(' '),
           rollType: 'attack',
+          isCriticalHit,
+          naturalRoll,
+        });
+        setPendingEnemyCriticalAttack({
+          enemyId: enemy.enemyId,
+          actionName,
+          isCriticalHit,
+          naturalRoll,
+          total: result,
         });
       },
       [displayEnemyDiceResults, showEnemyDiceOverlay]
@@ -3012,7 +3044,14 @@ export default function ZombiesDM() {
           return;
         }
 
-        const validation = calculateDamage(damageString);
+        const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
+        const actionName = action.name || 'Action';
+        const isCriticalDamage = Boolean(
+          pendingEnemyCriticalAttack?.isCriticalHit &&
+          pendingEnemyCriticalAttack?.enemyId === enemy.enemyId &&
+          pendingEnemyCriticalAttack?.actionName === actionName
+        );
+        const validation = calculateDamage(damageString, 0, isCriticalDamage);
         if (!validation) {
           setStatus({
             type: 'warning',
@@ -3055,7 +3094,7 @@ export default function ZombiesDM() {
               );
             });
 
-            result = calculateDamage(damageString, 0, false, (count, sides) => {
+            result = calculateDamage(damageString, 0, isCriticalDamage, (count, sides) => {
               const queue = rolledValuesBySides.get(sides) || [];
               return Array.from({ length: count }, () => {
                 const nextValue = queue.shift();
@@ -3077,19 +3116,17 @@ export default function ZombiesDM() {
           return;
         }
 
-        const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
-        const actionName = action.name || 'Action';
         window.dispatchEvent(
           new CustomEvent('damage-roll', {
             detail: {
               value: result.total,
               breakdown: result.breakdown,
-              source: `${enemyName} ${actionName}`,
-              rollLabel: 'Damage',
+              source: isCriticalDamage ? `${enemyName} ${actionName} Critical Damage` : `${enemyName} ${actionName}`,
+              rollLabel: isCriticalDamage ? 'Critical Damage' : 'Damage',
               diceRolls: result.diceRolls,
               sourceLabel: `${enemyName} ${actionName}`,
-              actionLabel: 'Damage',
-              expression: damageString,
+              actionLabel: isCriticalDamage ? 'Critical Damage' : 'Damage',
+              expression: isCriticalDamage ? createCriticalDamageFormula(damageString) : damageString,
             },
           })
         );
@@ -3107,12 +3144,16 @@ export default function ZombiesDM() {
           actionName,
           total: result.total,
           breakdown: result.breakdown,
-          damageFormula: damageString,
+          damageFormula: isCriticalDamage ? createCriticalDamageFormula(damageString) : damageString,
           rollType: 'damage',
+          isCriticalDamage,
         });
+        if (pendingEnemyCriticalAttack?.enemyId === enemy.enemyId && pendingEnemyCriticalAttack?.actionName === actionName) {
+          setPendingEnemyCriticalAttack(null);
+        }
 
       },
-      [displayEnemyDiceResults, getEnemyActionDamageString, setStatus, showEnemyDiceOverlay]
+      [displayEnemyDiceResults, getEnemyActionDamageString, pendingEnemyCriticalAttack, setStatus, showEnemyDiceOverlay]
     );
 
     const challengeRatingOptions = useMemo(() => {
@@ -3296,6 +3337,7 @@ export default function ZombiesDM() {
               ...(normalizedCharacterId ? { characterId: normalizedCharacterId } : {}),
               tempHealth: nextTempHealthValue,
               health: nextHealthValue,
+              ...(update.deathState ? { deathState: update.deathState } : {}),
             },
           })
         );
@@ -3498,6 +3540,7 @@ export default function ZombiesDM() {
       socket.on('campaign:enemies:update', handleEnemiesUpdate);
       socket.on('campaign:characters:update', handleCharacterMetadataUpdate);
       socket.emit('campaign:join', campaignId);
+      const unbindCriticalRollTransport = bindCriticalRollTransport(socket, campaignId);
 
       return () => {
         socket.off('combat:update', handleCombatUpdate);
@@ -3505,6 +3548,7 @@ export default function ZombiesDM() {
         socket.off('campaign:map:update', handleMapUpdate);
         socket.off('campaign:enemies:update', handleEnemiesUpdate);
         socket.off('campaign:characters:update', handleCharacterMetadataUpdate);
+        unbindCriticalRollTransport();
         socket.emit('campaign:leave', campaignId);
         socket.disconnect();
         socketRef.current = null;
@@ -4332,6 +4376,7 @@ export default function ZombiesDM() {
 
       return DEFAULT_DICE_COLOR;
     }, [activeParticipant, characterLookup, records]);
+
 
     const activeTurnDisplayName = useMemo(() => {
       if (!activeParticipant) {
@@ -7184,7 +7229,12 @@ const resolveIcon = (category, iconMap, fallback) => {
                                   className={isActive ? 'table-success text-dark combat-tracker__active-row' : undefined}
                                   {...rowDataAttributes}
                                 >
-                                  <td className="fw-semibold">{displayName}</td>
+                                  <td className="fw-semibold">
+                                    {displayName}
+                                    <div className="mt-1">
+                                      <DeathStateBadge deathState={character?.deathState} />
+                                    </div>
+                                  </td>
                                   <td>{playerName}</td>
                                   <td className="text-center">
                                     <Form.Check
@@ -7218,6 +7268,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                                       >
                                         Set Turn
                                       </Button>
+
                                     </div>
                                   </td>
                                 </tr>

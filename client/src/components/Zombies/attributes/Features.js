@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Modal, Card, Button, Spinner, Form } from 'react-bootstrap';
+import { Modal, Card, Button, Spinner, Form, Badge } from 'react-bootstrap';
 import apiFetch from '../../../utils/apiFetch';
 import FeatureModal from './FeatureModal';
 import UpcastModal from './UpcastModal';
@@ -155,6 +155,12 @@ export default function Features({
   const [showUpcast, setShowUpcast] = useState(false);
   const [pendingSpell, setPendingSpell] = useState(null);
   const [weaponData, setWeaponData] = useState({});
+  const [abilitySearch, setAbilitySearch] = useState('');
+  const [activeAbilityFilter, setActiveAbilityFilter] = useState('all');
+  const [abilitySort, setAbilitySort] = useState('class');
+  const [selectedAbilityKey, setSelectedAbilityKey] = useState(null);
+  const [favoriteAbilityKeys, setFavoriteAbilityKeys] = useState(() => new Set());
+  const [recentAbilityKeys, setRecentAbilityKeys] = useState([]);
   const hasInitializedRestRef = useRef(false);
   const speakWithAnimalsUsesRef = useRef(speakWithAnimalsUses);
   const lineageSpellUsesRef = useRef(lineageSpellUses);
@@ -1622,6 +1628,108 @@ export default function Features({
     return classes.join(' ');
   }, [isDocked]);
 
+
+  const abilityCodexItems = useMemo(() => {
+    const signatureNames = new Set([
+      'rage', 'action surge', 'second wind', 'lay on hands', 'wild shape',
+      'channel divinity', 'ki', 'sorcery points', 'sneak attack',
+      'reckless attack', 'adrenaline rush', 'large form', 'draconic flight'
+    ]);
+
+    const normalize = (value) => String(value || '').toLowerCase();
+    const inferType = (feat) => {
+      const text = `${feat?.name || ''} ${feat?.meta || ''} ${feat?.description || feat?.desc || ''} ${feat?.type || ''}`.toLowerCase();
+      if (feat?.subclass || text.includes('subclass')) return 'subclass';
+      if (feat?.id?.includes('race') || ['dwarf', 'orc', 'elf', 'gnome', 'tiefling', 'dragonborn', 'goliath', 'halfling'].some((race) => feat?.id?.startsWith(race) || normalize(feat?.meta).includes(race))) return 'racial';
+      if (feat?.hideUseButton || feat?.type === 'passive' || /advantage|resistance|proficiency|increases|you know|always/.test(text)) return 'passive';
+      if (/reaction|bonus action|action|attack|combat|surge|rage|dash|cast/.test(text)) return 'combat';
+      return 'utility';
+    };
+    const inferAction = (feat) => {
+      const text = `${feat?.name || ''} ${feat?.description || feat?.desc || ''}`.toLowerCase();
+      if (text.includes('reaction')) return 'Reaction';
+      if (text.includes('bonus action')) return 'Bonus Action';
+      if (text.includes('action')) return 'Action';
+      return feat?.hideUseButton || feat?.type === 'passive' ? 'Passive' : 'Active';
+    };
+    const inferRecharge = (feat) => {
+      const text = `${feat?.description || feat?.desc || ''} ${feat?.meta || ''}`.toLowerCase();
+      if (text.includes('short rest')) return 'Short Rest';
+      if (text.includes('long rest')) return 'Long Rest';
+      if (feat?.hideUseButton || feat?.type === 'passive') return 'Always Active';
+      return 'At Will';
+    };
+    const getUses = (feat) => {
+      if (feat?.name?.includes('Action Surge')) return surgeUsed ? 'Spent' : 'Ready';
+      if (feat?.id === 'orc-adrenaline-rush') return `${adrenalineRushUses} / ${adrenalineRushMaxUses}`;
+      if (feat?.id === 'gnome-forest-speak-with-animals') return `${speakWithAnimalsUses} / ${speakWithAnimalsMaxUses}`;
+      if (LIMITED_USE_LINEAGE_SPELL_IDS_SET.has(feat?.id)) return `${lineageSpellUses[feat.id] ?? 0} / ${LINEAGE_SPELLS[feat.id]?.maxUses ?? 1}`;
+      if (feat?.id === 'goliath-large-form') return largeFormUsed ? 'Spent' : 'Ready';
+      if (feat?.id === 'dragonborn-draconic-flight') return draconicFlightUsed ? 'Spent' : 'Ready';
+      if (feat?.isWeaponMasteryConfig) return `${displayedWeaponMasteryState.selections.length} / ${displayedWeaponMasteryState.count}`;
+      return feat?.hideUseButton || feat?.type === 'passive' ? 'Always On' : 'Available';
+    };
+
+    return displayFeatures.map((feat, idx) => {
+      const key = feat.id || `${feat.name}-${idx}`;
+      const type = inferType(feat);
+      const source = feat.class || (feat.meta ? String(feat.meta).split('•')[0].trim() : 'Character');
+      const name = feat.name || 'Feature';
+      const searchText = `${name} ${source} ${feat.meta || ''} ${feat.description || feat.desc || ''} ${type}`.toLowerCase();
+      const isFavorite = favoriteAbilityKeys.has(key);
+      const recentlyUsedIndex = recentAbilityKeys.indexOf(key);
+      return {
+        feat, key, idx, type, source, name, searchText, isFavorite,
+        recentlyUsedIndex,
+        actionType: inferAction(feat),
+        recharge: inferRecharge(feat),
+        usesLabel: getUses(feat),
+        isSignature: signatureNames.has(name.toLowerCase().replace(/ \(.*\)$/, '')),
+        icon: type === 'combat' ? '⚔️' : type === 'passive' ? '🛡️' : type === 'racial' ? '🍃' : type === 'subclass' ? '✦' : '✧',
+      };
+    });
+  }, [displayFeatures, favoriteAbilityKeys, recentAbilityKeys, surgeUsed, adrenalineRushUses, adrenalineRushMaxUses, speakWithAnimalsUses, speakWithAnimalsMaxUses, lineageSpellUses, largeFormUsed, draconicFlightUsed, displayedWeaponMasteryState]);
+
+  const visibleAbilityItems = useMemo(() => {
+    const query = abilitySearch.trim().toLowerCase();
+    const filtered = abilityCodexItems.filter((item) => {
+      const matchesSearch = !query || item.searchText.includes(query);
+      const matchesFilter = activeAbilityFilter === 'all' ||
+        (activeAbilityFilter === 'active' && item.actionType !== 'Passive') ||
+        (activeAbilityFilter === 'passive' && item.actionType === 'Passive') ||
+        (activeAbilityFilter === 'favorites' && item.isFavorite) ||
+        (activeAbilityFilter === 'recent' && item.recentlyUsedIndex !== -1) ||
+        (activeAbilityFilter === 'class' && Boolean(item.feat.class)) ||
+        item.type === activeAbilityFilter;
+      return matchesSearch && matchesFilter;
+    });
+    return [...filtered].sort((a, b) => {
+      if (abilitySort === 'alphabetical') return a.name.localeCompare(b.name);
+      if (abilitySort === 'level') return (a.feat.level || 0) - (b.feat.level || 0) || a.name.localeCompare(b.name);
+      if (abilitySort === 'favorites') return Number(b.isFavorite) - Number(a.isFavorite) || a.name.localeCompare(b.name);
+      if (abilitySort === 'combat') return Number(b.type === 'combat') - Number(a.type === 'combat') || a.name.localeCompare(b.name);
+      if (abilitySort === 'recent') return (a.recentlyUsedIndex === -1 ? 999 : a.recentlyUsedIndex) - (b.recentlyUsedIndex === -1 ? 999 : b.recentlyUsedIndex);
+      return a.source.localeCompare(b.source) || (a.feat.level || 0) - (b.feat.level || 0) || a.name.localeCompare(b.name);
+    });
+  }, [abilityCodexItems, abilitySearch, activeAbilityFilter, abilitySort]);
+
+  const selectedAbility = useMemo(() => {
+    return abilityCodexItems.find((item) => item.key === selectedAbilityKey) || null;
+  }, [abilityCodexItems, selectedAbilityKey]);
+
+  const toggleFavorite = useCallback((key) => {
+    setFavoriteAbilityKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const markRecentlyUsed = useCallback((key) => {
+    setRecentAbilityKeys((prev) => [key, ...prev.filter((item) => item !== key)].slice(0, 8));
+  }, []);
+
   const handleModalHide = useCallback(() => {
     if (isDocked) {
       if (typeof onDockClose === 'function') {
@@ -1639,24 +1747,23 @@ export default function Features({
         className={modalClassName}
         show={showFeatures}
         onHide={handleModalHide}
-        size="lg"
+        size="xl"
         centered={!isDocked}
         backdrop={isDocked ? false : true}
         enforceFocus={!isDocked}
         restoreFocus={!isDocked}
         dialogClassName={dialogClassName}
       >
-        <div className="text-center">
-          <Card className="modern-card">
+        <Card className="modern-card abilities-codex-card">
             <Card.Header className="modal-header">
               <DockControls
                 dockedSide={dockedSide}
                 onDockChange={onDockChange}
                 isDocked={isDocked}
               />
-              <Card.Title className="modal-title">Features</Card.Title>
+              <Card.Title className="modal-title">Character Features</Card.Title>
             </Card.Header>
-            <Card.Body style={{ overflowY: 'auto', maxHeight: '70vh' }}>
+            <Card.Body className="abilities-codex-body">
               {error && (
                 <div className="text-danger mb-2">{error}</div>
               )}
@@ -1664,10 +1771,60 @@ export default function Features({
                 <div className="d-flex justify-content-center py-4">
                   <Spinner animation="border" role="status" />
                 </div>
-              ) : displayFeatures.length > 0 ? (
-                <div className="feature-card-grid">
-                  {displayFeatures.map((feat, idx) => {
-                    const featKey = feat.id || `${feat.name}-${idx}`;
+              ) : abilityCodexItems.length > 0 ? (
+                <div className="abilities-codex-shell">
+                  <div className="abilities-codex-toolbar">
+                    <div className="abilities-codex-kicker">Hero Ability Codex</div>
+                    <div className="abilities-codex-title-row">
+                      <div>
+                        <h2>Character Features</h2>
+                        <p>Scan active powers, passive traits, class resources, and lineage gifts without losing any rules detail.</p>
+                      </div>
+                      <div className="abilities-codex-count" aria-label={`${visibleAbilityItems.length} abilities shown out of ${abilityCodexItems.length}`}>
+                        <strong>{visibleAbilityItems.length}</strong>
+                        <span>/ {abilityCodexItems.length} Abilities</span>
+                      </div>
+                    </div>
+                    <div className="abilities-codex-controls">
+                      <Form.Control
+                        aria-label="Search character abilities"
+                        className="abilities-codex-search"
+                        placeholder="Search abilities, class, type, or rules text..."
+                        value={abilitySearch}
+                        onChange={(event) => setAbilitySearch(event.target.value)}
+                      />
+                      <Form.Select aria-label="Sort abilities" value={abilitySort} onChange={(event) => setAbilitySort(event.target.value)}>
+                        <option value="class">Class</option>
+                        <option value="level">Level</option>
+                        <option value="recent">Recently Used</option>
+                        <option value="alphabetical">Alphabetical</option>
+                        <option value="favorites">Favorites</option>
+                        <option value="combat">Combat</option>
+                      </Form.Select>
+                    </div>
+                  </div>
+                  <div className="abilities-codex-layout">
+                    <aside className="abilities-codex-sidebar" aria-label="Ability filters">
+                      {[
+                        ['all', 'All Features'], ['combat', 'Combat'], ['passive', 'Passive'], ['active', 'Active'],
+                        ['utility', 'Utility'], ['class', 'Class Features'], ['racial', 'Racial Features'],
+                        ['subclass', 'Subclass Features'], ['recent', 'Recently Used'], ['favorites', 'Favorites'],
+                      ].map(([filter, label]) => (
+                        <button
+                          type="button"
+                          key={filter}
+                          className={`abilities-filter-pill ${activeAbilityFilter === filter ? 'is-active' : ''}`}
+                          onClick={() => setActiveAbilityFilter(filter)}
+                        >
+                          <span>{label}</span>
+                          <Badge bg="dark">{filter === 'all' ? abilityCodexItems.length : abilityCodexItems.filter((item) => filter === 'active' ? item.actionType !== 'Passive' : filter === 'favorites' ? item.isFavorite : filter === 'recent' ? item.recentlyUsedIndex !== -1 : filter === 'class' ? Boolean(item.feat.class) : item.type === filter).length}</Badge>
+                        </button>
+                      ))}
+                    </aside>
+                    <div className="feature-card-grid abilities-grid">
+                  {visibleAbilityItems.map((item, idx) => {
+                    const feat = item.feat;
+                    const featKey = item.key;
                     const isActionSurge = feat.name?.includes('Action Surge');
                     const isLargeForm = feat.id === 'goliath-large-form';
                     const isDraconicFlight =
@@ -1707,9 +1864,12 @@ export default function Features({
                     const isTieflingLineageSpell =
                       isLineageSpell && feat.id?.startsWith('tiefling-');
                     return (
-                      <div className="feature-card" key={featKey}>
+                      <div className={`feature-card ability-card ability-card--${item.type} ${item.isSignature ? 'ability-card--signature' : ''} ${selectedAbility?.key === featKey ? 'is-selected' : ''}`} key={featKey} role="button" tabIndex={0} onClick={(event) => { if (!event.target.closest('button, input, select, a')) setSelectedAbilityKey(featKey); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setSelectedAbilityKey(featKey); }}>
+                        <div className="ability-card-accent" aria-hidden="true" />
                         <div className="feature-card-header">
-                          <div>
+                          <div className="ability-card-title-block">
+                            <div className="ability-card-icon" aria-hidden="true">{item.icon}</div>
+                            <div>
                             <div className="feature-card-name">{feat.name}</div>
                             <div className="feature-card-meta">
                               {feat.meta ? (
@@ -1727,6 +1887,7 @@ export default function Features({
                               )}
                             </div>
                           </div>
+                          </div>
                           <div className="feature-card-actions">
                             {isActionSurge ? (
                               <Button
@@ -1737,6 +1898,7 @@ export default function Features({
                                   if (!surgeUsed) {
                                     onActionSurge?.();
                                     setSurgeUsed(true);
+                                    markRecentlyUsed(featKey);
                                   }
                                 }}
                                 disabled={surgeUsed}
@@ -1758,6 +1920,7 @@ export default function Features({
                                 onClick={() => {
                                   if (adrenalineRushUses > 0) {
                                     onAdrenalineRush?.();
+                                    markRecentlyUsed(featKey);
                                     setAdrenalineRushUses((prev) =>
                                       Math.max(0, prev - 1)
                                     );
@@ -1781,6 +1944,7 @@ export default function Features({
                                   if (!largeFormUsed) {
                                     onLargeForm?.();
                                     setLargeFormUsed(true);
+                                    markRecentlyUsed(featKey);
                                   }
                                 }}
                                 disabled={largeFormUsed}
@@ -1803,6 +1967,7 @@ export default function Features({
                                   if (!draconicFlightUsed) {
                                     onDraconicFlight?.();
                                     setDraconicFlightUsed(true);
+                                    markRecentlyUsed(featKey);
                                   }
                                 }}
                                 disabled={draconicFlightUsed}
@@ -2021,16 +2186,26 @@ export default function Features({
                                 <span className={`combat-hud-resource-tile__icon ${form?.classState?.barbarian?.recklessAttack?.active ? 'opacity-100' : 'opacity-50'}`}><Swords size={36} /></span>
                               </Button>
                             ) : !feat.hideUseButton ? (
-                              <Button aria-label="use feature" variant="outline-light" size="sm">
+                              <Button aria-label="use feature" variant="outline-light" size="sm" onClick={() => markRecentlyUsed(featKey)}>
                                 Use
                               </Button>
                             ) : null}
+                            <Button
+                              aria-label={item.isFavorite ? "remove favorite" : "favorite feature"}
+                              variant="link"
+                              size="sm"
+                              className="view-link-btn ability-favorite-btn"
+                              onClick={(event) => { event.stopPropagation(); toggleFavorite(featKey); }}
+                            >
+                              <i className={`${item.isFavorite ? 'fa-solid' : 'fa-regular'} fa-star`}></i>
+                            </Button>
                             <Button
                               aria-label="view feature"
                               variant="link"
                               size="sm"
                               className="view-link-btn"
-                              onClick={() => {
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 setModalFeature(
                                   isWeaponMasteryConfig
                                     ? { ...feat, renderDetails: renderWeaponMasteryDetails }
@@ -2042,6 +2217,14 @@ export default function Features({
                               <i className="fa-solid fa-eye"></i>
                             </Button>
                           </div>
+                        </div>
+                        <div className="ability-card-tags">
+                          <span>{item.actionType}</span>
+                          <span>{item.recharge}</span>
+                        </div>
+                        <div className="ability-resource-strip">
+                          <span>{item.usesLabel}</span>
+                          <span className={item.actionType === 'Passive' ? 'ability-status-passive' : 'ability-status-ready'}>{item.actionType === 'Passive' ? 'Always Active' : 'Can Activate'}</span>
                         </div>
                         {isWeaponMasteryConfig && (
                           <div className="feature-card-uses text-muted small mt-2">
@@ -2072,20 +2255,47 @@ export default function Features({
                     );
                   })}
                 </div>
+                    <aside className="ability-inspector" aria-label="Selected ability inspector">
+                      {selectedAbility && (
+                        <>
+                          <div className={`ability-inspector-art ability-inspector-art--${selectedAbility.type}`}>
+                            <span>{selectedAbility.icon}</span>
+                          </div>
+                          <div className="abilities-codex-kicker">Ability Inspector</div>
+                          <h3>{selectedAbility.name}</h3>
+                          <div className="ability-inspector-meta">
+                            <span>{selectedAbility.source}</span>
+                            {selectedAbility.feat.level != null && <span>Level {selectedAbility.feat.level}</span>}
+                            <span>{selectedAbility.actionType}</span>
+                          </div>
+                          <p>{selectedAbility.feat.description || selectedAbility.feat.desc || 'No description available.'}</p>
+                          <dl>
+                            <div><dt>Uses</dt><dd>{selectedAbility.usesLabel}</dd></div>
+                            <div><dt>Recharge</dt><dd>{selectedAbility.recharge}</dd></div>
+                            <div><dt>Type</dt><dd>{selectedAbility.type}</dd></div>
+                          </dl>
+                          <div className="ability-inspector-actions">
+                            <Button size="sm" variant="outline-light" onClick={() => toggleFavorite(selectedAbility.key)}>{selectedAbility.isFavorite ? 'Unfavorite' : 'Favorite'}</Button>
+                            <Button size="sm" className="action-btn" onClick={() => { setModalFeature(selectedAbility.feat.isWeaponMasteryConfig ? { ...selectedAbility.feat, renderDetails: renderWeaponMasteryDetails } : selectedAbility.feat); setShowModal(true); }}>Details</Button>
+                          </div>
+                        </>
+                      )}
+                    </aside>
+                  </div>
+                </div>
               ) : !error ? (
                 <div className="text-center text-muted">No features found</div>
               ) : null}
             </Card.Body>
-            <Card.Footer className="modal-footer">
+            <Card.Footer className="modal-footer abilities-codex-footer">
               <Button
-                className="action-btn close-btn"
+                className="spellbook-modal-close-btn"
                 onClick={handleModalHide}
               >
                 Close
               </Button>
             </Card.Footer>
-          </Card>
-        </div>
+        </Card>
       </Modal>
       <FeatureModal
         show={showModal}

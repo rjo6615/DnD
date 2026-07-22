@@ -269,6 +269,8 @@ module.exports = (router) => {
       body('spells.*.duration').optional().isString(),
       body('sex').optional().trim(),
       body('diceColor').optional().trim(),
+      body('figurineImageUrl').optional().isString().trim(),
+      body('figurineImagePublicId').optional().isString().trim(),
       ...currencyFields.map((field) => body(field).optional().isInt().toInt()),
       ...numericCharacterFields.map((field) => body(field).optional().isInt().toInt()),
       ...stringCharacterFields.map((field) =>
@@ -524,6 +526,31 @@ module.exports = (router) => {
 
       logger.info('1 character deleted');
       return res.json({ acknowledged: true, deletedCount: 1 });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  characterRouter.route('/:id/last-played').put(async (req, res, next) => {
+    if (!ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+
+    const db_connect = req.db;
+    const lastPlayed = new Date().toISOString();
+
+    try {
+      const result = await db_connect.collection('Characters').findOneAndUpdate(
+        { _id: ObjectId(req.params.id) },
+        { $set: { lastPlayed } },
+        { returnDocument: 'after' }
+      );
+
+      if (!result.value) {
+        return res.status(404).json({ message: 'Character not found' });
+      }
+
+      res.json({ lastPlayed });
     } catch (err) {
       next(err);
     }

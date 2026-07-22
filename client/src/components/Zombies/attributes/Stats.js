@@ -23,6 +23,18 @@ const ABILITY_LABELS = {
   cha: 'Charisma',
 };
 
+const ABILITY_CODEX = {
+  str: { icon: 'fa-hammer', accent: 'crimson', skills: ['Athletics'], governs: 'physical power, lifting, and forceful feats', checks: 'breaking restraints, climbing sheer surfaces, and wrestling foes', synergy: 'Barbarian, Fighter, and Paladin builds' },
+  dex: { icon: 'fa-person-running', accent: 'emerald', skills: ['Acrobatics', 'Sleight of Hand', 'Stealth'], governs: 'agility, reflexes, balance, and precision', checks: 'sneaking past a guard, balancing on a ledge, and picking a pocket', synergy: 'Rogue, Ranger, Monk, and agile Fighter builds' },
+  con: { icon: 'fa-shield-halved', accent: 'amber', skills: [], governs: 'endurance, stamina, and physical resilience', checks: 'withstanding poison, marching through hardship, and holding your breath', synergy: 'Every adventurer, especially frontline and concentration-focused builds' },
+  int: { icon: 'fa-book-open', accent: 'azure', skills: ['Arcana', 'History', 'Investigation', 'Nature', 'Religion'], governs: 'reasoning, memory, lore, and deduction', checks: 'recalling ancient lore, deciphering magic, and finding hidden clues', synergy: 'Wizard, Artificer, and knowledge-focused Rogue builds' },
+  wis: { icon: 'fa-eye', accent: 'verdant', skills: ['Animal Handling', 'Insight', 'Medicine', 'Perception', 'Survival'], governs: 'perception, intuition, awareness, and judgment', checks: 'spotting danger, reading intentions, and tracking a trail', synergy: 'Cleric, Druid, Monk, Ranger, and perceptive builds' },
+  cha: { icon: 'fa-crown', accent: 'violet', skills: ['Deception', 'Intimidation', 'Performance', 'Persuasion'], governs: 'confidence, presence, and force of personality', checks: 'negotiating, performing, deceiving, and commanding attention', synergy: 'Bard, Paladin, Sorcerer, Warlock, and social builds' },
+};
+
+const signed = (value) => `${value >= 0 ? '+' : ''}${value}`;
+const scoreTier = (score) => score >= 20 ? 'Legendary' : score >= 18 ? 'Excellent' : score >= 14 ? 'Strong' : score >= 10 ? 'Steady' : 'Developing';
+
 const formatAdjustmentSegment = (value, label) => {
   const sign = value >= 0 ? '+' : '-';
   return `${sign} ${Math.abs(value)} ${label}`;
@@ -99,6 +111,7 @@ export default function Stats({
 
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [selectedStat, setSelectedStat] = useState(null);
+  const [favoriteStats, setFavoriteStats] = useState(() => new Set());
   const equippedItems = useMemo(() => {
     if (typeof form?.equipment === 'object' && form.equipment !== null) {
       const normalized = normalizeEquipmentMap(form.equipment);
@@ -190,6 +203,28 @@ export default function Stats({
     Object.entries(computedStats).map(([key, value]) => [key, Math.floor((value - 10) / 2)])
   );
 
+  const abilitySummary = useMemo(() => {
+    const entries = STAT_KEYS.map((key) => ({ key, score: computedStats[key], modifier: statMods[key] }));
+    const highest = entries.reduce((best, entry) => entry.score > best.score ? entry : best, entries[0]);
+    const lowest = entries.reduce((worst, entry) => entry.score < worst.score ? entry : worst, entries[0]);
+    const average = entries.reduce((total, entry) => total + entry.modifier, 0) / entries.length;
+    return {
+      highest,
+      lowest,
+      average: Number.isInteger(average) ? signed(average) : signed(average.toFixed(1)),
+      saves: entries.filter(({ key }) => isSavingThrowProficient(form, key)).length,
+      proficiency: proficiencyBonus(getTotalLevel(form)),
+    };
+  }, [computedStats, form, statMods]);
+
+  const toggleFavorite = useCallback((statKey) => {
+    setFavoriteStats((previous) => {
+      const next = new Set(previous);
+      next.has(statKey) ? next.delete(statKey) : next.add(statKey);
+      return next;
+    });
+  }, []);
+
   const handleView = (stat) => {
     setSelectedStat(stat);
     setShowBreakdown(true);
@@ -213,6 +248,8 @@ export default function Stats({
       const rollResult = await rollSkillWithDiceBox(statMod, {
         diceColor: diceFaceColor,
         rollMode,
+        rollContext: 'ability-check',
+        character: form,
       });
       const { result, d20 } = rollResult;
       const rolledD20s = Array.isArray(rollResult.rolledD20s) && rollResult.rolledD20s.length > 0
@@ -276,6 +313,8 @@ export default function Stats({
       const rollResult = await rollSkillWithDiceBox(statMod + proficiency, {
         diceColor: diceFaceColor,
         rollMode,
+        rollContext: 'saving-throw',
+        character: form,
       });
       const { result, d20 } = rollResult;
       const rolledD20s = Array.isArray(rollResult.rolledD20s) && rollResult.rolledD20s.length > 0
@@ -365,7 +404,7 @@ export default function Stats({
       <Modal
         show={showStats}
         onHide={handleModalHide}
-        size="lg"
+        size="xl"
         scrollable
         centered={!isDocked}
         className={modalClassName}
@@ -380,18 +419,34 @@ export default function Stats({
             onDockChange={onDockChange}
             isDocked={isDocked}
           />
-          <Modal.Title className="modal-title">Stats</Modal.Title>
+          <Modal.Title className="modal-title">Character Attribute Summary</Modal.Title>
         </Modal.Header>
         <Modal.Body className="stats-modal-body">
-          <div className="stat-card-grid">
+          <section className="attribute-codex__hero" aria-label="Character attribute overview">
+            <div>
+              <span className="attribute-codex__eyebrow">Adventurer&apos;s Codex</span>
+              <h2>Know the strengths behind your legend.</h2>
+              <p>Modifiers power your checks, saves, attacks, and class features.</p>
+            </div>
+            <div className="attribute-codex__proficiency"><span>Proficiency bonus</span><strong>{signed(abilitySummary.proficiency)}</strong></div>
+          </section>
+          <section className="attribute-summary-grid" aria-label="Attribute highlights">
+            <div className="attribute-summary-card"><span>Highest attribute</span><strong>{ABILITY_LABELS[abilitySummary.highest.key]} {abilitySummary.highest.score}</strong></div>
+            <div className="attribute-summary-card"><span>Highest modifier</span><strong>{signed(Math.max(...Object.values(statMods)))}</strong></div>
+            <div className="attribute-summary-card"><span>Weakest attribute</span><strong>{ABILITY_LABELS[abilitySummary.lowest.key]} {abilitySummary.lowest.score}</strong></div>
+            <div className="attribute-summary-card"><span>Average modifier</span><strong>{abilitySummary.average}</strong></div>
+            <div className="attribute-summary-card"><span>Save proficiencies</span><strong>{abilitySummary.saves} / 6</strong></div>
+          </section>
+          <div className="stat-card-grid" aria-label="Ability scores">
             {STATS.map(({ key, label }) => (
-              <div className="stat-card" key={key}>
+              <article className={`stat-card stat-card--${ABILITY_CODEX[key].accent}`} key={key}>
                 <div className="stat-card-header">
                   <div className="stat-card-title">
                     <span className="stat-card-key">{key.toUpperCase()}</span>
                     {label && <span className="stat-card-label">{label}</span>}
                   </div>
                   <div className="stat-card-actions">
+                    <Button onClick={() => toggleFavorite(key)} variant="link" aria-label={`${favoriteStats.has(key) ? 'Remove' : 'Favorite'} ${label || key}`} aria-pressed={favoriteStats.has(key)} className={`stat-card-view stat-card-favorite ${favoriteStats.has(key) ? 'is-favorite' : ''}`}><i className={`${favoriteStats.has(key) ? 'fa-solid' : 'fa-regular'} fa-star`}></i></Button>
                     <Button
                       onClick={() => handleView(key)}
                       variant="link"
@@ -418,6 +473,10 @@ export default function Stats({
                     </Button>
                   </div>
                 </div>
+                <div className="stat-card-showcase">
+                  <div className="stat-card-icon" aria-hidden="true"><i className={`fa-solid ${ABILITY_CODEX[key].icon}`}></i></div>
+                  <div className="stat-card-modifier"><span aria-label="Modifier"></span><strong>{signed(statMods[key])}</strong></div>
+                </div>
                 <div className="stat-card-body">
                   <div className="stat-card-metric">
                     <span className="stat-card-metric-label">Total</span>
@@ -427,12 +486,15 @@ export default function Stats({
                     <span className="stat-card-metric-label">Modifier</span>
                     <span className="stat-card-metric-value">{statMods[key]}</span>
                   </div>
+                  <span className="stat-card-tier">{scoreTier(computedStats[key])}</span>
                 </div>
-              </div>
+                <div className={`stat-card-save-status ${isSavingThrowProficient(form, key) ? 'is-proficient' : ''}`}><span>Saving Throw</span><strong>{signed(statMods[key] + (isSavingThrowProficient(form, key) ? abilitySummary.proficiency : 0))}</strong><em>{isSavingThrowProficient(form, key) ? '✓ Proficient' : 'Not Proficient'}</em></div>
+                <div className="stat-card-skills"><span>Associated skills</span><p>{ABILITY_CODEX[key].skills.length ? ABILITY_CODEX[key].skills.join(' · ') : 'No associated skills'}</p></div>
+              </article>
             ))}
           </div>
         </Modal.Body>
-        <Modal.Footer className="modal-footer">
+        <Modal.Footer className="modal-footer stats-modal-footer">
           <Button className="action-btn close-btn" onClick={handleModalHide}>Close</Button>
         </Modal.Footer>
       </Modal>
@@ -441,6 +503,10 @@ export default function Stats({
         onHide={handleCloseBreakdown}
         statKey={selectedStat}
         breakdown={selectedStat ? breakdowns[selectedStat] : null}
+        codex={selectedStat ? ABILITY_CODEX[selectedStat] : null}
+        modifier={selectedStat ? statMods[selectedStat] : null}
+        savingThrow={selectedStat ? statMods[selectedStat] + (isSavingThrowProficient(form, selectedStat) ? abilitySummary.proficiency : 0) : null}
+        proficient={selectedStat ? isSavingThrowProficient(form, selectedStat) : false}
       />
     </>
   );

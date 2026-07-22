@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import { Button, Spinner } from 'react-bootstrap';
 
 import apiFetch from '../../../../utils/apiFetch';
+import DyingStatePanel from '../../death/DyingStatePanel';
+import { normalizeDeathState } from '../../death/deathState';
 
 const resolveFigurineImageUrl = (figurine) => {
   if (!figurine || typeof figurine !== 'object') {
@@ -32,6 +35,11 @@ const FooterCharacterSlot = ({
   damageSummary,
   onToggleCritical,
   onOpenDamageLog,
+  deathState,
+  onRollDeathSave,
+  isActiveTurn,
+  collapseDeathPanelSignal,
+  isCombatHudPanelOpen,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
@@ -39,6 +47,10 @@ const FooterCharacterSlot = ({
   const dragStateRef = useRef(null);
   const [damageHighlightClass, setDamageHighlightClass] = useState('');
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
+  const [isDeathPanelOpen, setIsDeathPanelOpen] = useState(false);
+  const [deathDockBottomOffset, setDeathDockBottomOffset] = useState(null);
+  const normalizedDeathState = useMemo(() => normalizeDeathState(deathState), [deathState]);
+  const isDeathStateVisible = normalizedDeathState.isDying || normalizedDeathState.isDead;
 
   const { resolvedCurrent, resolvedMax } = useMemo(() => {
     const numericCurrent = Number(currentHealth);
@@ -135,6 +147,7 @@ const FooterCharacterSlot = ({
     typeof onOpenDamageLog === 'function';
   const hasFooterContent = hasActions || hasDamageDisplay || hasResourcesDrawer;
   const hasHudContent = hasSpellSlots || hasFooterContent;
+  const deathPanelLabel = normalizedDeathState.isDead ? 'Dead' : 'Dying';
 
   const damageClassName = [
     'footer-character-slot__damage',
@@ -250,6 +263,10 @@ const FooterCharacterSlot = ({
         return;
       }
 
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
       dragStateRef.current = {
         pointerId: event.pointerId,
         startX: event.clientX,
@@ -268,6 +285,10 @@ const FooterCharacterSlot = ({
       const dragState = dragStateRef.current;
       if (!dragState || dragState.pointerId !== event.pointerId) {
         return;
+      }
+
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
       }
 
       const delta = Math.round((event.clientX - dragState.startX) / 8);
@@ -289,6 +310,10 @@ const FooterCharacterSlot = ({
         return;
       }
 
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
       dragStateRef.current = null;
       event.currentTarget.releasePointerCapture?.(event.pointerId);
       delete event.currentTarget.dataset.dragging;
@@ -307,6 +332,10 @@ const FooterCharacterSlot = ({
       const dragState = dragStateRef.current;
       if (!dragState || dragState.pointerId !== event.pointerId) {
         return;
+      }
+
+      if (typeof event?.preventDefault === 'function') {
+        event.preventDefault();
       }
 
       dragStateRef.current = null;
@@ -349,11 +378,116 @@ const FooterCharacterSlot = ({
     };
   }, [damageTimestamp]);
 
+  useEffect(() => {
+    if (!isDeathStateVisible) {
+      setIsDeathPanelOpen(false);
+    }
+  }, [isDeathStateVisible]);
+
+  useEffect(() => {
+    setIsDeathPanelOpen(false);
+  }, [collapseDeathPanelSignal]);
+
+  useEffect(() => {
+    if (!isDeathStateVisible || typeof window === 'undefined' || typeof document === 'undefined') {
+      setDeathDockBottomOffset(null);
+      return undefined;
+    }
+
+    let animationFrameId = null;
+    let followUpTimeoutId = null;
+    let resizeObserver = null;
+
+    const updateDeathDockOffset = () => {
+      const combatDock = document.querySelector('.combat-hud-dock');
+      if (!combatDock) {
+        setDeathDockBottomOffset(null);
+        return;
+      }
+
+      const dockTop = combatDock.getBoundingClientRect().top;
+      setDeathDockBottomOffset(Math.max(0, Math.round(window.innerHeight - dockTop)));
+    };
+
+    const scheduleUpdate = () => {
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      animationFrameId = window.requestAnimationFrame(updateDeathDockOffset);
+    };
+
+    const combatDock = document.querySelector('.combat-hud-dock');
+    if (combatDock && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(scheduleUpdate);
+      resizeObserver.observe(combatDock);
+    }
+
+    scheduleUpdate();
+    followUpTimeoutId = window.setTimeout(scheduleUpdate, 220);
+    window.addEventListener('resize', scheduleUpdate);
+
+    return () => {
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      if (followUpTimeoutId !== null) {
+        window.clearTimeout(followUpTimeoutId);
+      }
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', scheduleUpdate);
+    };
+  }, [isCombatHudPanelOpen, isDeathStateVisible]);
+
+  const deathDockStyle = deathDockBottomOffset === null
+    ? undefined
+    : { '--footer-death-dock-bottom': `${deathDockBottomOffset}px` };
+
+  const deathDock = isDeathStateVisible ? (
+    <div
+      className="footer-character-slot__death-dock"
+      style={deathDockStyle}
+      data-allow-pointer-events="true"
+    >
+      <button
+        type="button"
+        className={`footer-character-slot__death-toggle ${isDeathPanelOpen ? 'is-open' : ''}`}
+        aria-expanded={isDeathPanelOpen}
+        aria-controls="footer-character-death-panel"
+        onClick={() => setIsDeathPanelOpen((current) => !current)}
+      >
+        <span className="footer-character-slot__death-toggle-eyebrow">{deathPanelLabel}</span>
+        <span className="footer-character-slot__death-toggle-name">{characterName}</span>
+        <span className="footer-character-slot__death-toggle-meta">
+          HP {displayCurrent}
+          <i className={`fas fa-chevron-${isDeathPanelOpen ? 'down' : 'up'}`} aria-hidden="true" />
+        </span>
+      </button>
+      {isDeathPanelOpen ? (
+        <div
+          id="footer-character-death-panel"
+          className="footer-character-slot__death-panel"
+        >
+          <DyingStatePanel
+            compact
+            characterName={characterName}
+            portraitUrl={figurineImageUrl}
+            currentHp={displayCurrent}
+            deathState={normalizedDeathState}
+            isActiveTurn={isActiveTurn}
+            onRollDeathSave={onRollDeathSave}
+            disabled={isUpdating}
+          />
+        </div>
+      ) : null}
+    </div>
+  ) : null;
+
   return (
     <div
       className={`footer-character-slot ${isResourcesOpen ? 'footer-character-slot--resources-open' : ''}`}
       data-allow-pointer-events="true"
     >
+      {deathDock && typeof document !== 'undefined' ? createPortal(deathDock, document.body) : null}
       {hasResourcesDrawer ? (
         <div
           id="footer-resources-drawer"
@@ -573,6 +707,11 @@ FooterCharacterSlot.propTypes = {
   }),
   onToggleCritical: PropTypes.func,
   onOpenDamageLog: PropTypes.func,
+  deathState: PropTypes.object,
+  onRollDeathSave: PropTypes.func,
+  isActiveTurn: PropTypes.bool,
+  collapseDeathPanelSignal: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
+  isCombatHudPanelOpen: PropTypes.bool,
 };
 
 FooterCharacterSlot.defaultProps = {
@@ -590,6 +729,11 @@ FooterCharacterSlot.defaultProps = {
   damageSummary: null,
   onToggleCritical: undefined,
   onOpenDamageLog: undefined,
+  deathState: null,
+  onRollDeathSave: null,
+  isActiveTurn: false,
+  collapseDeathPanelSignal: null,
+  isCombatHudPanelOpen: false,
 };
 
 export default FooterCharacterSlot;

@@ -43,11 +43,44 @@ const normalizeCampaignSummaries = (campaigns) => {
           ? campaign.gameMode.trim()
           : null;
 
+      const maps = Array.isArray(campaign.maps)
+        ? campaign.maps.filter((map) => map && typeof map === "object")
+        : [];
+
+      const activeMapId =
+        typeof campaign.activeMapId === "string" &&
+        campaign.activeMapId.trim() !== ""
+          ? campaign.activeMapId.trim()
+          : null;
+
+      const recentAccess = Array.isArray(campaign.recentAccess)
+        ? campaign.recentAccess
+            .filter((entry) => entry && typeof entry === "object")
+            .map((entry) => ({
+              username:
+                typeof entry.username === "string"
+                  ? entry.username.trim()
+                  : "",
+              role:
+                entry.role === "dm" || entry.role === "player"
+                  ? entry.role
+                  : "",
+              lastAccessedAt:
+                typeof entry.lastAccessedAt === "string"
+                  ? entry.lastAccessedAt.trim()
+                  : "",
+            }))
+            .filter((entry) => entry.username && entry.role && entry.lastAccessedAt)
+        : [];
+
       return {
         campaignName,
         players,
         ...(dm ? { dm } : {}),
         ...(gameMode ? { gameMode } : {}),
+        ...(maps.length > 0 ? { maps } : {}),
+        ...(activeMapId ? { activeMapId } : {}),
+        ...(recentAccess.length > 0 ? { recentAccess } : {}),
       };
     })
     .filter(Boolean);
@@ -143,8 +176,8 @@ export default function useCampaignActions() {
   }, [navigate, username]);
 
   useEffect(() => {
-    fetchPlayerCampaigns();
-  }, [fetchPlayerCampaigns]);
+    Promise.all([fetchPlayerCampaigns(), fetchDmCampaigns()]);
+  }, [fetchDmCampaigns, fetchPlayerCampaigns]);
 
   const updateCreateCampaignForm = useCallback((value) => {
     setCreateCampaignForm((prev) => ({ ...prev, ...value }));

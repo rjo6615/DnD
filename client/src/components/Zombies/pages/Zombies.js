@@ -4,8 +4,39 @@ import { useNavigate } from "react-router-dom";
 import apiFetch from "../../../utils/apiFetch";
 import CampaignModals from "../components/CampaignModals";
 import useCampaignActions from "../hooks/useCampaignActions";
+import logoLight from "../../../images/logo-light.png";
 
 const getCampaignTitle = (campaign) => campaign?.campaignName || "Untitled Realm";
+
+const getUserLastAccessedAt = (campaign, username, role) => {
+  if (!username || !role || !Array.isArray(campaign?.recentAccess)) {
+    return null;
+  }
+
+  const accessEntry = campaign.recentAccess.find((entry) => entry?.username === username && entry?.role === role);
+  return typeof accessEntry?.lastAccessedAt === "string" ? accessEntry.lastAccessedAt : null;
+};
+
+const getAccessTimestamp = (lastAccessedAt) => {
+  if (!lastAccessedAt) {
+    return 0;
+  }
+
+  const timestamp = Date.parse(lastAccessedAt);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const formatLastAccessed = (lastAccessedAt) => {
+  const timestamp = getAccessTimestamp(lastAccessedAt);
+  if (!timestamp) {
+    return "Not opened yet";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(timestamp));
+};
 
 function HomeActionCard({ icon, title, description, meta, onClick, featured = false }) {
   return (
@@ -25,7 +56,9 @@ function HomeActionCard({ icon, title, description, meta, onClick, featured = fa
   );
 }
 
-function RecentCampaignCard({ campaign, role, onResume }) {
+function RecentCampaignCard({ campaign, role, lastAccessedAt, onResume }) {
+  const lastAccessedLabel = formatLastAccessed(lastAccessedAt);
+
   return (
     <article className="realm-recent-campaign-card">
       <div className="realm-recent-campaign-card__art" aria-hidden="true">
@@ -34,7 +67,7 @@ function RecentCampaignCard({ campaign, role, onResume }) {
       <div className="realm-recent-campaign-card__body">
         <span className="realm-recent-campaign-card__eyebrow">{role === "dm" ? "Dungeon Master" : "Adventurer"}</span>
         <h3>{getCampaignTitle(campaign)}</h3>
-        <p>DM {campaign?.dm || "Unknown"} · Last opened recently</p>
+        <p>DM {campaign?.dm || "Unknown"} · Last opened {lastAccessedLabel}</p>
       </div>
       <button type="button" className="realm-recent-campaign-card__resume" onClick={onResume}>
         Resume
@@ -66,7 +99,7 @@ function ProfileSummary({ username, campaignCount, characterCount, onLogout }) {
 function HeroSection({ username }) {
   return (
     <header className="realm-home-hero">
-      <div className="realm-home-hero__sigil" aria-hidden="true"><i className="fa-solid fa-wand-sparkles" /></div>
+      <div className="realm-home-hero__sigil" aria-hidden="true"><img src={logoLight} alt="" /></div>
       <p className="realm-home-hero__welcome">Welcome back{username ? `, ${username}` : ""}</p>
       <h1>RealmTracker</h1>
       <p className="realm-home-hero__subtitle">Virtual Tabletop for Dungeons & Dragons</p>
@@ -97,16 +130,39 @@ export default function Zombies() {
 
   const username = createCampaignForm.dm;
   const recentCampaigns = useMemo(() => {
-    const hosted = dmCampaigns.map((campaign) => ({ campaign, role: "dm" }));
-    const joined = playerCampaigns.map((campaign) => ({ campaign, role: "player" }));
-    return [...hosted, ...joined].slice(0, 3);
-  }, [dmCampaigns, playerCampaigns]);
+    const hosted = dmCampaigns.map((campaign) => ({
+      campaign,
+      role: "dm",
+      lastAccessedAt: getUserLastAccessedAt(campaign, username, "dm"),
+    }));
+    const joined = playerCampaigns.map((campaign) => ({
+      campaign,
+      role: "player",
+      lastAccessedAt: getUserLastAccessedAt(campaign, username, "player"),
+    }));
+
+    return [...hosted, ...joined]
+      .sort((a, b) => getAccessTimestamp(b.lastAccessedAt) - getAccessTimestamp(a.lastAccessedAt))
+      .slice(0, 3);
+  }, [dmCampaigns, playerCampaigns, username]);
 
   const campaignCount = dmCampaigns.length + playerCampaigns.length;
   const characterCount = playerCampaigns.length;
 
-  const resumeCampaign = (campaign, role) => {
-    const encodedCampaign = encodeURIComponent(getCampaignTitle(campaign));
+  const resumeCampaign = async (campaign, role) => {
+    const campaignTitle = getCampaignTitle(campaign);
+    const encodedCampaign = encodeURIComponent(campaignTitle);
+
+    try {
+      await apiFetch(`/campaigns/${encodedCampaign}/access`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: role === "dm" ? "dm" : "player" }),
+      });
+    } catch (error) {
+      // Access tracking should not block users from entering their campaign.
+    }
+
     navigate(role === "dm" ? `/zombies-dm/${encodedCampaign}` : `/zombies-character-select/${encodedCampaign}`);
   };
 
@@ -153,11 +209,12 @@ export default function Zombies() {
             </div>
             {recentCampaigns.length > 0 ? (
               <div className="realm-home-recent__list">
-                {recentCampaigns.map(({ campaign, role }) => (
+                {recentCampaigns.map(({ campaign, role, lastAccessedAt }) => (
                   <RecentCampaignCard
                     key={`${role}-${getCampaignTitle(campaign)}`}
                     campaign={campaign}
                     role={role}
+                    lastAccessedAt={lastAccessedAt}
                     onResume={() => resumeCampaign(campaign, role)}
                   />
                 ))}

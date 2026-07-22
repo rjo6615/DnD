@@ -25,6 +25,21 @@ const {
   suggestEnemyFigurine,
 } = require('../utils/cloudinary');
 
+
+const resetActiveDeathSaveRoll = async (db, combatState) => {
+  const activeTurn = Number.isInteger(combatState?.activeTurn) ? combatState.activeTurn : null;
+  const participants = Array.isArray(combatState?.participants) ? combatState.participants : [];
+  if (activeTurn === null || activeTurn < 0 || activeTurn >= participants.length) return;
+  const characterId = typeof participants[activeTurn]?.characterId === 'string' ? participants[activeTurn].characterId.trim() : '';
+  if (!characterId) return;
+  const filters = [{ characterId }];
+  if (ObjectId.isValid(characterId)) filters.push({ _id: new ObjectId(characterId) });
+  await db.collection('Characters').updateOne(
+    { $or: filters, 'deathState.isDying': true, 'deathState.isDead': { $ne: true } },
+    { $set: { 'deathState.rolledThisTurn': false, 'deathState.updatedAt': new Date().toISOString() } }
+  );
+};
+
 const deriveCloudinaryPublicIdFromUrl = (url) => {
   if (typeof url !== 'string' || url.trim() === '') {
     return null;
@@ -636,6 +651,13 @@ module.exports = (router) => {
       dm: 1,
       players: 1,
       gameMode: 1,
+      'maps.mapId': 1,
+      'maps.name': 1,
+      'maps.imageUrl': 1,
+      'maps.image': 1,
+      'maps.thumbnailUrl': 1,
+      activeMapId: 1,
+      recentAccess: 1,
     },
   };
 
@@ -1543,6 +1565,63 @@ module.exports = (router) => {
       }
     );
 
+  campaignRouter.route('/:campaign/access').put(
+    [param('campaign').trim().notEmpty().withMessage('campaign is required')],
+    handleValidationErrors,
+    async (req, res, next) => {
+      try {
+        const username = typeof req.user?.username === 'string' ? req.user.username.trim() : '';
+        if (!username) {
+          return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const requestedRole = typeof req.body?.role === 'string'
+          ? req.body.role.trim().toLowerCase()
+          : typeof req.query?.role === 'string'
+            ? req.query.role.trim().toLowerCase()
+            : '';
+        const role = requestedRole === 'dm' || requestedRole === 'player' ? requestedRole : '';
+        if (!role) {
+          return res.status(400).json({ message: 'role must be dm or player' });
+        }
+
+        const campaignName = req.params.campaign;
+        const collection = req.db.collection('Campaigns');
+        const campaign = await collection.findOne(
+          { campaignName },
+          { projection: { dm: 1, players: 1, recentAccess: 1 } }
+        );
+
+        if (!campaign) {
+          return res.status(404).json({ message: 'Campaign not found' });
+        }
+
+        const isDm = campaign.dm === username;
+        const isPlayer = Array.isArray(campaign.players) && campaign.players.includes(username);
+        if ((role === 'dm' && !isDm) || (role === 'player' && !isPlayer)) {
+          return res.status(403).json({ message: 'Forbidden' });
+        }
+
+        const lastAccessedAt = new Date().toISOString();
+        const recentAccess = Array.isArray(campaign.recentAccess)
+          ? campaign.recentAccess.filter((entry) => (
+              entry && (entry.username !== username || entry.role !== role)
+            ))
+          : [];
+        recentAccess.push({ username, role, lastAccessedAt });
+
+        await collection.updateOne(
+          { campaignName },
+          { $set: { recentAccess } }
+        );
+
+        return res.json({ username, role, lastAccessedAt });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
   // This section will create a new campaign.
   campaignRouter.route('/add').post(async (req, response, next) => {
     const db_connect = req.db;
@@ -1557,6 +1636,7 @@ module.exports = (router) => {
       mapTokens: {},
       combat: createDefaultCombatState(),
       enemies: [],
+      recentAccess: [],
     };
     try {
       const result = await db_connect.collection("Campaigns").insertOne(myobj);
@@ -2067,6 +2147,8 @@ module.exports = (router) => {
               { campaignName: req.params.campaign },
               { $set: { combat: combatState } }
             );
+
+          await resetActiveDeathSaveRoll(db_connect, combatState);
 
           emitCombatUpdate(req.params.campaign, combatState);
 

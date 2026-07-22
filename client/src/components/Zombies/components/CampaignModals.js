@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Button, Card, Form, Modal } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import resolveMapImageSource from "../utils/mapImages";
 
 const getCampaignName = (campaign) => campaign?.campaignName || campaign?.name || "Untitled Realm";
 const getDungeonMaster = (campaign) => campaign?.dungeonMaster || campaign?.dm || campaign?.dmName || campaign?.owner || "Dungeon Master";
@@ -9,14 +10,15 @@ const getPlayerCount = (campaign) => {
   if (typeof campaign?.playerCount === "number") return campaign.playerCount;
   return 0;
 };
-const getCharacterCount = (campaign) => {
-  if (Array.isArray(campaign?.characters)) return campaign.characters.length;
-  if (typeof campaign?.characterCount === "number") return campaign.characterCount;
-  return getPlayerCount(campaign);
-};
-const getSessionCount = (campaign) => campaign?.sessions?.length || campaign?.sessionCount || 0;
-const getLastActive = (campaign) => campaign?.lastActive || campaign?.updatedAt || campaign?.lastOpened || "Awaiting first session";
 const campaignInitials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "RT";
+const getActiveMapImage = (campaign) => {
+  const maps = Array.isArray(campaign?.maps) ? campaign.maps : [];
+  const activeMapId = typeof campaign?.activeMapId === "string" ? campaign.activeMapId.trim() : "";
+  const activeMap = activeMapId
+    ? maps.find((map) => map?.mapId === activeMapId || map?.id === activeMapId || map?.name === activeMapId)
+    : maps[0];
+  return resolveMapImageSource(activeMap);
+};
 
 function CampaignSearch({ value, onChange, placeholder }) {
   return (
@@ -106,17 +108,18 @@ export default function CampaignModals({
           <div className="realm-campaign-grid realm-campaign-grid--join">
             {filteredPlayerCampaigns.map((campaign) => {
               const name = getCampaignName(campaign);
+              const activeMapImage = getActiveMapImage(campaign);
               return (
                 <Link className="realm-campaign-card realm-campaign-card--join" key={name} to={`/zombies-character-select/${name}`} onClick={closeJoinCampaignModal}>
-                  <div className="realm-campaign-card__art" aria-hidden="true"><span>{campaignInitials(name)}</span></div>
+                  <div className="realm-campaign-card__art" aria-hidden="true">
+                    {activeMapImage ? <img src={activeMapImage} alt="" /> : <span>{campaignInitials(name)}</span>}
+                  </div>
                   <div className="realm-campaign-card__content">
-                    <span className="realm-campaign-card__eyebrow">D&D 5e · {getLastActive(campaign)}</span>
                     <h3>{name}</h3>
                     <p>{campaign?.description || `Run by ${getDungeonMaster(campaign)} with ${getPlayerCount(campaign)} players at the table.`}</p>
                     <div className="realm-campaign-card__meta">
                       <span>DM {getDungeonMaster(campaign)}</span>
                       <span>{getPlayerCount(campaign)} players</span>
-                      <span>5e</span>
                     </div>
                   </div>
                   <span className="realm-campaign-button realm-campaign-button--primary">Join</span>
@@ -145,13 +148,16 @@ export default function CampaignModals({
           <div className="realm-campaign-grid realm-campaign-grid--host">
             {filteredDmCampaigns.map((campaign) => {
               const name = getCampaignName(campaign);
+              const activeMapImage = getActiveMapImage(campaign);
               return (
                 <Link className="realm-campaign-card realm-campaign-card--host" key={name} to={`/zombies-dm/${name}`} onClick={closeHostCampaignModal}>
+                  <div className="realm-campaign-card__art" aria-hidden="true">
+                    {activeMapImage ? <img src={activeMapImage} alt="" /> : <span>{campaignInitials(name)}</span>}
+                  </div>
                   <div className="realm-campaign-card__content">
-                    <span className="realm-campaign-card__eyebrow">Last opened · {getLastActive(campaign)}</span>
                     <h3>{name}</h3>
                     <div className="realm-campaign-card__meta realm-campaign-card__meta--launcher">
-                      <span>DM badge</span><span>{campaign?.status || "Ready"}</span><span>{getCharacterCount(campaign)} characters</span><span>{getSessionCount(campaign)} sessions</span>
+                      <span>DM badge</span><span>{getPlayerCount(campaign)} players</span>
                     </div>
                   </div>
                   <span className="realm-campaign-button realm-campaign-button--primary">Host</span>
@@ -169,10 +175,9 @@ export default function CampaignModals({
         onHide={closeCreateCampaignModal}
         eyebrow="New Realm Setup"
         title="Create Campaign"
-        subtitle="Name the world now. Artwork, player invites, and launch options can grow here next."
+        subtitle="Name the world now. Player invites and launch options can grow here next."
       >
         <Form onSubmit={submitCreateCampaign} className="realm-create-campaign-form">
-          <div className="realm-create-campaign-form__art" aria-hidden="true"><span>+</span><strong>Artwork slot</strong></div>
           <div className="realm-create-campaign-form__fields">
             <label className="realm-floating-field">
               <input onChange={(e) => updateCreateCampaignForm({ campaignName: e.target.value })} type="text" value={createCampaignForm.campaignName} placeholder=" " />

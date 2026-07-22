@@ -1752,3 +1752,98 @@ describe('cantrip scaling', () => {
     expect(value).toBe('4');
   });
 });
+
+describe('D&D 5e critical hit damage helpers', () => {
+  test('detects critical attacks from the selected natural d20 only', () => {
+    expect(PlayerTurnActionsModule.isCriticalAttackRoll(20)).toBe(true);
+    expect(PlayerTurnActionsModule.isCriticalAttackRoll(19)).toBe(false);
+    expect(PlayerTurnActionsModule.isCriticalAttackRoll(19, 19)).toBe(true);
+  });
+
+  test('creates critical formulas by doubling dice without doubling flat modifiers', () => {
+    expect(PlayerTurnActionsModule.createCriticalDamageFormula('1d8 + 4')).toBe('2d8 + 4');
+    expect(PlayerTurnActionsModule.createCriticalDamageFormula('2d6 + 3')).toBe('4d6 + 3');
+    expect(PlayerTurnActionsModule.createCriticalDamageFormula('1d10 + 2d6 + 5')).toBe('2d10 + 4d6 + 5');
+    expect(PlayerTurnActionsModule.createCriticalDamageFormula('1d8 + 1d6 fire + 4')).toBe('2d8 + 2d6 fire + 4');
+  });
+
+  test('rolls critical damage dice while applying ability modifiers once', () => {
+    const roller = jest.fn((count) => Array(count).fill(1));
+    const result = calculateDamage('1d8 + 4', 0, true, roller);
+
+    expect(result.total).toBe(6);
+    expect(result.breakdown).toBe('2 + 4');
+    expect(roller).toHaveBeenNthCalledWith(1, 1, 8);
+    expect(roller).toHaveBeenNthCalledWith(2, 1, 8);
+    expect(PlayerTurnActionsModule.createCriticalDamageFormula('1d8 + 4')).toBe('2d8 + 4');
+  });
+
+
+  test('advantage and disadvantage use the selected d20 for critical detection', () => {
+    expect(PlayerTurnActionsModule.isCriticalAttackRoll(Math.max(20, 8))).toBe(true);
+    expect(PlayerTurnActionsModule.isCriticalAttackRoll(Math.min(20, 8))).toBe(false);
+  });
+
+  test('critical state is represented per attack result instead of by modified totals', () => {
+    const firstAttack = { attackId: 'first', naturalRoll: 20, total: 15, isCriticalHit: PlayerTurnActionsModule.isCriticalAttackRoll(20) };
+    const secondAttack = { attackId: 'second', naturalRoll: 19, total: 24, isCriticalHit: PlayerTurnActionsModule.isCriticalAttackRoll(19) };
+
+    expect(firstAttack).toMatchObject({ isCriticalHit: true });
+    expect(secondAttack).toMatchObject({ isCriticalHit: false });
+    expect(PlayerTurnActionsModule.createCriticalDamageFormula('1d8 + 4')).toBe('2d8 + 4');
+  });
+
+  test('rolls critical damage for multiple dice terms and damage types', () => {
+    const roller = jest.fn((count) => Array(count).fill(1));
+    const result = calculateDamage('1d8 slashing + 2d6 fire + 4', 0, true, roller);
+
+    expect(result.total).toBe(10);
+    expect(result.breakdown).toBe('2 slashing + 4 fire + 4');
+    expect(PlayerTurnActionsModule.createCriticalDamageFormula('1d8 slashing + 2d6 fire + 4')).toBe('2d8 slashing + 4d6 fire + 4');
+  });
+});
+
+describe('D&D 5e critical hit attack-to-damage UI flow', () => {
+  test('natural 20 weapon attack marks only that attack damage as critical', async () => {
+    const weapon = {
+      name: 'Longsword',
+      damage: '1d8 slashing',
+      category: 'martial melee weapon',
+      source: 'weapon',
+    };
+
+    const { actionsRef } = render(
+      <PlayerTurnActions
+        form={{ diceColor: '#000000', equipment: { mainHand: weapon }, spells: [], proficiencyBonus: 2 }}
+        strMod={4}
+        dexMod={0}
+      />
+    );
+
+    openAttackModal(actionsRef);
+    let card = screen.getByText('Longsword').closest('.attack-card');
+    expect(card).not.toBeNull();
+    rollDiceWithBox.mockImplementationOnce(() => Promise.resolve({ rolls: [[20]] }));
+
+    await act(async () => {
+      fireEvent.click(within(card).getByLabelText(/Roll to hit/i));
+    });
+
+    await waitFor(() => {
+      expect(document.getElementById('damageAmount')).toHaveClass('critical-active');
+    });
+
+    openAttackModal(actionsRef);
+    card = screen.getByText('Longsword').closest('.attack-card');
+    const criticalDamageButton = within(card).getByLabelText(/Roll critical damage/i);
+    rollDiceWithBox.mockImplementationOnce(() => Promise.resolve({ rolls: [[3], [4]] }));
+
+    await act(async () => {
+      fireEvent.click(criticalDamageButton);
+    });
+
+    await waitFor(() => {
+      expect(document.getElementById('damageValue').textContent).toBe('11');
+    });
+  });
+});

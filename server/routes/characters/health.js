@@ -5,6 +5,7 @@ const authenticateToken = require('../../middleware/auth');
 const handleValidationErrors = require('../../middleware/validation');
 const logger = require('../../utils/logger');
 const { emitCharacterHealthUpdate } = require('../../utils/socket');
+const { applyHealthChange, applyDeathSaveResult, normalizeDeathState, reviveCharacter, markCharacterDead, clearDeathState } = require('../../utils/deathState');
 
 const notifyCharacterHealthUpdate = async (db, characterObjectId) => {
   if (!db || !characterObjectId) {
@@ -20,6 +21,7 @@ const notifyCharacterHealthUpdate = async (db, characterObjectId) => {
           tempHealth: 1,
           health: 1,
           characterId: 1,
+          deathState: 1,
         },
       }
     );
@@ -57,6 +59,7 @@ const notifyCharacterHealthUpdate = async (db, characterObjectId) => {
       characterId: normalizedCharacterId,
       tempHealth: character.tempHealth,
       health: character.health,
+      deathState: character.deathState,
     });
   } catch (error) {
     logger.warn('Failed to emit character health update', {
@@ -87,12 +90,17 @@ module.exports = (router) => {
       const db_connect = req.db;
       const { tempHealth } = matchedData(req, { locations: ['body'] });
       try {
+        const existing = await db_connect.collection('Characters').findOne(id);
+        if (!existing) {
+          return res.status(404).json({ message: 'Character not found' });
+        }
+        const outcome = applyHealthChange(existing, tempHealth, existing.tempHealth);
         await db_connect.collection('Characters').updateOne(id, {
-          $set: { tempHealth },
+          $set: { tempHealth: outcome.character.tempHealth, deathState: outcome.character.deathState },
         });
         await notifyCharacterHealthUpdate(db_connect, id._id);
         logger.info('character tempHealth updated');
-        res.json({ message: 'User updated successfully' });
+        res.json({ message: 'User updated successfully', deathState: outcome.character.deathState, deathEvent: outcome.event });
       } catch (err) {
         next(err);
       }
@@ -132,6 +140,44 @@ module.exports = (router) => {
         logger.error(error);
         next(error);
       }
+    }
+  );
+
+
+
+  characterRouter.route('/death-state/:id').put(
+    [
+      body('action').isString().trim().notEmpty(),
+      body('roll').optional().isInt({ min: 1, max: 20 }).toInt(),
+      body('hp').optional().isInt({ min: 0 }).toInt(),
+      body('allowDuplicate').optional().isBoolean().toBoolean(),
+    ],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid ID' });
+      }
+      const id = { _id: ObjectId(req.params.id) };
+      const db_connect = req.db;
+      const { action, roll, hp, allowDuplicate } = matchedData(req, { locations: ['body'] });
+      try {
+        const existing = await db_connect.collection('Characters').findOne(id);
+        if (!existing) return res.status(404).json({ message: 'Character not found' });
+        let outcome;
+        const state = normalizeDeathState(existing.deathState);
+        if (action === 'roll') outcome = applyDeathSaveResult(existing, roll || Math.floor(Math.random() * 20) + 1, { allowDuplicate });
+        else if (action === 'addSuccess') outcome = applyDeathSaveResult({ ...existing, deathState: { ...state, rolledThisTurn: false, successes: Math.min(2, state.successes) } }, 10, { allowDuplicate: true });
+        else if (action === 'addFailure') outcome = applyDeathSaveResult({ ...existing, deathState: { ...state, rolledThisTurn: false, failures: Math.min(2, state.failures) } }, 2, { allowDuplicate: true });
+        else if (action === 'removeSuccess') outcome = { character: { ...existing, deathState: { ...state, successes: Math.max(0, state.successes - 1) } }, event: 'manual', message: `${existing.characterName || existing.name || 'Character'} death save success removed.` };
+        else if (action === 'removeFailure') outcome = { character: { ...existing, deathState: { ...state, failures: Math.max(0, state.failures - 1), isDead: false, isDying: true } }, event: 'manual', message: `${existing.characterName || existing.name || 'Character'} death save failure removed.` };
+        else if (action === 'revive') outcome = reviveCharacter(existing, hp || 1);
+        else if (action === 'markDead') outcome = markCharacterDead(existing);
+        else if (action === 'reset') outcome = { character: clearDeathState(existing), event: 'manual', message: `${existing.characterName || existing.name || 'Character'} death saves reset.` };
+        else return res.status(400).json({ message: 'Unsupported death-state action' });
+        await db_connect.collection('Characters').updateOne(id, { $set: { tempHealth: outcome.character.tempHealth, deathState: outcome.character.deathState } });
+        await notifyCharacterHealthUpdate(db_connect, id._id);
+        res.json({ deathState: outcome.character.deathState, tempHealth: outcome.character.tempHealth, event: outcome.event, message: outcome.message, rollLog: outcome.rollLog, log: outcome.log });
+      } catch (err) { next(err); }
     }
   );
 

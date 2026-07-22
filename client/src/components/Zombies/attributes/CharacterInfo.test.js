@@ -66,10 +66,17 @@ test('calls rest handlers when buttons clicked', () => {
 
   renderCharacterInfo({ onLongRest, onShortRest });
 
-  fireEvent.click(screen.getByText('Long Rest'));
-  fireEvent.click(screen.getByText('Short Rest'));
+  fireEvent.click(screen.getAllByRole('button', { name: 'Long Rest' }).pop());
+  fireEvent.click(screen.getAllByRole('button', { name: 'Short Rest' }).pop());
   expect(onLongRest).toHaveBeenCalled();
   expect(onShortRest).toHaveBeenCalled();
+});
+
+test('does not render a header close button', () => {
+  renderCharacterInfo();
+
+  expect(screen.queryByRole('button', { name: 'Close' })).toBeInTheDocument();
+  expect(document.querySelector('.realm-modal-header__close')).not.toBeInTheDocument();
 });
 
 test('renders goliath subrace within race card when ancestry selected', () => {
@@ -161,7 +168,7 @@ test('disables figurine button while saving and shows current figurine', () => {
     tokenPickerSaving: true,
   });
 
-  expect(screen.getByAltText('Selected figurine token')).toHaveAttribute(
+  expect(screen.getAllByAltText('Selected figurine token')[0]).toHaveAttribute(
     'src',
     'https://example.com/token.png'
   );
