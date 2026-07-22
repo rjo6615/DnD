@@ -11916,9 +11916,16 @@ body.character-creation-modal-open {
 @media (max-width: 768px) {
   .character-info-modal .modal-dialog, .progression-modal .modal-dialog { max-width: 100%; }
   .character-info-shell, .progression-shell { max-height: 92vh; }
-  .progression-modal .modal-dialog { height: 92dvh; max-height: 92dvh; }
-  .progression-modal .modal-content { height: 92dvh; max-height: 92dvh; }
-  .progression-shell { height: 100%; max-height: none; }
+  /*
+   * Android Chrome can lose painted children when an overflow-scrolling grid is
+   * clipped by the modal content. Let the modal itself be the only mobile
+   * scroll container instead of maintaining a nested scrolling body.
+   */
+  .progression-modal { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .progression-modal .modal-dialog { height: auto; max-height: none; }
+  .progression-modal .modal-content { height: auto; max-height: none; overflow: visible; }
+  .progression-shell { height: auto; max-height: none; overflow: visible; }
+  .progression-body { overflow: visible; overscroll-behavior: auto; }
   .character-info-shell .realm-modal-header, .progression-shell .realm-modal-header { padding: 14px 60px 14px 16px; align-items: flex-start; flex-direction: column; }
   .realm-modal-header__actions { order: 0; }
   .character-summary-header__portrait { width: 52px; height: 52px; border-radius: 16px; }

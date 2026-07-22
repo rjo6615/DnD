@@ -30,4 +30,5 @@ test('uses the footer cancel control instead of a duplicate header close button'
 
   expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+  expect(document.querySelector('.modal-dialog-scrollable')).not.toBeInTheDocument();
 });
