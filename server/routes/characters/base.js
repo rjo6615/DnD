@@ -505,7 +505,10 @@ module.exports = (router) => {
             }
           }
 
-          const combatState = { participants, activeTurn };
+          const activeEffects = Array.isArray(normalizedCampaign.combat?.activeEffects)
+            ? normalizedCampaign.combat.activeEffects.filter((effect) => effect && !deletedIds.has(effect.sourceCombatantId) && !deletedIds.has(effect.targetCombatantId) && !deletedIds.has(effect.expiration?.combatantId))
+            : [];
+          const combatState = { ...normalizedCampaign.combat, participants, activeTurn, activeEffects };
 
           await campaignsCollection.updateOne(
             { campaignName },
@@ -1110,4 +1113,3 @@ module.exports = (router) => {
 
   router.use('/characters', characterRouter);
 };
-
