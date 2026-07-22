@@ -136,12 +136,11 @@ export default function LevelUp({ show, handleClose, form }) {
   const availablePrimalSkills = BARBARIAN_LEVEL_1_SKILLS.filter((skill) => !alreadyProficient.has(skill));
 
   return (
-    <Modal className="dnd-modal modern-modal progression-modal" show={show} onHide={close} centered size="lg" scrollable restoreFocus>
+    <Modal className="dnd-modal modern-modal progression-modal" show={show} onHide={close} centered size="lg" restoreFocus>
       <ModalShell className="progression-shell">
         <ModalHeader
           title={step === 'add-class' ? 'Add a Class' : 'Level Up'}
           subtitle={step === 'add-class' ? `Choose a new class for ${form.name || 'this character'}.` : `Choose how ${form.name || 'this character'} advances to level ${totalLevel + 1}.`}
-          onClose={close}
           actions={step === 'add-class' ? <Button variant="ghost" onClick={() => { setStep('choose-progression'); setSelectedNewClassId(''); }}>← Back</Button> : null}
         />
         <ModalBody className="progression-body">
