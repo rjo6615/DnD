@@ -24,6 +24,7 @@ import { SKILLS } from '../skillSchema';
 import { calculateCharacterInitiative, calculatePassivePerception } from '../utils/derivedStats';
 import { resolveInitiativeRollMode } from '../utils/barbarian';
 import { calculateCharacterHitPoints, calculateCharacterMovementSpeed } from '../utils/characterMetrics';
+import { createCombatState as normalizeTimelineState, advanceTurn, undoTurn } from '../utils/combatTimeline';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
 import DamageDiceCanvas from '../attributes/DamageDiceCanvas';
@@ -1166,7 +1167,7 @@ const normalizeCombatState = (state) => {
     }
   }
 
-  return { participants: sortedParticipants, activeTurn };
+  return normalizeTimelineState({ ...state, participants: sortedParticipants, activeTurn });
 };
 
 export const createActiveMapEnemySummaries = ({
@@ -4067,10 +4068,7 @@ export default function ZombiesDM() {
           return;
         }
 
-        const nextState = normalizeCombatState({
-          participants,
-          activeTurn: index,
-        });
+        const nextState = normalizeCombatState(advanceTurn({ ...combatState, participants }, { nextCombatantId: characterId }));
 
         setCombatState(nextState);
         persistCombatState(nextState);
@@ -4204,10 +4202,7 @@ export default function ZombiesDM() {
           nextIndex = direction > 0 ? 0 : total - 1;
         }
 
-        const nextState = normalizeCombatState({
-          participants,
-          activeTurn: nextIndex,
-        });
+        const nextState = normalizeCombatState(direction === 1 ? advanceTurn(combatState) : undoTurn(combatState));
 
         setCombatState(nextState);
         persistCombatState(nextState);

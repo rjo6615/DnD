@@ -32,6 +32,7 @@ const resetActiveDeathSaveRoll = async (db, combatState) => {
   if (activeTurn === null || activeTurn < 0 || activeTurn >= participants.length) return;
   const characterId = typeof participants[activeTurn]?.characterId === 'string' ? participants[activeTurn].characterId.trim() : '';
   if (!characterId) return;
+  if (typeof db.collection('Characters')?.updateOne !== 'function') return;
   const filters = [{ characterId }];
   if (ObjectId.isValid(characterId)) filters.push({ _id: new ObjectId(characterId) });
   await db.collection('Characters').updateOne(
@@ -387,6 +388,25 @@ module.exports = (router) => {
     activeTurn: null,
   });
 
+  // Combat timeline data is already declarative JSON. Limit its shape and size while
+  // retaining the complete expiration marker needed by save/restore and undo.
+  const sanitizeTimelineArray = (value, limit) => Array.isArray(value)
+    ? value.filter((item) => item && typeof item === 'object' && !Array.isArray(item)).slice(-limit)
+    : [];
+
+  const timelineMetadata = (combat = {}) => {
+    const hasTimeline = ['round', 'turnSequence', 'activeEffects', 'eventLog', 'undoStack']
+      .some((key) => Object.prototype.hasOwnProperty.call(combat || {}, key));
+    if (!hasTimeline) return {};
+    return ({
+    round: Math.max(1, Number.isInteger(Number(combat.round)) ? Number(combat.round) : 1),
+    turnSequence: Math.max(0, Number.isInteger(Number(combat.turnSequence)) ? Number(combat.turnSequence) : 0),
+    activeEffects: sanitizeTimelineArray(combat.activeEffects, 500),
+    eventLog: sanitizeTimelineArray(combat.eventLog, 1000),
+    undoStack: sanitizeTimelineArray(combat.undoStack, 20),
+    });
+  };
+
   const generateEnemyId = () => {
     if (typeof randomUUID === 'function') {
       return randomUUID();
@@ -546,6 +566,7 @@ module.exports = (router) => {
       combat: {
         participants,
         activeTurn,
+        ...timelineMetadata(campaign.combat),
       },
       enemies: Array.isArray(campaign.enemies) ? campaign.enemies : [],
     };
@@ -1800,7 +1821,10 @@ module.exports = (router) => {
             activeTurn = participants.length > 0 ? Math.min(activeTurn, participants.length - 1) : null;
           }
 
-          const combatState = { participants, activeTurn };
+          const metadata = timelineMetadata(campaign.combat);
+          const combatState = { participants, activeTurn, ...metadata,
+            ...(metadata.activeEffects ? { activeEffects: metadata.activeEffects.filter((effect) => effect.sourceCombatantId !== enemyId && effect.targetCombatantId !== enemyId && effect.expiration?.combatantId !== enemyId) } : {}),
+          };
 
           await collection.updateOne(
             { campaignName },
@@ -1902,7 +1926,7 @@ module.exports = (router) => {
             activeTurn = participants.length > 0 ? Math.min(activeTurn, participants.length - 1) : null;
           }
 
-          const combatState = { participants, activeTurn };
+          const combatState = { participants, activeTurn, ...timelineMetadata(campaign.combat) };
 
           await collection.updateOne(
             { campaignName },
@@ -2139,6 +2163,7 @@ module.exports = (router) => {
           const combatState = {
             participants,
             activeTurn,
+            ...timelineMetadata(req.body),
           };
 
           await db_connect

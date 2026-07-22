@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { io } from "socket.io-client";
 import apiFetch from '../../../utils/apiFetch';
+import { createCombatState as normalizeTimelineState, advanceTurn } from '../utils/combatTimeline';
 import { useParams } from "react-router-dom";
 import { Navbar, Container, Modal, Card, Button as BootstrapButton } from 'react-bootstrap';
 import '../../../App.scss';
@@ -123,7 +124,7 @@ const DOCKABLE_MODAL_DEFINITIONS = {
   shop: { label: 'Shop', component: ShopModal },
   help: { label: 'Help', component: Help },
 };
-const createEmptyCombatState = () => ({ participants: [], activeTurn: null });
+const createEmptyCombatState = () => normalizeTimelineState();
 export const formatSignedBonus = (value) => {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return '—';
@@ -240,7 +241,7 @@ const normalizeCombatState = (state) => {
       ? activeTurnCandidate
       : null;
 
-  return { participants, activeTurn };
+  return normalizeTimelineState({ ...state, participants, activeTurn });
 };
 
 const collectCharacterIdentifiers = (entity) => {
@@ -1951,7 +1952,8 @@ export default function ZombiesCharacterSheet() {
       return;
     }
 
-    const nextIndex = (activeIndex + 1) % participants.length;
+    const advancedState = advanceTurn(combatState);
+    const nextIndex = advancedState.activeTurn;
 
     const payload = {
       participants: participants.map((participant) => ({
@@ -1959,6 +1961,10 @@ export default function ZombiesCharacterSheet() {
         initiative: participant.initiative,
       })),
       activeTurn: nextIndex,
+      round: advancedState.round,
+      turnSequence: advancedState.turnSequence,
+      activeEffects: advancedState.activeEffects,
+      eventLog: advancedState.eventLog,
     };
 
     try {
