@@ -165,7 +165,7 @@ export const BARBARIAN_SUBCLASSES = [
         name: "Frenzy",
         level: 3,
         description:
-          "If you use Reckless Attack while your Rage is active, you deal extra damage to the first target you hit on your turn with a Strength-based attack.",
+          "If you use Reckless Attack while your Rage is active, you deal extra damage to the first target you hit on your turn with a Strength-based attack. To determine the extra damage, roll a number of d6s equal to your Rage Damage bonus, and add them together. The damage has the same type as the weapon or Unarmed Strike used for the attack.",
       },
       {
         id: "berserker-mindless-rage",
