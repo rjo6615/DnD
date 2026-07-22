@@ -72,6 +72,8 @@ import TokenPickerModal from '../components/TokenPickerModal';
 import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
 import FooterCharacterSlot from './components/FooterCharacterSlot';
 import { notify } from '../../../utils/notification';
+import { bindCriticalRollTransport } from '../../../utils/criticalRolls';
+import { emitCriticalRollEvent } from '../../../utils/criticalRolls';
 import CombatTurnHeader, { HEADER_PADDING } from "../components/CombatTurnHeader";
 
 const MIN_DOCKED_MODAL_WIDTH = 320;
@@ -1601,6 +1603,7 @@ export default function ZombiesCharacterSheet() {
       });
       if (!response.ok) throw new Error(response.statusText || 'Failed to roll death save.');
       const payload = await response.json();
+      if (animatedRoll) emitCriticalRollEvent({ rawRoll: animatedRoll, total: animatedRoll, rollContext: 'death-save', character: form, source: form?.characterName });
       setForm((prev) => prev ? { ...prev, tempHealth: payload.tempHealth ?? prev.tempHealth, deathState: payload.deathState ?? prev.deathState } : prev);
       if (payload.message) notify(payload.message, payload.event === 'dead' ? 'danger' : 'success');
     } catch (error) {
@@ -4434,6 +4437,7 @@ export default function ZombiesCharacterSheet() {
     socket.on('campaign:enemies:update', handleEnemiesUpdate);
     socket.on('campaign:characters:update', handleCharacterMetadataUpdate);
     socket.emit('campaign:join', campaignId);
+    const unbindCriticalRollTransport = bindCriticalRollTransport(socket, campaignId);
 
     return () => {
       socket.off('combat:update', handleCombatUpdate);
@@ -4441,6 +4445,7 @@ export default function ZombiesCharacterSheet() {
       socket.off('campaign:map:update', handleCampaignMapUpdate);
       socket.off('campaign:enemies:update', handleEnemiesUpdate);
       socket.off('campaign:characters:update', handleCharacterMetadataUpdate);
+      unbindCriticalRollTransport();
       socket.emit('campaign:leave', campaignId);
       socket.disconnect();
       socketRef.current = null;
