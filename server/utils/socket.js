@@ -91,6 +91,23 @@ const registerConnectionHandlers = (socket) => {
     });
   });
 
+  socket.on('critical-roll:publish', (payload = {}) => {
+    const campaignId = typeof payload.campaignId === 'string' ? payload.campaignId.trim() : '';
+    const event = payload.event;
+    if (!campaignId || !event || !socket.rooms?.has(getCampaignRoom(campaignId))) return;
+    const rawRoll = Number(event.rawRoll);
+    if ((rawRoll !== 1 && rawRoll !== 20) || (event.type !== 'natural-1' && event.type !== 'natural-20')) return;
+    const sharedEvent = {
+      id: String(event.id || '').slice(0, 120),
+      type: event.type, rawRoll, total: Number(event.total) || rawRoll,
+      rollContext: String(event.rollContext || 'custom-d20').slice(0, 48),
+      character: event.character && typeof event.character === 'object' ? { name: String(event.character.name || event.character.characterName || '').slice(0, 80) } : null,
+      source: typeof event.source === 'string' ? event.source.slice(0, 100) : null,
+      timestamp: Number(event.timestamp) || Date.now(),
+    };
+    socket.to(getCampaignRoom(campaignId)).emit('critical-roll:shared', sharedEvent);
+  });
+
   socket.on('disconnect', () => {
     logger.info('Socket disconnected', {
       socketId: socket.id,

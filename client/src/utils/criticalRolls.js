@@ -34,3 +34,20 @@ export const getCriticalRollPresentation = (event) => {
     : { attack: 'CRITICAL MISS', 'saving-throw': 'FAILED SAVE', 'death-save': 'NATURAL 1 — TWO FAILURES' };
   return { title: titles[event.rollContext] || (success ? 'NATURAL 20' : 'NATURAL 1'), tone: success ? 'success' : 'failure' };
 };
+
+// Campaign sockets are deliberately attached by the active campaign screen, rather than
+// globally, so rolls outside a campaign never leak into another table's feed.
+export const bindCriticalRollTransport = (socket, campaignId) => {
+  if (!socket || typeof socket.on !== 'function' || typeof campaignId !== 'string' || !campaignId.trim()) return () => {};
+  const publish = ({ detail }) => {
+    if (!detail || detail.isRemote || typeof socket.emit !== 'function') return;
+    socket.emit('critical-roll:publish', { campaignId: campaignId.trim(), event: detail });
+  };
+  const receive = (event) => emitCriticalRollEvent({ ...event, isRemote: true });
+  window.addEventListener('critical-roll-event', publish);
+  socket.on('critical-roll:shared', receive);
+  return () => {
+    window.removeEventListener('critical-roll-event', publish);
+    socket.off?.('critical-roll:shared', receive);
+  };
+};

@@ -30,6 +30,7 @@ import DamageDiceCanvas from '../attributes/DamageDiceCanvas';
 import { calculateDamage, createCriticalDamageFormula, isCriticalAttackRoll } from '../attributes/PlayerTurnActions';
 import { rollSkillWithDiceBox } from '../attributes/Skills';
 import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
+import { bindCriticalRollTransport } from '../../../utils/criticalRolls';
 import D20RollerModal, { DEFAULT_DICE_COLOR } from '../common/D20RollerModal';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import ShopVisibilityManager from '../attributes/ShopVisibilityManager';
@@ -3539,6 +3540,7 @@ export default function ZombiesDM() {
       socket.on('campaign:enemies:update', handleEnemiesUpdate);
       socket.on('campaign:characters:update', handleCharacterMetadataUpdate);
       socket.emit('campaign:join', campaignId);
+      const unbindCriticalRollTransport = bindCriticalRollTransport(socket, campaignId);
 
       return () => {
         socket.off('combat:update', handleCombatUpdate);
@@ -3546,6 +3548,7 @@ export default function ZombiesDM() {
         socket.off('campaign:map:update', handleMapUpdate);
         socket.off('campaign:enemies:update', handleEnemiesUpdate);
         socket.off('campaign:characters:update', handleCharacterMetadataUpdate);
+        unbindCriticalRollTransport();
         socket.emit('campaign:leave', campaignId);
         socket.disconnect();
         socketRef.current = null;

@@ -8,6 +8,11 @@ export default function CriticalRollEffectHost() {
   const queue = useRef([]); const timer = useRef(null);
   useEffect(() => {
     const show = (event) => {
+      if (event.isRemote) {
+        const p = getCriticalRollPresentation(event);
+        notify(`${event.character?.name || event.character?.characterName || event.source || 'A player'} rolled a natural ${event.rawRoll} (${event.total} total).`, p.tone === 'success' ? 'success' : 'danger');
+        return;
+      }
       if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setActive({ event, reduced: true }); return; }
       if (active) { if (queue.current.length < 3) queue.current.push(event); return; }
       setActive({ event, reduced: false });

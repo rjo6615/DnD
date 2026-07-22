@@ -72,6 +72,7 @@ import TokenPickerModal from '../components/TokenPickerModal';
 import buildPlayerTokenFolderScope from '../utils/playerTokenFilters';
 import FooterCharacterSlot from './components/FooterCharacterSlot';
 import { notify } from '../../../utils/notification';
+import { bindCriticalRollTransport } from '../../../utils/criticalRolls';
 import { emitCriticalRollEvent } from '../../../utils/criticalRolls';
 import CombatTurnHeader, { HEADER_PADDING } from "../components/CombatTurnHeader";
 
@@ -4436,6 +4437,7 @@ export default function ZombiesCharacterSheet() {
     socket.on('campaign:enemies:update', handleEnemiesUpdate);
     socket.on('campaign:characters:update', handleCharacterMetadataUpdate);
     socket.emit('campaign:join', campaignId);
+    const unbindCriticalRollTransport = bindCriticalRollTransport(socket, campaignId);
 
     return () => {
       socket.off('combat:update', handleCombatUpdate);
@@ -4443,6 +4445,7 @@ export default function ZombiesCharacterSheet() {
       socket.off('campaign:map:update', handleCampaignMapUpdate);
       socket.off('campaign:enemies:update', handleEnemiesUpdate);
       socket.off('campaign:characters:update', handleCharacterMetadataUpdate);
+      unbindCriticalRollTransport();
       socket.emit('campaign:leave', campaignId);
       socket.disconnect();
       socketRef.current = null;
