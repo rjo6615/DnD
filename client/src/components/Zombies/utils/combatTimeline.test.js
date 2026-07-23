@@ -1,6 +1,6 @@
 import {
   advanceTurn, applyActiveEffect, createCombatState, durationToExpiration,
-  endCombat, endConcentration, getEffectiveSpeed, hasActiveEffect, removeCombatant, resolveCombatEvent, undoTurn,
+  endCombat, endConcentration, getActiveConditionsForCombatant, getEffectiveMovement, getEffectiveSpeed, hasActiveEffect, removeCombatant, resolveCombatEvent, undoTurn,
 } from './combatTimeline';
 
 const participants = ['source', 'other', 'target'].map((characterId, index) => ({ characterId, initiative: 20 - index }));
@@ -84,6 +84,18 @@ describe('combat timeline effects', () => {
     expect(base).toBe(30);
     state = { ...state, activeEffects: [] };
     expect(getEffectiveSpeed(base, state.activeEffects, 'target')).toBe(30);
+  });
+
+  test('shared movement and condition selectors support monsters with multiple modes', () => {
+    const base = { walk: 30, fly: '60 ft.' };
+    const state = applyActiveEffect(stateAtSource(), effect({
+      definitionId: 'hamstring-blow', name: 'Hamstring Blow', icon: '🦵', userVisible: true,
+    }));
+    expect(getEffectiveMovement(base, state, 'target')).toEqual({ walk: 15, fly: '45 ft.' });
+    expect(base).toEqual({ walk: 30, fly: '60 ft.' });
+    expect(getActiveConditionsForCombatant('target', state, (id) => id === 'source' ? 'Barb' : id)).toEqual([
+      expect.objectContaining({ name: 'Hamstring Blow', source: 'Source: Barb', description: expect.stringContaining("Barb's next turn") }),
+    ]);
   });
 
   test('skipped actions still process boundaries, while an extra action does not', () => {

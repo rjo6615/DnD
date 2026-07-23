@@ -24,7 +24,7 @@ import { SKILLS } from '../skillSchema';
 import { calculateCharacterInitiative, calculatePassivePerception } from '../utils/derivedStats';
 import { resolveInitiativeRollMode } from '../utils/barbarian';
 import { calculateCharacterHitPoints, calculateCharacterMovementSpeed, resolveCombatantArmorClass } from '../utils/characterMetrics';
-import { createCombatState as normalizeTimelineState, advanceTurn, undoTurn } from '../utils/combatTimeline';
+import { createCombatState as normalizeTimelineState, advanceTurn, undoTurn, getActiveConditionsForCombatant, getEffectiveMovement, getEffectiveSpeed } from '../utils/combatTimeline';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
 import DamageDiceCanvas from '../attributes/DamageDiceCanvas';
@@ -348,17 +348,17 @@ export const getEntityMovementSpeed = (entity) => {
   return null;
 };
 
-export const getEntityMovementSpeedDisplay = (entity) => {
+export const getEntityMovementSpeedDisplay = (entity, combatState, combatantId = entity?.enemyId || entity?.characterId || entity?._id || entity?.id) => {
   if (!entity || typeof entity !== 'object') {
     return '—';
   }
 
   if (entity.entityType === 'enemy') {
-    return formatMovementSpeed(entity.speed);
+    return formatMovementSpeed(getEffectiveMovement(entity.speed, combatState, combatantId));
   }
 
   const movementSpeed = getEntityMovementSpeed(entity);
-  return movementSpeed !== null ? `${movementSpeed} ft` : '—';
+  return movementSpeed !== null ? `${getEffectiveSpeed(movementSpeed, combatState, combatantId)} ft` : '—';
 };
 
 const getEntityPassivePerception = (entity) => {
@@ -4364,7 +4364,7 @@ export default function ZombiesDM() {
             rowId,
             participantInfo,
             passivePerception: getEntityPassivePerception(entity),
-            movementSpeedDisplay: getEntityMovementSpeedDisplay(entity),
+            movementSpeedDisplay: getEntityMovementSpeedDisplay(entity, combatState, rowId),
             initiativeValue,
             sortInitiative: numericInitiative,
             recordIndex,
@@ -4391,7 +4391,7 @@ export default function ZombiesDM() {
 
           return a.recordIndex - b.recordIndex;
         });
-    }, [combinedRecords, participantLookup, characterInitiativeMap, getEntityId]);
+    }, [combinedRecords, participantLookup, characterInitiativeMap, getEntityId, combatState]);
 
     const formatArmorClass = useCallback((armorClass) => {
       if (!Array.isArray(armorClass) || armorClass.length === 0) {
@@ -7142,7 +7142,10 @@ const resolveIcon = (category, iconMap, fallback) => {
         )}
 
         <ActiveEnemyQuickList
-          summaries={activeMapEnemySummaries}
+          summaries={activeMapEnemySummaries.map((summary) => ({
+            ...summary,
+            speedDisplay: formatMovementSpeed(getEffectiveMovement(summary.enemy.speed, combatState, summary.enemy.enemyId || summary.enemy._id)),
+          }))}
           activeMapTitle={activeMapTitle}
           onManageEnemies={handleShowEnemiesTab}
           onResetInitiative={handleResetInitiative}
@@ -7162,6 +7165,10 @@ const resolveIcon = (category, iconMap, fallback) => {
           formatAttackBonus={formatAttackBonus}
           getEnemyActionDamageString={getEnemyActionDamageString}
           latestEnemyRoll={latestEnemyRoll}
+          getConditionsForEnemy={(enemyId) => getActiveConditionsForCombatant(enemyId, combatState, (sourceId) => {
+            const source = characterLookup.get(sourceId);
+            return source?.characterName || source?.name || sourceId;
+          })}
         />
       </div>
 
@@ -8312,7 +8319,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                     ? enemy.actions.filter((action) => Boolean(getEnemyActionDamageString(action)))
                     : [];
                   const armorClassDisplay = formatArmorClass(enemy.armorClass);
-                  const speedDisplay = formatSpeed(enemy.speed);
+                  const speedDisplay = formatSpeed(getEffectiveMovement(enemy.speed, combatState, enemy.enemyId));
                   const alignmentDisplay = enemy.alignment || '—';
                   const savingThrowsDisplay = formatSavingThrowsDisplay(enemy.savingThrows);
                   const skillsDisplay = formatSkillsDisplay(enemy.skills);

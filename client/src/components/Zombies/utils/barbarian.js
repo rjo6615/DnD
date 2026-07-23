@@ -730,6 +730,8 @@ export const createHamstringBlowEffect = ({ sourceCombatantId, targetCombatantId
   id: `hamstring-blow:${targetCombatantId}:${Date.now()}`,
   definitionId: 'hamstring-blow',
   name: 'Hamstring Blow',
+  icon: '🦵',
+  userVisible: true,
   sourceCombatantId,
   targetCombatantId,
   modifiers: [{ type: 'speed', operation: 'add', value: -15 }],
