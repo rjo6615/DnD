@@ -1924,7 +1924,8 @@ const manualCriticalRef = useRef(false);
     const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
     const abilityKey = getAbilityKeyForWeapon(slot, weapon);
     const attackContext = {
-      ability: abilityKey,
+      attackAbility: abilityKey,
+      isMeleeAttack: isUnarmedAttack(weapon) || isMeleeWeapon(weapon),
       kind: isUnarmedAttack(weapon) ? 'unarmed' : 'weapon',
       isWeaponAttack: !isUnarmedAttack(weapon),
       isUnarmedStrike: isUnarmedAttack(weapon),
