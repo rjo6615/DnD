@@ -1,4 +1,4 @@
-import { applyActiveEffect } from './combatTimeline';
+import { applyActiveEffect, removeActiveEffect } from './combatTimeline';
 
 export const BARBARIAN_PROGRESSION = [
   { level: 1, rageUses: 2, rageDamage: 2, weaponMasteryCount: 2 },
@@ -333,6 +333,17 @@ export const BARBARIAN_FEATURES = [
     description:
       "You can throw aside all concern for defense to attack with increased ferocity. When you make your first attack roll on your turn, you can decide to attack recklessly. Doing so gives you Advantage on attack rolls using Strength until the start of your next turn, but attack rolls against you have Advantage during that time.\n\nThis app currently applies the offensive Advantage to your Strength attack rolls; the defensive drawback is intentionally deferred until incoming attack modifiers are supported.",
   },
+  {
+    id: "brutal-strike",
+    name: "Brutal Strike",
+    class: "Barbarian",
+    classId: "barbarian",
+    level: 9,
+    type: "toggle",
+    icon: "fist",
+    description:
+      "Your next eligible Strength-based attack this turn forgoes the Advantage from Reckless Attack. On a hit, it deals an extra 1d10 damage and lets you choose Forceful Blow or Hamstring Blow.",
+  },
 ];
 
 export const getAvailableBarbarianFeatures = (character) => {
@@ -627,13 +638,76 @@ export const resolveAttackRollMode = (character, attack = {}, options = {}) => {
   const disadvantageSources = Array.isArray(options.disadvantageSources)
     ? [...options.disadvantageSources]
     : [];
+  const suppressed = new Set(options.suppressedAdvantageSources || []);
   advantageSources.push(...getRecklessAttackAdvantageSources(character, attack));
+  const resolvedAdvantages = advantageSources.filter((source) => !suppressed.has(source));
   return {
-    mode: resolveD20RollMode({ advantageSources, disadvantageSources }),
-    advantageSources,
+    mode: resolveD20RollMode({ advantageSources: resolvedAdvantages, disadvantageSources }),
+    advantageSources: resolvedAdvantages,
     disadvantageSources,
   };
 };
+
+export const BRUTAL_STRIKE_ERROR = "Brutal Strike requires an active Reckless Attack and a Strength-based attack without Disadvantage.";
+
+export const getBrutalStrikePendingEffect = (combatState, combatantId) =>
+  (combatState?.activeEffects || []).find((effect) =>
+    effect.definitionId === 'brutal-strike-pending' && effect.sourceCombatantId === combatantId);
+
+export const isBrutalStrikeEligibleAttack = ({ attack = {}, ability, rollMode } = {}) => {
+  const actualAbility = normalize(ability ?? attack.attackAbility ?? attack.ability ?? attack.abilityKey ?? attack.stat);
+  const kind = normalize(attack.kind ?? attack.type ?? attack.attackType);
+  const qualifyingKind = kind.includes('weapon') || kind.includes('unarmed') || attack.isWeaponAttack || attack.isUnarmedStrike;
+  return (actualAbility === 'str' || actualAbility === 'strength') && qualifyingKind && !attack.isSpellAttack && rollMode !== 'disadvantage';
+};
+
+export const canActivateBrutalStrike = ({ character, combatState, combatantId, currentTurnCombatantId, attack, ability, rollMode } = {}) => {
+  let reason = null;
+  if (getBarbarianLevel(character) < 9) reason = 'Brutal Strike requires Barbarian level 9.';
+  else if (!combatantId || combatantId !== currentTurnCombatantId) reason = "Brutal Strike can be activated only on the Barbarian's turn.";
+  else if (!getRecklessAttackState(character).active) reason = BRUTAL_STRIKE_ERROR;
+  else if (getBrutalStrikePendingEffect(combatState, combatantId)) reason = 'Brutal Strike is already ready.';
+  else if (!isBrutalStrikeEligibleAttack({ attack, ability, rollMode })) reason = BRUTAL_STRIKE_ERROR;
+  return { allowed: !reason, reason };
+};
+
+export const createBrutalStrikePendingEffect = (combatantId, attackId) => ({
+  id: `brutal-strike-pending:${combatantId}`,
+  definitionId: 'brutal-strike-pending',
+  name: 'Brutal Strike',
+  sourceCombatantId: combatantId,
+  targetCombatantId: combatantId,
+  attackId,
+  expiration: { type: 'sourceTurn', combatantId, boundary: 'end', remainingOccurrences: 1 },
+  stackKey: `brutal-strike-pending:${combatantId}`,
+  stackPolicy: 'ignore',
+});
+
+export const activateBrutalStrike = (input) => {
+  const eligibility = canActivateBrutalStrike(input);
+  if (!eligibility.allowed) throw new Error(eligibility.reason);
+  return applyActiveEffect(input.combatState, createBrutalStrikePendingEffect(input.combatantId, input.attack?.id));
+};
+
+export const consumeBrutalStrikeOnAttackResolution = (combatState, combatantId) => {
+  const pending = getBrutalStrikePendingEffect(combatState, combatantId);
+  return pending ? removeActiveEffect(combatState, pending.id) : combatState;
+};
+
+export const createHamstringBlowEffect = ({ sourceCombatantId, targetCombatantId }) => ({
+  id: `hamstring-blow:${targetCombatantId}:${Date.now()}`,
+  definitionId: 'hamstring-blow',
+  name: 'Hamstring Blow',
+  sourceCombatantId,
+  targetCombatantId,
+  modifiers: [{ type: 'speed', operation: 'add', value: -15 }],
+  expiration: { type: 'sourceTurn', combatantId: sourceCombatantId, boundary: 'start', remainingOccurrences: 1 },
+  stackKey: `hamstring-blow:${targetCombatantId}`,
+  stackPolicy: 'replace',
+});
+
+export const applyHamstringBlow = (combatState, input) =>
+  applyActiveEffect(combatState, createHamstringBlowEffect(input));
 
 
 export const getFrenzyState = (character) => ({
