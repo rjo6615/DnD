@@ -482,6 +482,30 @@ export const calculateCharacterArmorClass = (character, overrides = {}) => {
   return Number.isFinite(normalized) ? normalized : null;
 };
 
+// Keep map/combat targeting on the same AC path as the character sheet. Monster
+// API records use either a number or an array of AC entries, while characters
+// must include all of the equipment, feat, and unarmored-defense calculations
+// above rather than relying on a stale persisted summary field.
+export const resolveCombatantArmorClass = (combatant, overrides = {}) => {
+  if (!combatant || typeof combatant !== 'object') {
+    return null;
+  }
+
+  const entityType = String(combatant.entityType ?? '').trim().toLowerCase();
+  const isMonster = entityType === 'enemy' || entityType === 'monster';
+  if (!isMonster) {
+    return calculateCharacterArmorClass(combatant, overrides);
+  }
+
+  const armorClass = Array.isArray(combatant.armorClass)
+    ? combatant.armorClass
+        .map((entry) => Number(entry?.value ?? entry))
+        .find((value) => Number.isFinite(value))
+    : Number(combatant.armorClass ?? combatant.ac ?? combatant.armorClassTotal);
+
+  return Number.isFinite(armorClass) ? armorClass : null;
+};
+
 export const calculateCharacterHitPoints = (character, overrides = {}) => {
   if (!character || typeof character !== 'object') {
     return { currentHp: null, maxHp: null };
