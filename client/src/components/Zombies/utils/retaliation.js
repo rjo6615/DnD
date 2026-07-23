@@ -22,7 +22,9 @@ export const getRetaliationAttacks = (attacks, targetValidator = () => true) =>
   (attacks || []).filter((attack) => isRetaliationAttack(attack) && attack.available !== false && targetValidator(attack));
 
 export const createRetaliationOpportunity = ({ combatState, character, damageEvent, sourceCombatant, targetCombatant, mapState }) => {
-  const eventId = damageEvent?.damageEventId || damageEvent?.resolutionId;
+  // Character health updates expose the authoritative damage identifier as
+  // `eventId`; locally resolved attacks use the two legacy aliases below.
+  const eventId = damageEvent?.eventId || damageEvent?.damageEventId || damageEvent?.resolutionId;
   const eventSourceId = idOf(damageEvent?.sourceCombatantId || damageEvent?.attackerId);
   const sourceId = eventSourceId && idOf(sourceCombatant || eventSourceId);
   const targetId = idOf(targetCombatant || damageEvent?.targetCombatantId || damageEvent?.targetId);

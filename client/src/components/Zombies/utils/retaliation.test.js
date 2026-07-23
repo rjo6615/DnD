@@ -1,6 +1,7 @@
 import { createRetaliationOpportunity, declineRetaliation, getRetaliationAttacks, hasRetaliation, processRetaliationDamageEvent, queueRetaliation, startReactionAttack } from './retaliation';
 import { advanceTurn, createCombatState, removeCombatant } from './combatTimeline';
 import { getGridDistanceFeet } from './gridSpatial';
+import { notifyIncomingDamage } from './incomingDamageNotification';
 
 const character = (level = 10, subclass = 'path-of-the-berserker') => ({
   occupation: [{ Name: 'Barbarian', Level: level }], classState: { barbarian: { subclass } },
@@ -41,6 +42,28 @@ it.each([
   expect(resolved.pendingDecisions[0]).toMatchObject({
     damageEventId: 'mega-hit', sourceCombatantId: 'mega-action', targetCombatantId: 'barbarian',
     ownerCombatantId: 'barbarian', status: 'pending', actualHpLost: 6,
+  });
+});
+
+it('evaluates the same authoritative eventId event used by the incoming-damage notification', () => {
+  const authoritativeEvent = {
+    eventId: 'socket-hit', sourceCombatantId: 'troll', targetCombatantId: 'barbarian', actualHpLost: 11,
+  };
+  const notify = jest.fn();
+  notifyIncomingDamage({
+    event: authoritativeEvent, controlledCombatantId: 'barbarian',
+    resolveCombatantName: () => 'Troll', notify, storage: null,
+  });
+  const resolved = processRetaliationDamageEvent({
+    combatState: baseState, character: character(), damageEvent: authoritativeEvent,
+    sourceCombatant: source, targetCombatant: target,
+  });
+
+  expect(notify).toHaveBeenCalledWith('Troll has dealt 11 damage to you.', 'danger');
+  expect(resolved.pendingDecisions).toHaveLength(1);
+  expect(resolved.pendingDecisions[0]).toMatchObject({
+    id: 'retaliation:socket-hit', damageEventId: 'socket-hit', ownerCombatantId: 'barbarian',
+    triggeringCombatantId: 'troll', status: 'pending',
   });
 });
 
