@@ -47,7 +47,9 @@ const expirationMatches = (effect, event) => {
   if (expiration.type !== 'sourceTurn' && expiration.type !== 'targetTurn') return false;
   const type = expiration.boundary === 'end' ? 'turnEnded' : 'turnStarted';
   return event.type === type && event.combatantId === expiration.combatantId &&
-    event.turnSequence > (effect.appliedAtTurnSequence ?? -1);
+    (expiration.expireOnCurrentTurn
+      ? event.turnSequence >= (effect.appliedAtTurnSequence ?? -1)
+      : event.turnSequence > (effect.appliedAtTurnSequence ?? -1));
 };
 
 /** Resolve all effects as a batch; ids make simultaneous expiration deterministic. */
@@ -133,7 +135,11 @@ export const undoTurn = (inputState) => {
 export const endCombat = (inputState) => {
   let state = createCombatState(inputState);
   state = emit(state, eventFor('combatEnded', state));
-  return { ...state, activeTurn: null };
+  return {
+    ...state,
+    activeTurn: null,
+    activeEffects: state.activeEffects.filter((effect) => effect.definitionId !== 'brutal-strike-pending'),
+  };
 };
 
 export const endConcentration = (inputState, concentrationId) => {

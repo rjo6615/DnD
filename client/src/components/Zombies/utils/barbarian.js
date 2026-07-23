@@ -1,4 +1,4 @@
-import { applyActiveEffect, removeActiveEffect } from './combatTimeline';
+import { applyActiveEffect, hasActiveEffect, removeActiveEffect } from './combatTimeline';
 
 export const BARBARIAN_PROGRESSION = [
   { level: 1, rageUses: 2, rageDamage: 2, weaponMasteryCount: 2 },
@@ -648,7 +648,7 @@ export const resolveAttackRollMode = (character, attack = {}, options = {}) => {
   };
 };
 
-export const BRUTAL_STRIKE_ERROR = "Brutal Strike requires an active Reckless Attack and a Strength-based attack without Disadvantage.";
+export const BRUTAL_STRIKE_ERROR = "Brutal Strike requires Reckless Attack to be active.";
 
 export const getBrutalStrikePendingEffect = (combatState, combatantId) =>
   (combatState?.activeEffects || []).find((effect) =>
@@ -661,13 +661,14 @@ export const isBrutalStrikeEligibleAttack = ({ attack = {}, ability, rollMode } 
   return (actualAbility === 'str' || actualAbility === 'strength') && qualifyingKind && !attack.isSpellAttack && rollMode !== 'disadvantage';
 };
 
-export const canActivateBrutalStrike = ({ character, combatState, combatantId, currentTurnCombatantId, attack, ability, rollMode } = {}) => {
+export const canActivateBrutalStrike = ({ character, combatState, combatant, combatantId, currentTurnCombatantId } = {}) => {
+  const barbarianCombatantId = combatantId ?? combatant?.characterId ?? combatant?.id;
+  const activeCombatantId = currentTurnCombatantId ?? combatState?.participants?.[combatState?.activeTurn]?.characterId;
   let reason = null;
   if (getBarbarianLevel(character) < 9) reason = 'Brutal Strike requires Barbarian level 9.';
-  else if (!combatantId || combatantId !== currentTurnCombatantId) reason = "Brutal Strike can be activated only on the Barbarian's turn.";
-  else if (!getRecklessAttackState(character).active) reason = BRUTAL_STRIKE_ERROR;
-  else if (getBrutalStrikePendingEffect(combatState, combatantId)) reason = 'Brutal Strike is already ready.';
-  else if (!isBrutalStrikeEligibleAttack({ attack, ability, rollMode })) reason = BRUTAL_STRIKE_ERROR;
+  else if (!barbarianCombatantId || barbarianCombatantId !== activeCombatantId) reason = "Brutal Strike can be activated only on the Barbarian's turn.";
+  else if (!hasActiveEffect(combatState, barbarianCombatantId, 'reckless-attack')) reason = BRUTAL_STRIKE_ERROR;
+  else if (hasActiveEffect(combatState, barbarianCombatantId, 'brutal-strike-pending')) reason = 'Brutal Strike is already ready.';
   return { allowed: !reason, reason };
 };
 
@@ -677,8 +678,8 @@ export const createBrutalStrikePendingEffect = (combatantId, attackId) => ({
   name: 'Brutal Strike',
   sourceCombatantId: combatantId,
   targetCombatantId: combatantId,
-  attackId,
-  expiration: { type: 'sourceTurn', combatantId, boundary: 'end', remainingOccurrences: 1 },
+  ...(attackId ? { attackId } : {}),
+  expiration: { type: 'sourceTurn', combatantId, boundary: 'end', remainingOccurrences: 1, expireOnCurrentTurn: true },
   stackKey: `brutal-strike-pending:${combatantId}`,
   stackPolicy: 'ignore',
 });

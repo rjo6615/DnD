@@ -31,8 +31,10 @@ import {
   activateBrutalStrike,
   applyHamstringBlow,
   canActivateBrutalStrike,
+  createRecklessAttackEffect,
   consumeBrutalStrikeOnAttackResolution,
 } from "./barbarian";
+import { advanceTurn, applyActiveEffect, endCombat } from './combatTimeline';
 
 const barbarian = (extra = {}) => ({
   occupation: [{ Name: "Barbarian", Level: 1 }],
@@ -42,25 +44,39 @@ const barbarian = (extra = {}) => ({
 describe('Brutal Strike rules', () => {
   const character = () => ({ occupation: [{ Name: 'Barbarian', Level: 9 }], classState: { barbarian: { recklessAttack: { active: true } } } });
   const attack = { id: 'greataxe', kind: 'weapon', attackAbility: 'str', isWeaponAttack: true };
-  const combat = { participants: [{ characterId: 'barbarian' }], activeTurn: 0, turnSequence: 3, activeEffects: [] };
+  const combat = applyActiveEffect(
+    { participants: [{ characterId: 'barbarian' }, { characterId: 'other' }], activeTurn: 0, turnSequence: 3, activeEffects: [] },
+    createRecklessAttackEffect('barbarian')
+  );
 
-  it('requires level, current turn, Reckless Attack, and an eligible attack', () => {
-    expect(canActivateBrutalStrike({ character: barbarian(), combatState: combat, combatantId: 'barbarian', currentTurnCombatantId: 'barbarian', attack }).allowed).toBe(false);
-    expect(canActivateBrutalStrike({ character: character(), combatState: combat, combatantId: 'barbarian', currentTurnCombatantId: 'other', attack }).allowed).toBe(false);
-    expect(canActivateBrutalStrike({ character: character(), combatState: combat, combatantId: 'barbarian', currentTurnCombatantId: 'barbarian', attack: { ...attack, attackAbility: 'dex' } }).allowed).toBe(false);
-    expect(canActivateBrutalStrike({ character: character(), combatState: combat, combatantId: 'barbarian', currentTurnCombatantId: 'barbarian', attack, rollMode: 'disadvantage' }).allowed).toBe(false);
+  it('requires level, current turn, and the combat Reckless Attack effect, but not a selected attack', () => {
+    expect(canActivateBrutalStrike({ character: barbarian(), combatState: combat, combatantId: 'barbarian' }).allowed).toBe(false);
+    expect(canActivateBrutalStrike({ character: character(), combatState: combat, combatantId: 'barbarian', currentTurnCombatantId: 'other' }).allowed).toBe(false);
+    expect(canActivateBrutalStrike({ character: character(), combatState: { ...combat, activeEffects: [] }, combatantId: 'barbarian' })).toMatchObject({
+      allowed: false,
+      reason: 'Brutal Strike requires Reckless Attack to be active.',
+    });
+    expect(canActivateBrutalStrike({ character: character(), combatState: combat, combatantId: 'barbarian' }).allowed).toBe(true);
   });
 
-  it('queues once, suppresses only Reckless Attack, and consumes independently', () => {
-    const pending = activateBrutalStrike({ character: character(), combatState: combat, combatantId: 'barbarian', currentTurnCombatantId: 'barbarian', attack });
-    expect(() => activateBrutalStrike({ character: character(), combatState: pending, combatantId: 'barbarian', currentTurnCombatantId: 'barbarian', attack })).toThrow('already ready');
+  it('queues once without removing Reckless Attack, suppresses only its attack Advantage, and consumes independently', () => {
+    const pending = activateBrutalStrike({ character: character(), combatState: combat, combatantId: 'barbarian' });
+    expect(pending.activeEffects.filter((effect) => effect.definitionId === 'brutal-strike-pending')).toHaveLength(1);
+    expect(pending.activeEffects.some((effect) => effect.definitionId === 'reckless-attack')).toBe(true);
+    expect(() => activateBrutalStrike({ character: character(), combatState: pending, combatantId: 'barbarian' })).toThrow('already ready');
     expect(resolveAttackRollMode(character(), attack, { advantageSources: ['Hidden'], suppressedAdvantageSources: ['Reckless Attack'] })).toMatchObject({ mode: 'advantage', advantageSources: ['Hidden'] });
-    expect(consumeBrutalStrikeOnAttackResolution(pending, 'barbarian').activeEffects).toHaveLength(0);
+    expect(consumeBrutalStrikeOnAttackResolution(pending, 'barbarian').activeEffects.some((effect) => effect.definitionId === 'brutal-strike-pending')).toBe(false);
     expect(character().classState.barbarian.recklessAttack.active).toBe(true);
   });
 
+  it('clears an unused pending strike at turn end and combat end', () => {
+    const pending = activateBrutalStrike({ character: character(), combatState: combat, combatantId: 'barbarian' });
+    expect(advanceTurn(pending).activeEffects.some((effect) => effect.definitionId === 'brutal-strike-pending')).toBe(false);
+    expect(endCombat(pending).activeEffects.some((effect) => effect.definitionId === 'brutal-strike-pending')).toBe(false);
+  });
+
   it('replaces Hamstring Blow by target and reduces effective speed', () => {
-    const first = applyHamstringBlow(combat, { sourceCombatantId: 'one', targetCombatantId: 'target' });
+    const first = applyHamstringBlow({ ...combat, activeEffects: [] }, { sourceCombatantId: 'one', targetCombatantId: 'target' });
     const second = applyHamstringBlow(first, { sourceCombatantId: 'two', targetCombatantId: 'target' });
     expect(second.activeEffects).toHaveLength(1);
     expect(second.activeEffects[0]).toMatchObject({ sourceCombatantId: 'two', modifiers: [{ type: 'speed', value: -15 }] });
