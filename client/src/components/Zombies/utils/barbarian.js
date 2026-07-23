@@ -638,7 +638,8 @@ export const getFrenzyDamageDice = (character, attack = {}) => {
   if (getBarbarianLevel(character) < 3 || !isPathOfTheBerserker(character)) return null;
   if (!isRageActive(character) || !getRecklessAttackState(character).active) return null;
   if (getFrenzyState(character).usedThisTurn) return null;
+  if (attack.isOwnTurn === false) return null;
   if (attack.hit === false || attack.dealsDamage === false) return null;
   if (getRageDamageBonus(character, attack) <= 0) return null;
-  return { label: "Reckless Attack", count: getRageDamageBonus(character, attack), sides: 6 };
+  return { label: "Frenzy", count: getRageDamageBonus(character, attack), sides: 6 };
 };

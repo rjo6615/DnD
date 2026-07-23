@@ -25,3 +25,11 @@ it('hits when total equals AC', async () => {
   const result = await resolveAttack(base(10, 15));
   expect(result.outcome).toBe('hit'); expect(result.damageApplied).toBe(7);
 });
+
+it('logs HP returned by the canonical damage writer', async () => {
+  const input = base(10, 15);
+  input.applyDamage.mockResolvedValue({ previousHp: 12, currentHp: 4, appliedDamage: 8 });
+  const result = await resolveAttack(input);
+  expect(result).toMatchObject({ hpBefore: 12, hpAfter: 4, damageApplied: 8 });
+  expect(input.writeLog).toHaveBeenCalledWith(expect.objectContaining({ hpBefore: 12, hpAfter: 4 }));
+});
