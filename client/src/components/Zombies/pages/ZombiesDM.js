@@ -7013,6 +7013,11 @@ const resolveIcon = (category, iconMap, fallback) => {
             disabled={!shouldShowCampaignTokens || mapPlacementSaving}
             allowWheelZoom
             targeting={combatTargeting.status !== 'inactive'}
+            repositionToken={
+              mapPlacementState.show
+                ? boardTokens.find((token) => token.characterId === mapPlacementState.enemyId) || null
+                : null
+            }
             onTokenClick={handleEnemyTargetClick}
             onTokenPositionChange={
               shouldShowCampaignTokens && !mapPlacementSaving

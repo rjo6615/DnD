@@ -7,6 +7,7 @@ import resolveMapImageSource from '../utils/mapImages';
 import clampMapZoom, { MAP_ZOOM_DEFAULT } from '../utils/mapZoom';
 import usePointerEventsSupported from '../../../hooks/usePointerEventsSupported';
 import { enhanceMouseEvent, enhanceTouchEvent } from '../../../utils/pointerEvents';
+import { getOccupiedGridCells, getOccupiedSquareSize } from '../utils/gridSpatial';
 
 const clamp01 = (value) => {
   const parsed = Number(value);
@@ -512,6 +513,7 @@ const CampaignMapBoard = ({
   onTokenRemove,
   onTokenClick,
   targeting,
+  repositionToken,
   disabled,
   className,
   children,
@@ -533,6 +535,7 @@ const CampaignMapBoard = ({
   const layerRef = useRef(null);
   const dragStateRef = useRef({ tokenId: null, pointerId: null });
   const [dragPositions, setDragPositions] = useState({});
+  const [occupancyPreview, setOccupancyPreview] = useState(null);
   const [activeLabelTokenId, setActiveLabelTokenId] = useState(null);
   const [lastDraggedTokenId, setLastDraggedTokenId] = useState(null);
   const [hoveredTokenId, setHoveredTokenId] = useState(null);
@@ -1159,6 +1162,7 @@ const CampaignMapBoard = ({
 
   const resetDragState = useCallback(() => {
     dragStateRef.current = { tokenId: null, pointerId: null };
+    setOccupancyPreview(null);
     setDragPositions((prev) => {
       if (Object.keys(prev).length === 0) {
         return prev;
@@ -1190,6 +1194,28 @@ const CampaignMapBoard = ({
 
     return { x, y };
   }, []);
+
+  const getSnappedPlacement = useCallback((clientX, clientY, token) => {
+    const normalized = getNormalizedCoordinates(clientX, clientY);
+    if (!normalized) return null;
+    const anchorCell = {
+      x: Math.min(gridColumns - 1, Math.max(0, Math.floor(normalized.x * gridColumns))),
+      y: Math.min(gridRows - 1, Math.max(0, Math.floor(normalized.y * gridRows))),
+    };
+    const size = getOccupiedSquareSize(token);
+    const cells = getOccupiedGridCells({ anchorCell, size });
+    return {
+      anchorCell,
+      cells,
+      valid: cells.every((cell) => cell.x < gridColumns && cell.y < gridRows),
+      // Stored normalized coordinates denote the center of the top-left anchor
+      // cell; gridSpatial floors them back to this exact logical anchor.
+      position: {
+        x: (anchorCell.x + 0.5) / gridColumns,
+        y: (anchorCell.y + 0.5) / gridRows,
+      },
+    };
+  }, [getNormalizedCoordinates, gridColumns, gridRows]);
 
   const handlePointerDown = useCallback(
     (event, token) => {
@@ -1267,18 +1293,22 @@ const CampaignMapBoard = ({
       event.preventDefault();
       event.stopPropagation();
 
-      const coords = getNormalizedCoordinates(event.clientX, event.clientY);
-      if (!coords) {
+      const token = tokenPositionsRef.current.find(({ characterId }) => characterId === dragState.tokenId);
+      const placement = getSnappedPlacement(event.clientX, event.clientY, token);
+      if (!placement) {
         return;
       }
 
+      const coords = placement.position;
+
       updateDragPosition(dragState.tokenId, coords);
+      setOccupancyPreview({ ...placement, characterId: dragState.tokenId });
 
       if (typeof onTokenDrag === 'function') {
         onTokenDrag({ characterId: dragState.tokenId, ...coords });
       }
     },
-    [getNormalizedCoordinates, onTokenDrag, updateDragPosition]
+    [getSnappedPlacement, onTokenDrag, updateDragPosition]
   );
 
   const finalizeDrag = useCallback(
@@ -1297,11 +1327,13 @@ const CampaignMapBoard = ({
         return;
       }
 
-      const coords = getNormalizedCoordinates(event.clientX, event.clientY);
-      if (!coords) {
+      const token = tokenPositionsRef.current.find(({ characterId }) => characterId === tokenId);
+      const placement = getSnappedPlacement(event.clientX, event.clientY, token);
+      if (!placement) {
         resetDragState();
         return;
       }
+      const coords = placement.position;
 
       updateDragPosition(tokenId, coords);
 
@@ -1316,8 +1348,21 @@ const CampaignMapBoard = ({
       resetDragState();
       setLastDraggedTokenId(cancelled ? null : tokenId);
     },
-    [getNormalizedCoordinates, onTokenDragEnd, onTokenPositionChange, resetDragState, updateDragPosition]
+    [getSnappedPlacement, onTokenDragEnd, onTokenPositionChange, resetDragState, updateDragPosition]
   );
+
+  useEffect(() => {
+    const cancelOnEscape = (event) => {
+      if (event.key !== 'Escape' || !dragStateRef.current?.tokenId) return;
+      event.preventDefault();
+      const tokenId = dragStateRef.current.tokenId;
+      onTokenDragEnd?.({ characterId: tokenId, cancelled: true });
+      resetDragState();
+      setLastDraggedTokenId(null);
+    };
+    window.addEventListener('keydown', cancelOnEscape);
+    return () => window.removeEventListener('keydown', cancelOnEscape);
+  }, [onTokenDragEnd, resetDragState]);
 
   const handlePointerUp = useCallback(
     (event) => {
@@ -1413,6 +1458,10 @@ const CampaignMapBoard = ({
   const handleLayerPointerMove = useCallback((event) => {
     const panState = mapPanStateRef.current;
     if (!panState) {
+      if (repositionToken) {
+        const placement = getSnappedPlacement(event.clientX, event.clientY, repositionToken);
+        setOccupancyPreview(placement ? { ...placement, characterId: repositionToken.characterId } : null);
+      }
       return;
     }
 
@@ -1470,7 +1519,11 @@ const CampaignMapBoard = ({
 
     mapPanOffsetRef.current = { x: nextX, y: nextY };
     setMapPanOffset({ x: nextX, y: nextY });
-  }, []);
+  }, [getSnappedPlacement, repositionToken]);
+
+  useEffect(() => {
+    if (!repositionToken && !dragStateRef.current?.tokenId) setOccupancyPreview(null);
+  }, [repositionToken]);
 
   const handleLayerPointerUp = useCallback(
     (event) => {
@@ -1515,9 +1568,11 @@ const CampaignMapBoard = ({
       const { x: upX, y: upY } = resolvePointerCoordinates(event);
       const resolvedClientX = Number.isFinite(upX) ? upX : panState.startClientX;
       const resolvedClientY = Number.isFinite(upY) ? upY : panState.startClientY;
-      const coords =
-        getNormalizedCoordinates(resolvedClientX, resolvedClientY) ||
-        panState.initialCoords;
+      const placement = repositionToken
+        ? getSnappedPlacement(resolvedClientX, resolvedClientY, repositionToken)
+        : null;
+      const coords = placement?.position ||
+        getNormalizedCoordinates(resolvedClientX, resolvedClientY) || panState.initialCoords;
       if (!coords) {
         return;
       }
@@ -1526,7 +1581,7 @@ const CampaignMapBoard = ({
       event.stopPropagation();
       onBackgroundClick(coords);
     },
-    [getNormalizedCoordinates, mapPanOffset, onBackgroundClick]
+    [getNormalizedCoordinates, getSnappedPlacement, mapPanOffset, onBackgroundClick, repositionToken]
   );
 
   const handleLayerPointerCancel = useCallback(
@@ -2232,6 +2287,30 @@ const CampaignMapBoard = ({
                 handleLayerPointerCancel(enhanceTouchEvent(event));
               }}
             >
+              {occupancyPreview && (
+                <div
+                  className={classNames(
+                    'campaign-map-board__occupancy-preview',
+                    !occupancyPreview.valid && 'campaign-map-board__occupancy-preview--invalid'
+                  )}
+                  data-testid="occupancy-preview"
+                  aria-hidden="true"
+                >
+                  {occupancyPreview.cells.map((cell) => (
+                    <span
+                      key={`${cell.x}:${cell.y}`}
+                      className="campaign-map-board__occupancy-cell"
+                      data-grid-cell={`${cell.x},${cell.y}`}
+                      style={{
+                        left: `${(cell.x / gridColumns) * 100}%`,
+                        top: `${(cell.y / gridRows) * 100}%`,
+                        width: `${100 / gridColumns}%`,
+                        height: `${100 / gridRows}%`,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
               {tokenPositions.map((token, tokenIndex) => {
                 const {
                   characterId,
@@ -2821,6 +2900,7 @@ CampaignMapBoard.propTypes = {
   onTokenRemove: PropTypes.func,
   onTokenClick: PropTypes.func,
   targeting: PropTypes.bool,
+  repositionToken: PropTypes.shape({ characterId: PropTypes.string, size: PropTypes.string }),
   disabled: PropTypes.bool,
   className: PropTypes.string,
   children: PropTypes.node,
@@ -2838,6 +2918,7 @@ CampaignMapBoard.defaultProps = {
   onTokenRemove: null,
   onTokenClick: null,
   targeting: false,
+  repositionToken: null,
   disabled: false,
   className: '',
   children: null,

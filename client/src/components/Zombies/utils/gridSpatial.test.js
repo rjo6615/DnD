@@ -1,6 +1,14 @@
-import { getGridDistanceFeet, getOccupiedGridSpace } from './gridSpatial';
+import { getGridDistanceFeet, getOccupiedGridCells, getOccupiedGridSpace } from './gridSpatial';
 
 const map = { gridColumns: 20, gridRows: 20 };
+
+it.each([
+  ['medium', 1], ['large', 4], ['huge', 9], ['gargantuan', 16],
+])('returns the shared %s footprint cells', (size, count) => {
+  const cells = getOccupiedGridCells({ anchorCell: { x: 3, y: 7 }, sizeCategory: size });
+  expect(cells).toHaveLength(count);
+  expect(cells[0]).toEqual({ x: 3, y: 7 });
+});
 
 it('measures Medium-to-Large adjacency from occupied square edges', () => {
   const barbarian = { characterId: 'barbarian', gridX: 4, gridY: 5, size: 'medium' };
