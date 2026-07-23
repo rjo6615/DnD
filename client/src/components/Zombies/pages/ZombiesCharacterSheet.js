@@ -47,7 +47,7 @@ import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import { getMonkFocusPoints } from '../../../utils/monk';
-import { activateBrutalStrike, activateRage, activateRecklessAttack, applyRageRest, canActivateBrutalStrike, canActivateRecklessAttack, consumeBrutalStrikeOnAttackResolution, endRage, endRecklessAttack, getBarbarianLevel, getBrutalStrikePendingEffect, getRageBenefits, getRageState, getRecklessAttackState, hasHeavyArmorEquipped } from '../utils/barbarian';
+import { activateBrutalStrike, activateRage, activateRecklessAttack, applyBrutalStrikeChoice, applyRageRest, canActivateBrutalStrike, canActivateRecklessAttack, consumeBrutalStrikeOnAttackResolution, endRage, endRecklessAttack, getBarbarianLevel, getBrutalStrikeChoice, getBrutalStrikePendingEffect, getRageBenefits, getRageState, getRecklessAttackState, hasHeavyArmorEquipped, resolveBrutalStrikeAttack } from '../utils/barbarian';
 import { FaDiceD20 } from "react-icons/fa";
 import { Backpack, BookOpen, CircleHelp, Dice5, Dumbbell, Gem, HeartPulse, Package, Settings, Shield, Sparkles, Swords, UserRound } from "lucide-react";
 import { Button as HudButton, Dock, IconButton, Panel, Toolbar } from "../common/HudPrimitives";
@@ -688,6 +688,8 @@ export default function ZombiesCharacterSheet() {
   const [form, setForm] = useState(null);
   const [campaignId, setCampaignId] = useState(null);
   const [combatState, setCombatState] = useState(createEmptyCombatState());
+  const [brutalStrikeSelection, setBrutalStrikeSelection] = useState('');
+  const brutalStrikeSubmittingRef = useRef(false);
   const [campaignCharacters, setCampaignCharacters] = useState({});
   const [enemies, setEnemies] = useState([]);
   const [campaignMaps, setCampaignMaps] = useState([]);
@@ -5566,6 +5568,43 @@ export default function ZombiesCharacterSheet() {
   const handleCloseActiveConditionsModal = useCallback(() => {
     setShowActiveConditionsModal(false);
   }, []);
+  const brutalStrikeChoice = getBrutalStrikeChoice(combatState, resolvedCharacterId || characterId);
+  const brutalStrikeTarget = brutalStrikeChoice ? (targetingTokenLookupRef.current[brutalStrikeChoice.targetCombatantId]
+    || enemies.find((enemy) => (enemy.enemyId || enemy._id) === brutalStrikeChoice.targetCombatantId)
+    || campaignCharacters?.[brutalStrikeChoice.targetCombatantId]) : null;
+  const brutalStrikeTargetName = brutalStrikeTarget?.name || brutalStrikeTarget?.characterName || 'the target';
+  const barbarianName = form?.name || form?.characterName || 'The Barbarian';
+
+  const persistCombatState = useCallback(async (nextState) => {
+    setCombatState(nextState);
+    if (!encodedCampaignId) return;
+    const response = await apiFetch(`/campaigns/${encodedCampaignId}/combat`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(nextState),
+    });
+    if (!response.ok) throw new Error(response.statusText || 'Failed to save the Brutal Strike choice.');
+    setCombatState(normalizeCombatState(await response.json()));
+  }, [encodedCampaignId]);
+
+  const confirmBrutalStrikeChoice = useCallback(async () => {
+    if (!brutalStrikeChoice || !brutalStrikeSelection || brutalStrikeSubmittingRef.current) return;
+    brutalStrikeSubmittingRef.current = true;
+    try {
+      const next = applyBrutalStrikeChoice(combatState, { resolutionId: brutalStrikeChoice.resolutionId, choice: brutalStrikeSelection });
+      if (brutalStrikeSelection === 'forceful') {
+        next.eventLog[next.eventLog.length - 1] = {
+          ...next.eventLog[next.eventLog.length - 1],
+          message: `Brutal Strike — Forceful Blow: ${brutalStrikeTargetName} is pushed 15 feet directly away from ${barbarianName}. ${barbarianName} may then move up to half their Speed directly toward the target without provoking Opportunity Attacks.`,
+        };
+      }
+      await persistCombatState(next);
+      if (brutalStrikeSelection === 'forceful') notify(next.eventLog[next.eventLog.length - 1].message, 'info');
+      setBrutalStrikeSelection('');
+    } catch (error) {
+      notify(error?.message || 'The Brutal Strike effect could not be applied.', 'danger');
+    } finally {
+      brutalStrikeSubmittingRef.current = false;
+    }
+  }, [barbarianName, brutalStrikeChoice, brutalStrikeSelection, brutalStrikeTargetName, combatState, persistCombatState]);
 
   const hasFooterSpellSlots = hasSpellcasting || (form?.occupation || []).some((cls) => {
     const name = (cls.Name || cls.Occupation || '').toLowerCase();
@@ -6088,8 +6127,13 @@ export default function ZombiesCharacterSheet() {
                 onCancelTargeting={() => {
                   setCombatTargeting(INACTIVE_COMBAT_TARGETING);
                 }}
-                onAttackResolved={(result) => {
-                  if (result.brutalStrike) setCombatState((state) => consumeBrutalStrikeOnAttackResolution(state, resolvedCharacterId || characterId));
+                onAttackResolved={async (result) => {
+                  if (result.brutalStrike) {
+                    const sourceCombatantId = resolvedCharacterId || characterId;
+                    await persistCombatState(resolveBrutalStrikeAttack(combatState, {
+                      ...result, sourceCombatantId, targetCombatantId: result.targetId,
+                    }));
+                  }
                 }}
                 combatState={combatState}
               />
@@ -6450,6 +6494,29 @@ export default function ZombiesCharacterSheet() {
       errorMessage={tokenPickerError}
       filterScope={tokenPickerFilterScope}
     />
+    <Modal className="dnd-modal" centered show={Boolean(brutalStrikeChoice)} onHide={() => {}} backdrop="static" keyboard={false}>
+      <Modal.Header>
+        <Modal.Title>Choose a Brutal Strike Effect</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <p>Your Brutal Strike hit. Choose one effect to apply to {brutalStrikeTargetName}.</p>
+        <div role="radiogroup" aria-label="Brutal Strike effects" className="d-grid gap-3">
+          {[
+            ['forceful', 'Forceful Blow', 'The target is pushed 15 feet straight away from you. You can then move up to half your Speed straight toward the target without provoking Opportunity Attacks.'],
+            ['hamstring', 'Hamstring Blow', 'The target’s Speed is reduced by 15 feet until the start of your next turn. A target can be affected by only one Hamstring Blow at a time; the most recent one replaces the previous effect.'],
+          ].map(([value, title, description]) => (
+            <Card key={value} as="button" type="button" role="radio" aria-checked={brutalStrikeSelection === value}
+              className={`text-start selectable-card${brutalStrikeSelection === value ? ' border-primary' : ''}`}
+              onClick={() => setBrutalStrikeSelection(value)}>
+              <Card.Body><Card.Title>{title}</Card.Title><Card.Text>{description}</Card.Text></Card.Body>
+            </Card>
+          ))}
+        </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <BootstrapButton disabled={!brutalStrikeSelection || brutalStrikeSubmittingRef.current} onClick={confirmBrutalStrikeChoice}>Confirm</BootstrapButton>
+      </Modal.Footer>
+    </Modal>
     {dockedModalElements}
       </div>
     </div>

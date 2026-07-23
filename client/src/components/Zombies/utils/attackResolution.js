@@ -58,19 +58,23 @@ export async function resolveAttack({
   const hit = naturalRoll !== 1 && (critical || attackTotal >= armorClass);
   let rawDamage = 0;
   let damageApplied = 0;
+  let brutalStrikeDamage = 0;
   if (hit) {
-    rawDamage = Number(await rollDamage(attack, { critical, brutalStrike }));
+    const rolledDamage = await rollDamage(attack, { critical, brutalStrike });
+    rawDamage = Number(typeof rolledDamage === 'object' ? rolledDamage?.total : rolledDamage);
+    brutalStrikeDamage = Number(rolledDamage?.brutalStrikeDamage) || 0;
     if (!Number.isFinite(rawDamage)) throw new Error('The damage roll could not be completed.');
     damageApplied = Math.max(0, Number(calculateAppliedDamage({ rawDamage, damageType: attack.damageType, target })) || 0);
   }
   let hpAfter = Math.max(0, hpBefore - damageApplied);
   const result = {
-    type: 'attack-resolution', attackerId, targetId, attackId: attack.id,
+    type: 'attack-resolution', attackerId, targetId, attackId: attack.id, attackName: attack.name || '',
     naturalRoll, attackTotal, targetArmorClass: armorClass,
     outcome: critical && hit ? 'critical-hit' : hit ? 'hit' : 'miss',
-    damage: rawDamage, damageApplied, damageType: attack.damageType || '',
+    damage: rawDamage, damageApplied, damageType: attack.damageType || '', brutalStrikeDamage,
     hpBefore, hpAfter, rollMode: rollMode.mode, advantageSources: rollMode.advantageSources,
     disadvantageSources: rollMode.disadvantageSources, timestamp: Date.now(),
+    resolutionId: `${attackerId}:${targetId}:${attack.id}:${Date.now()}`,
   };
   if (hit) {
     // The HP writer owns the authoritative before/after values.  In particular,

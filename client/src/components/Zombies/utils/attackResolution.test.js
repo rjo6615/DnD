@@ -26,6 +26,16 @@ it('hits when total equals AC', async () => {
   expect(result.outcome).toBe('hit'); expect(result.damageApplied).toBe(7);
 });
 
+it('retains Brutal Strike damage and target resolution context after damage resolves', async () => {
+  const input = base(10, 15);
+  input.brutalStrike = true;
+  input.attack.name = 'Greataxe';
+  input.rollDamage.mockResolvedValue({ total: 13, brutalStrikeDamage: 6 });
+  const result = await resolveAttack(input);
+  expect(result).toMatchObject({ targetId: 'troll', attackName: 'Greataxe', brutalStrikeDamage: 6, damage: 13 });
+  expect(result.resolutionId).toEqual(expect.any(String));
+});
+
 it('logs HP returned by the canonical damage writer', async () => {
   const input = base(10, 15);
   input.applyDamage.mockResolvedValue({ previousHp: 12, currentHp: 4, appliedDamage: 8 });
