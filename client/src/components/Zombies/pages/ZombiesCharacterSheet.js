@@ -646,6 +646,9 @@ export default function ZombiesCharacterSheet() {
   const [campaignId, setCampaignId] = useState(null);
   const [combatState, setCombatState] = useState(createEmptyCombatState());
   const [resolvedDamageEvent, setResolvedDamageEvent] = useState(null);
+  const processedRetaliationDamageIdsRef = useRef(new Set());
+  const retaliationSubmittingRef = useRef(null);
+  const [retaliationSubmittingId, setRetaliationSubmittingId] = useState(null);
   const [brutalStrikeSelection, setBrutalStrikeSelection] = useState('');
   const brutalStrikeSubmittingRef = useRef(false);
   const [campaignCharacters, setCampaignCharacters] = useState({});
@@ -5596,7 +5599,15 @@ export default function ZombiesCharacterSheet() {
 
   useEffect(() => {
     if (!resolvedDamageEvent) return;
+    const damageEventId = resolvedDamageEvent.eventId || resolvedDamageEvent.damageEventId || resolvedDamageEvent.resolutionId;
+    if (!damageEventId || processedRetaliationDamageIdsRef.current.has(damageEventId)) return;
+    // A health notification is a one-shot event, not an enduring source of combat
+    // state. Claim it before starting the async write so Strict Mode and unrelated
+    // rerenders cannot enqueue the same decision concurrently.
+    processedRetaliationDamageIdsRef.current.add(damageEventId);
+    setResolvedDamageEvent(null);
     handleResolvedCombatDamage(resolvedDamageEvent).catch((error) => {
+      processedRetaliationDamageIdsRef.current.delete(damageEventId);
       notify(error?.message || 'The Retaliation decision could not be saved.', 'danger');
     });
   }, [handleResolvedCombatDamage, resolvedDamageEvent]);
@@ -5606,15 +5617,22 @@ export default function ZombiesCharacterSheet() {
     decision.status === 'pending' &&
     String(decision.ownerCombatantId || decision.targetCombatantId) === String(resolvedCharacterId || characterId));
   const declinePendingRetaliation = useCallback(async () => {
-    if (!retaliationDecision) return;
+    if (!retaliationDecision || retaliationSubmittingRef.current === retaliationDecision.id) return;
+    retaliationSubmittingRef.current = retaliationDecision.id;
+    setRetaliationSubmittingId(retaliationDecision.id);
     try {
       await persistCombatState(declineRetaliation(combatState, retaliationDecision.id));
     } catch (error) {
       notify(error?.message || 'The Retaliation decision could not be saved.', 'danger');
+    } finally {
+      retaliationSubmittingRef.current = null;
+      setRetaliationSubmittingId(null);
     }
   }, [combatState, persistCombatState, retaliationDecision]);
   const acceptPendingRetaliation = useCallback(async () => {
-    if (!retaliationDecision) return;
+    if (!retaliationDecision || retaliationSubmittingRef.current === retaliationDecision.id) return;
+    retaliationSubmittingRef.current = retaliationDecision.id;
+    setRetaliationSubmittingId(retaliationDecision.id);
     const combatants = Object.fromEntries((combatState.participants || []).map((participant) => [
       String(participant.characterId || participant.combatantId || participant.enemyId || participant._id || participant.id),
       targetingTokenLookupRef.current[String(participant.characterId || participant.combatantId || participant.enemyId || participant._id || participant.id)] || participant,
@@ -5628,7 +5646,14 @@ export default function ZombiesCharacterSheet() {
     });
     if (result.error) {
       notify(result.error, 'warning');
-      if (result.state !== combatState) await persistCombatState(result.state);
+      try {
+        if (result.state !== combatState) await persistCombatState(result.state);
+      } catch (error) {
+        notify(error?.message || 'The Retaliation decision could not be saved.', 'danger');
+      } finally {
+        retaliationSubmittingRef.current = null;
+        setRetaliationSubmittingId(null);
+      }
       return;
     }
     try {
@@ -5637,6 +5662,9 @@ export default function ZombiesCharacterSheet() {
       notify('Retaliation committed. Select the locked attacker with a melee weapon or Unarmed Strike.', 'info');
     } catch (error) {
       notify(error?.message || 'The Retaliation decision could not be saved.', 'danger');
+    } finally {
+      retaliationSubmittingRef.current = null;
+      setRetaliationSubmittingId(null);
     }
   }, [combatState, persistCombatState, retaliationDecision]);
 
@@ -6580,8 +6608,8 @@ export default function ZombiesCharacterSheet() {
         <p>You can use your Reaction to make one melee attack against it.</p>
       </Modal.Body>
       <Modal.Footer>
-        <BootstrapButton variant="secondary" onClick={declinePendingRetaliation}>No</BootstrapButton>
-        <BootstrapButton onClick={acceptPendingRetaliation}>Yes</BootstrapButton>
+        <BootstrapButton variant="secondary" disabled={retaliationSubmittingId === retaliationDecision?.id} onClick={declinePendingRetaliation}>No</BootstrapButton>
+        <BootstrapButton disabled={retaliationSubmittingId === retaliationDecision?.id} onClick={acceptPendingRetaliation}>Yes</BootstrapButton>
       </Modal.Footer>
     </Modal>
     {dockedModalElements}
