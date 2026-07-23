@@ -6671,6 +6671,9 @@ const [form2, setForm2] = useState({
   const handleCloseResourceTab = useCallback(
     (key) => {
       switch (key) {
+        case 'enemies':
+          setCombatTargeting(INACTIVE_COMBAT_TARGETING);
+          break;
         case 'weapons':
           setIsCreatingWeapon(false);
           break;
@@ -6695,7 +6698,7 @@ const [form2, setForm2] = useState({
       }
       setActiveResourceTab((current) => (current === key ? null : current));
     },
-    [setActiveResourceTab, setPlayersSearch, setGeneratedMap, setMapPrompt]
+    [setActiveResourceTab, setPlayersSearch, setGeneratedMap, setMapPrompt, setCombatTargeting]
   );
 
   const updateAccessoryForm = (value) => {
@@ -7008,6 +7011,16 @@ const resolveIcon = (category, iconMap, fallback) => {
         <div className="combat-targeting-instruction" role="status" aria-live="polite">
           <strong>{combatTargeting.status === 'resolving' ? 'Rolling attack…' : 'Select a target'}</strong>
           <span>{combatTargeting.status === 'resolving' ? 'Resolving hit and damage.' : 'Click a living combatant to attack. Esc to cancel.'}</span>
+          {combatTargeting.status === 'selecting-target' && (
+            <Button
+              type="button"
+              variant="outline-light"
+              size="sm"
+              onClick={() => setCombatTargeting(INACTIVE_COMBAT_TARGETING)}
+            >
+              Cancel
+            </Button>
+          )}
         </div>
       )}
 
