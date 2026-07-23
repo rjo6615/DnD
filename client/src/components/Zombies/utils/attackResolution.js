@@ -1,5 +1,19 @@
 export const INACTIVE_COMBAT_TARGETING = Object.freeze({ status: 'inactive' });
 
+export const getAttackRollMode = ({ targetId, combatState, advantageSources = [], disadvantageSources = [] } = {}) => {
+  const advantages = [...advantageSources];
+  const disadvantages = [...disadvantageSources];
+  if ((combatState?.activeEffects || []).some((effect) =>
+    effect?.definitionId === 'reckless-attack' && effect?.targetCombatantId === targetId)) {
+    advantages.push('Target used Reckless Attack');
+  }
+  return {
+    mode: advantages.length && !disadvantages.length ? 'advantage' : disadvantages.length && !advantages.length ? 'disadvantage' : 'normal',
+    advantageSources: advantages,
+    disadvantageSources: disadvantages,
+  };
+};
+
 // Rules orchestration is dependency-injected so the established dice roller, HP writer,
 // and combat log remain the source of truth. Target validation and applied-damage
 // processing are deliberate extension points for range/cover and resistances later.
@@ -14,6 +28,9 @@ export async function resolveAttack({
   writeLog,
   validateTarget = () => ({ valid: true }),
   calculateAppliedDamage = ({ rawDamage }) => rawDamage,
+  combatState,
+  advantageSources,
+  disadvantageSources,
 }) {
   if (!attackerId || !targetId || !attack?.id) throw new Error('Attack participants or attack are missing.');
   const armorClass = Number(target?.armorClass);
@@ -22,7 +39,8 @@ export async function resolveAttack({
   const validation = validateTarget({ attackerId, targetId, attack, target });
   if (validation?.valid === false) throw new Error(validation.reason || 'That target is not valid.');
 
-  const rolledAttack = await rollAttack(attack);
+  const rollMode = getAttackRollMode({ targetId, combatState, advantageSources, disadvantageSources });
+  const rolledAttack = await rollAttack(attack, rollMode);
   const naturalRoll = Number(rolledAttack?.naturalRoll);
   const attackTotal = Number(rolledAttack?.total);
   if (!Number.isFinite(naturalRoll) || !Number.isFinite(attackTotal)) throw new Error('The attack roll could not be completed.');
@@ -41,7 +59,8 @@ export async function resolveAttack({
     naturalRoll, attackTotal, targetArmorClass: armorClass,
     outcome: critical && hit ? 'critical-hit' : hit ? 'hit' : 'miss',
     damage: rawDamage, damageApplied, damageType: attack.damageType || '',
-    hpBefore, hpAfter, timestamp: Date.now(),
+    hpBefore, hpAfter, rollMode: rollMode.mode, advantageSources: rollMode.advantageSources,
+    disadvantageSources: rollMode.disadvantageSources, timestamp: Date.now(),
   };
   if (hit) {
     // The HP writer owns the authoritative before/after values.  In particular,

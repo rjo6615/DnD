@@ -13,6 +13,7 @@ import DockControls from '../components/DockControls';
 import { Swords } from 'lucide-react';
 import {
   getAvailableBarbarianFeatures,
+  canActivateRecklessAttack,
   getBarbarianLevel,
   getWeaponMasteryState,
   setWeaponMasterySelections,
@@ -2160,28 +2161,8 @@ export default function Features({
                                 aria-label="toggle Reckless Attack"
                                 variant="link"
                                 className="p-0 border-0"
-                                onClick={() => {
-                                  if (!onCharacterChange) return;
-                                  onCharacterChange((previous) => {
-                                    const source = previous || form;
-                                    const current = source?.classState?.barbarian?.recklessAttack || {};
-                                    return {
-                                      ...source,
-                                      classState: {
-                                        ...(source?.classState || {}),
-                                        barbarian: {
-                                          ...(source?.classState?.barbarian || {}),
-                                          recklessAttack: current.active
-                                            ? { active: false, declared: false, firstAttackMade: current.firstAttackMade }
-                                            : current.firstAttackMade
-                                            ? current
-                                            : { active: true, declared: true, firstAttackMade: false, defensiveDrawbackPending: true },
-                                        },
-                                      },
-                                    };
-                                  });
-                                }}
-                                disabled={Boolean(form?.classState?.barbarian?.recklessAttack?.firstAttackMade && !form?.classState?.barbarian?.recklessAttack?.active)}
+                                title={form?.classState?.barbarian?.recklessAttack?.active ? 'Reckless Attack is active until the start of your next turn.' : canActivateRecklessAttack(form).reason || 'Activate Reckless Attack from the combat resource bar.'}
+                                disabled
                               >
                                 <span className={`combat-hud-resource-tile__icon ${form?.classState?.barbarian?.recklessAttack?.active ? 'opacity-100' : 'opacity-50'}`}><Swords size={36} /></span>
                               </Button>

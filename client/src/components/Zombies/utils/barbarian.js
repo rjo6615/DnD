@@ -1,3 +1,5 @@
+import { applyActiveEffect } from './combatTimeline';
+
 export const BARBARIAN_PROGRESSION = [
   { level: 1, rageUses: 2, rageDamage: 2, weaponMasteryCount: 2 },
   { level: 2, rageUses: 2, rageDamage: 2, weaponMasteryCount: 2 },
@@ -531,8 +533,15 @@ export const getRecklessAttackState = (character) => {
   };
 };
 
+export const RECKLESS_ATTACK_RAGE_ERROR = "Reckless Attack requires Rage to be active.";
+
+export const canActivateRecklessAttack = (character) => ({
+  allowed: getBarbarianLevel(character) >= 2 && isRageActive(character),
+  reason: !isRageActive(character) ? RECKLESS_ATTACK_RAGE_ERROR : getBarbarianLevel(character) < 2 ? "Reckless Attack requires Barbarian level 2." : null,
+});
+
 export const declareRecklessAttack = (character) => {
-  if (getBarbarianLevel(character) < 2) return character;
+  if (!canActivateRecklessAttack(character).allowed) return character;
   const state = getRecklessAttackState(character);
   if (state.active) return character;
   return withRecklessAttack(character, {
@@ -541,6 +550,28 @@ export const declareRecklessAttack = (character) => {
     firstAttackMade: false,
     defensiveDrawbackPending: true,
   });
+};
+
+export const createRecklessAttackEffect = (combatantId) => ({
+  id: `reckless-attack:${combatantId}`,
+  definitionId: 'reckless-attack',
+  name: 'Reckless Attack',
+  sourceCombatantId: combatantId,
+  targetCombatantId: combatantId,
+  expiration: { type: 'sourceTurn', combatantId, boundary: 'start', remainingOccurrences: 1 },
+  stackKey: `reckless-attack:${combatantId}`,
+  stackPolicy: 'ignore',
+  description: 'Reckless Attack active. Attack rolls against this character have Advantage until the start of their next turn.',
+});
+
+export const activateRecklessAttack = (character, combatState, combatantId) => {
+  const eligibility = canActivateRecklessAttack(character);
+  if (!eligibility.allowed) throw new Error(eligibility.reason);
+  if (!combatantId) throw new Error('Reckless Attack requires an active combatant.');
+  return {
+    character: declareRecklessAttack(character),
+    combatState: applyActiveEffect(combatState, createRecklessAttackEffect(combatantId)),
+  };
 };
 
 export const endRecklessAttack = (character) => {

@@ -457,6 +457,7 @@ const PlayerTurnActions = React.forwardRef(
       onBeginTargeting = () => {},
       onApplyTargetDamage = async () => {},
       onCancelTargeting = () => {},
+      combatState = null,
     },
     ref
   ) => {
@@ -1921,7 +1922,7 @@ const manualCriticalRef = useRef(false);
     ],
   );
 
-  const handleWeaponAttackRoll = async (slot, weapon) => {
+  const handleWeaponAttackRoll = async (slot, weapon, targetRollMode = {}) => {
     const rawBonus = Number(getAttackBonus(slot, weapon));
     const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
     const abilityKey = getAbilityKeyForWeapon(slot, weapon);
@@ -1932,7 +1933,7 @@ const manualCriticalRef = useRef(false);
       isWeaponAttack: !isUnarmedAttack(weapon),
       isUnarmedStrike: isUnarmedAttack(weapon),
     };
-    const rollModeResult = resolveAttackRollMode(form, attackContext);
+    const rollModeResult = resolveAttackRollMode(form, attackContext, targetRollMode);
     await prepareDiceRollSurface('Roll');
     const { result, d20, rolledD20s, keptD20, rollMode } = await rollSkillWithDiceBox(bonus, {
       diceColor: diceFaceColor,
@@ -1992,7 +1993,7 @@ const manualCriticalRef = useRef(false);
   };
 
   const handleSpellAttackRoll = useCallback(
-    async (spell) => {
+    async (spell, targetRollMode = {}) => {
       const attackDetails = getSpellAttackDetails(spell);
       if (!attackDetails) {
         return;
@@ -2000,14 +2001,16 @@ const manualCriticalRef = useRef(false);
 
       const { total, abilityBonus, proficiencyBonus, extraBonus } = attackDetails;
       await prepareDiceRollSurface('Roll');
-      const { result, d20 } = await rollSkillWithDiceBox(total, {
+      const { result, d20, keptD20, rolledD20s, rollMode } = await rollSkillWithDiceBox(total, {
         diceColor: diceFaceColor,
+        rollMode: targetRollMode.mode,
         rollContext: 'attack',
         character: form,
         source: spell?.name,
       });
       diceBoxThemeRef.current = diceFaceColor;
-      const segments = [`${d20} (d20)`];
+      const naturalRoll = keptD20 ?? d20;
+      const segments = [rollMode === 'advantage' || rollMode === 'disadvantage' ? `${naturalRoll} (d20) (Rolled ${(rolledD20s || [d20]).join(' and ')})` : `${d20} (d20)`];
       segments.push(`${formatModifier(abilityBonus)} ${spellAbilityLabel}`);
       segments.push(
         `${formatModifier(proficiencyBonus)} Proficiency Bonus`,
@@ -2022,13 +2025,17 @@ const manualCriticalRef = useRef(false);
             value: result,
             breakdown: segments.join(' '),
             source: `${spell?.name || 'Spell'} Spell Attack Roll`,
-            critical: isCriticalAttackRoll(d20),
-            fumble: d20 === 1,
+            critical: isCriticalAttackRoll(naturalRoll),
+            fumble: naturalRoll === 1,
             rollLabel: 'Attack Roll',
+            rollMode: rollMode || targetRollMode.mode,
+            advantageSources: targetRollMode.advantageSources,
+            disadvantageSources: targetRollMode.disadvantageSources,
             diceRolls: [
               {
                 sides: 20,
-                value: d20,
+                value: naturalRoll,
+                rolled: rolledD20s,
                 type: 'Attack Roll',
                 category: 'base',
               },
@@ -2039,10 +2046,10 @@ const manualCriticalRef = useRef(false);
       );
       setPendingCriticalAttack({
         attackId: getSpellAttackRollId(spell),
-        naturalRoll: d20,
+        naturalRoll,
         total: result,
-        isCriticalHit: isCriticalAttackRoll(d20),
-        isNaturalOne: d20 === 1,
+        isCriticalHit: isCriticalAttackRoll(naturalRoll),
+        isNaturalOne: naturalRoll === 1,
         sourceLabel: spell?.name || 'Spell',
       });
       return { naturalRoll: d20, total: result };
@@ -2581,9 +2588,10 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
       if (!attack) throw new Error('The selected attack is no longer available.');
       return resolveAttack({
         attackerId: characterId, targetId, attack, target,
-        rollAttack: (selected) => selected.kind === 'weapon' || selected.kind === 'unarmed'
-          ? handleWeaponAttackRoll(selected.slot, selected.weapon)
-          : handleSpellAttackRoll(selected.spell),
+        combatState,
+        rollAttack: (selected, targetRollMode) => selected.kind === 'weapon' || selected.kind === 'unarmed'
+          ? handleWeaponAttackRoll(selected.slot, selected.weapon, targetRollMode)
+          : handleSpellAttackRoll(selected.spell, targetRollMode),
         rollDamage: async (selected, { critical }) => {
           if (selected.kind === 'weapon' || selected.kind === 'unarmed') {
             const result = await rollDamageExpression({
