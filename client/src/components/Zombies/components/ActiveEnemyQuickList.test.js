@@ -171,6 +171,7 @@ describe('ActiveEnemyQuickList', () => {
       action?.name === 'Scimitar' ? '1d6 slashing' : null
     );
     const onEnemyDamageRoll = jest.fn();
+    const onEnemyAttackRoll = jest.fn();
     const latestEnemyRoll = {
       enemyId: 'enemy-1',
       actionName: 'Scimitar',
@@ -182,6 +183,7 @@ describe('ActiveEnemyQuickList', () => {
       formatAttackBonus,
       getEnemyActionDamageString,
       onEnemyDamageRoll,
+      onEnemyAttackRoll,
       latestEnemyRoll,
       summaries: [
         {
@@ -205,10 +207,13 @@ describe('ActiveEnemyQuickList', () => {
     const dialog = await screen.findByRole('dialog', { name: /Goblin Attacks/i });
     expect(within(dialog).getByText('Attacks')).toBeInTheDocument();
     expect(within(dialog).getByText('Scimitar')).toBeInTheDocument();
-    expect(within(dialog).getByText('Attack Bonus: +4')).toBeInTheDocument();
-    expect(within(dialog).getByText('Damage: 1d6 slashing')).toBeInTheDocument();
+    expect(within(dialog).getByText('Attack Bonus')).toBeInTheDocument();
+    expect(within(dialog).getByText('+4')).toBeInTheDocument();
+    expect(within(dialog).getByText('Damage')).toBeInTheDocument();
+    expect(within(dialog).getByText('1d6 slashing')).toBeInTheDocument();
 
-    const rollButton = within(dialog).getByRole('button', { name: /^Roll$/i });
+    expect(within(dialog).getByRole('button', { name: /Roll attack for Scimitar/i })).toHaveTextContent('🎲 Roll Attack');
+    const rollButton = within(dialog).getByRole('button', { name: /Roll damage for Scimitar/i });
     await act(async () => {
       await userEvent.click(rollButton);
     });
@@ -217,6 +222,7 @@ describe('ActiveEnemyQuickList', () => {
       expect.objectContaining({ enemyId: 'enemy-1' }),
       expect.objectContaining({ name: 'Scimitar' })
     );
-    expect(within(dialog).getByText('Result: 11 damage (1d6 (8) + 3)')).toBeInTheDocument();
+    await userEvent.click(attacksButton);
+    expect(await screen.findByText('Damage: 11 (1d6 (8) + 3)')).toBeInTheDocument();
   });
 });

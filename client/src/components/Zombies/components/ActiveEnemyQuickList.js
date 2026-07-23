@@ -347,8 +347,7 @@ function EnemyQuickAttacksModal({
                   </div>
                   <div className="attack-card__actions">
                     <Button
-                      variant="link"
-                      className="attack-card__roll"
+                      className="combat-roll-button combat-roll-button--attack"
                       onClick={() => {
                         onHide();
                         if (normalizedEnemyId && onEnemyAttackRoll) {
@@ -358,11 +357,10 @@ function EnemyQuickAttacksModal({
                       disabled={!onEnemyAttackRoll || !normalizedEnemyId}
                       aria-label={`Roll attack for ${actionLabel}`}
                     >
-                      <i className="fa-solid fa-bullseye" aria-hidden="true"></i>
+                      🎲 Roll Attack
                     </Button>
                     <Button
-                      variant="link"
-                      className="attack-card__roll"
+                      className="combat-roll-button"
                       onClick={() => {
                         onHide();
                         if (normalizedEnemyId && onEnemyDamageRoll) {
@@ -372,12 +370,13 @@ function EnemyQuickAttacksModal({
                       disabled={!onEnemyDamageRoll || !normalizedEnemyId}
                       aria-label={`Roll damage for ${actionLabel}`}
                     >
-                      <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>
+                      💥 Roll Damage
                     </Button>
                   </div>
                   {isLatestRoll && latestEnemyRoll?.breakdown && (
-                    <div className="mt-2 small fw-semibold text-primary">
-                      {`${latestEnemyRoll.rollType === 'attack' ? 'Attack' : 'Damage'}: ${latestEnemyRoll.total} (${latestEnemyRoll.breakdown})`}
+                    <div className="mt-2 small fw-semibold text-primary" role="status">
+                      <div>{`${latestEnemyRoll.rollType === 'attack' ? 'Attack' : 'Damage'}: ${latestEnemyRoll.total} (${latestEnemyRoll.breakdown})`}</div>
+                      {latestEnemyRoll.targetName && <div>{`Target: ${latestEnemyRoll.targetName} • AC ${latestEnemyRoll.targetArmorClass} • ${latestEnemyRoll.outcome === 'critical-hit' ? 'Critical Hit' : latestEnemyRoll.outcome === 'hit' ? 'Hit' : 'Miss'}`}</div>}
                     </div>
                   )}
                 </div>
