@@ -42,6 +42,43 @@ describe('Health routes validation', () => {
     );
   });
 
+  test('long rest atomically restores persisted current HP and is idempotent', async () => {
+    const character = { _id: '507f1f77bcf86cd799439011', campaign: 'Test', health: 20, tempHealth: 7, hpEventIds: [] };
+    const updateOne = jest.fn().mockImplementation(async (_filter, update) => {
+      character.tempHealth = update.$set.tempHealth;
+      character.hpEventIds.push('rest-1');
+      return { matchedCount: 1 };
+    });
+    dbo.mockResolvedValue({ collection: () => ({ findOne: async () => character, updateOne }) });
+
+    const first = await request(app).put('/characters/rest/507f1f77bcf86cd799439011')
+      .send({ type: 'long', eventId: 'rest-1' });
+    const duplicate = await request(app).put('/characters/rest/507f1f77bcf86cd799439011')
+      .send({ type: 'long', eventId: 'rest-1' });
+
+    expect(first.body).toMatchObject({ previousHp: 7, currentHp: 20, actualHealing: 13 });
+    expect(duplicate.body).toMatchObject({ duplicate: true, currentHp: 20, actualHealing: 0 });
+    expect(updateOne).toHaveBeenCalledTimes(1);
+  });
+
+  test('healing potion consumption and healing share one atomic update', async () => {
+    const character = {
+      _id: '507f1f77bcf86cd799439011', campaign: 'Test', health: 20, tempHealth: 10,
+      hpEventIds: [], item: [{ name: 'potion-healing', displayName: 'Potion of healing' }, { name: 'Torch' }],
+    };
+    const updateOne = jest.fn().mockResolvedValue({ matchedCount: 1 });
+    dbo.mockResolvedValue({ collection: () => ({ findOne: async () => character, updateOne }) });
+
+    const res = await request(app).put('/characters/use-healing-potion/507f1f77bcf86cd799439011')
+      .send({ itemKey: 'potion-healing', healingAmount: 7, eventId: 'potion-1' });
+
+    expect(res.body).toMatchObject({ previousHp: 10, currentHp: 17, actualHealing: 7, inventory: [{ name: 'Torch' }] });
+    expect(updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({ hpEventIds: { $ne: 'potion-1' } }),
+      expect.objectContaining({ $set: expect.objectContaining({ tempHealth: 17, item: [{ name: 'Torch' }] }) })
+    );
+  });
+
   test('update temphealth invalid id', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app)
