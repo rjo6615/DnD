@@ -35,7 +35,7 @@ export async function resolveAttack({
     if (!Number.isFinite(rawDamage)) throw new Error('The damage roll could not be completed.');
     damageApplied = Math.max(0, Number(calculateAppliedDamage({ rawDamage, damageType: attack.damageType, target })) || 0);
   }
-  const hpAfter = Math.max(0, hpBefore - damageApplied);
+  let hpAfter = Math.max(0, hpBefore - damageApplied);
   const result = {
     type: 'attack-resolution', attackerId, targetId, attackId: attack.id,
     naturalRoll, attackTotal, targetArmorClass: armorClass,
@@ -43,7 +43,17 @@ export async function resolveAttack({
     damage: rawDamage, damageApplied, damageType: attack.damageType || '',
     hpBefore, hpAfter, timestamp: Date.now(),
   };
-  if (hit) await applyDamage({ targetId, hpBefore, hpAfter, damageApplied, result });
+  if (hit) {
+    // The HP writer owns the authoritative before/after values.  In particular,
+    // callers must not log an optimistic token-only prediction as persisted HP.
+    const applied = await applyDamage({ targetId, hpBefore, hpAfter, damageApplied, result });
+    if (applied) {
+      if (Number.isFinite(Number(applied.previousHp))) result.hpBefore = Number(applied.previousHp);
+      if (Number.isFinite(Number(applied.currentHp))) result.hpAfter = Number(applied.currentHp);
+      if (Number.isFinite(Number(applied.appliedDamage))) result.damageApplied = Number(applied.appliedDamage);
+      hpAfter = result.hpAfter;
+    }
+  }
   await writeLog(result);
   return result;
 }

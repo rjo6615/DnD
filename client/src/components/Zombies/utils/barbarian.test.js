@@ -326,7 +326,8 @@ describe("barbarian level 3 features", () => {
 
   it("resolves Frenzy eligibility and per-turn reset", () => {
     const ragingReckless = declareRecklessAttack(activateRage(barbarian3()));
-    expect(getFrenzyDamageDice(ragingReckless, { ability: "str", type: "weapon attack", dealsDamage: true })).toMatchObject({ label: "Reckless Attack", count: 2, sides: 6 });
+    expect(getFrenzyDamageDice(ragingReckless, { ability: "str", type: "weapon attack", dealsDamage: true })).toMatchObject({ label: "Frenzy", count: 2, sides: 6 });
+    expect(getFrenzyDamageDice(ragingReckless, { ability: "str", type: "weapon attack", dealsDamage: true, isOwnTurn: false })).toBeNull();
     expect(getFrenzyDamageDice(ragingReckless, { ability: "dex", type: "weapon attack", dealsDamage: true })).toBeNull();
     expect(getFrenzyDamageDice(ragingReckless, { ability: "str", type: "spell attack", isSpellAttack: true })).toBeNull();
     expect(getFrenzyDamageDice(ragingReckless, { ability: "str", type: "weapon attack", hit: false, dealsDamage: true })).toBeNull();

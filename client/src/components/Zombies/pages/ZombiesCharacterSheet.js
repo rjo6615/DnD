@@ -1658,17 +1658,34 @@ export default function ZombiesCharacterSheet() {
     [activeCharacterIds]
   );
 
-  const handleApplyTargetDamage = useCallback(async ({ targetId, hpAfter }) => {
-    setEnemies((previous) => previous.map((enemy) => {
-      const id = enemy?.enemyId || enemy?._id;
-      return id === targetId ? { ...enemy, currentHp: hpAfter } : enemy;
-    }));
+  const handleApplyTargetDamage = useCallback(async ({ targetId, hpBefore, damageApplied }) => {
+    const enemy = enemies.find((candidate) => (candidate?.enemyId || candidate?._id) === targetId);
+    if (enemy) {
+      if (!encodedCampaignId) throw new Error('Campaign is unavailable; damage was not applied.');
+      const previousHp = Number(enemy.currentHp ?? enemy.maxHp ?? enemy.hitPoints);
+      const requestedHp = Math.max(0, previousHp - Math.max(0, Number(damageApplied) || 0));
+      const response = await apiFetch(`/campaigns/${encodedCampaignId}/enemies/${encodeURIComponent(targetId)}/health`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentHp: requestedHp }),
+      });
+      if (!response.ok) throw new Error(response.statusText || 'Failed to persist monster damage.');
+      const payload = await response.json();
+      const updatedEnemy = payload?.enemy;
+      if (!updatedEnemy) throw new Error('The monster health update was not confirmed.');
+      setEnemies((previous) => previous.map((candidate) =>
+        (candidate?.enemyId || candidate?._id) === targetId ? { ...candidate, ...updatedEnemy } : candidate));
+      if (payload?.combat) setCombatState(normalizeCombatState(payload.combat));
+      const currentHp = Number(updatedEnemy.currentHp);
+      return { previousHp, currentHp, appliedDamage: Math.max(0, previousHp - currentHp) };
+    }
+    const hpAfter = Math.max(0, Number(hpBefore) - (Number(damageApplied) || 0));
     setCampaignCharacters((previous) => {
       if (!previous?.[targetId]) return previous;
       return { ...previous, [targetId]: { ...previous[targetId], currentHp: hpAfter, tempHealth: hpAfter } };
     });
     if (targetId === resolvedCharacterId) handleHealthChange(hpAfter);
-  }, [handleHealthChange, resolvedCharacterId]);
+    return { previousHp: Number(hpBefore), currentHp: hpAfter, appliedDamage: Number(damageApplied) || 0 };
+  }, [encodedCampaignId, enemies, handleHealthChange, resolvedCharacterId]);
 
   const handleTargetTokenClick = useCallback(async (targetId) => {
     if (combatTargeting.status !== 'selecting-target' || targetingLockRef.current) return;
@@ -6017,6 +6034,7 @@ export default function ZombiesCharacterSheet() {
                 spellAbilityMod={spellAbilityMod}
                 spellAbilityKey={spellAbilityKey}
                 characterId={characterId}
+                isActiveTurn={isPlayersTurn}
                 ref={playerTurnActionsRef}
                 onCastSpell={handleCastSpell}
                 onDamageSummaryChange={handleDamageSummaryChange}

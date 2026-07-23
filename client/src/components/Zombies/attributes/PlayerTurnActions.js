@@ -431,7 +431,7 @@ export function calculateDamage(
     diceRolls,
     modifiers: [
       ...(rageBonus > 0 ? [{ label: 'Rage', value: rageBonus }] : []),
-      ...(frenzyApplied ? [{ label: 'Reckless Attack', value: results[results.length - 1].value }] : []),
+      ...(frenzyApplied ? [{ label: 'Frenzy', value: results[results.length - 1].value }] : []),
     ],
     frenzyApplied,
   };
@@ -453,6 +453,7 @@ const PlayerTurnActions = React.forwardRef(
       longRestCount = 0,
       shortRestCount = 0,
       characterId = null,
+      isActiveTurn = false,
       onBeginTargeting = () => {},
       onApplyTargetDamage = async () => {},
       onCancelTargeting = () => {},
@@ -1895,10 +1896,6 @@ const manualCriticalRef = useRef(false);
         ],
       };
 
-      if (result.frenzyApplied) {
-        onCharacterChange?.((previous) => markFrenzyUsed(previous || form));
-      }
-
       updateDamageValueWithAnimation(
         result.total,
         result.breakdown,
@@ -2592,7 +2589,21 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
             const result = await rollDamageExpression({
               damageString: getDamageStringForHandSelection(selected.slot, selected.weapon),
               ability: abilityForWeapon(selected.weapon, selected.slot), crit: critical,
+              options: {
+                character: form,
+                attack: {
+                  ability: getAbilityKeyForWeapon(selected.slot, selected.weapon),
+                  kind: selected.kind,
+                  isWeaponAttack: selected.kind === 'weapon',
+                  isUnarmedStrike: selected.kind === 'unarmed',
+                  dealsDamage: true,
+                  hit: true,
+                  isOwnTurn: isActiveTurn,
+                  damageType: selected.damageType,
+                },
+              },
             });
+            if (result?.frenzyApplied) onCharacterChange?.((previous) => markFrenzyUsed(previous || form));
             if (result) updateDamageValueWithAnimation(result.total, result.breakdown, selected.name, { diceRolls: result.diceRolls });
             return result?.total;
           }
@@ -2605,7 +2616,7 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
         writeLog: async (entry) => setDamageLog((previous) => [...previous, entry]),
       });
     },
-  }), [abilityForWeapon, attackArsenalItems, characterId, getDamageStringForHandSelection, getSpellAttackDetails, handleShowAttack, onApplyTargetDamage, rollDamageExpression]);
+  }), [abilityForWeapon, attackArsenalItems, characterId, form, getAbilityKeyForWeapon, getDamageStringForHandSelection, getSpellAttackDetails, handleShowAttack, isActiveTurn, onApplyTargetDamage, onCharacterChange, rollDamageExpression]);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div

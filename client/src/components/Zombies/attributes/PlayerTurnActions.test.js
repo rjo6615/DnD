@@ -153,12 +153,12 @@ describe('calculateDamage parser', () => {
     const attack = { ability: 'str', kind: 'weapon', isWeaponAttack: true, dealsDamage: true };
     expect(calculateDamage('1d12 Slashing', 3, false, fixedRoll, undefined, 0, { character: berserker, attack })).toMatchObject({
       total: 8,
-      breakdown: '4 Slashing + 2 Rage + 2 Reckless Attack Slashing',
+      breakdown: '4 Slashing + 2 Rage + 2 Frenzy Slashing',
       frenzyApplied: true,
     });
     expect(calculateDamage('1d12 Slashing', 3, true, fixedRoll, undefined, 0, { character: berserker, attack })).toMatchObject({
       total: 11,
-      breakdown: '5 Slashing + 2 Rage + 4 Reckless Attack Slashing',
+      breakdown: '5 Slashing + 2 Rage + 4 Frenzy Slashing',
       frenzyApplied: true,
     });
     expect(calculateDamage('1d12 Slashing', 3, false, fixedRoll, undefined, 0, { character: { ...berserker, classState: { barbarian: { ...berserker.classState.barbarian, frenzy: { usedThisTurn: true } } } }, attack }).frenzyApplied).toBe(false);
