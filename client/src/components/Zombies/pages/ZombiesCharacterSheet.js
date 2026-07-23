@@ -645,6 +645,7 @@ export default function ZombiesCharacterSheet() {
   const [form, setForm] = useState(null);
   const [campaignId, setCampaignId] = useState(null);
   const [combatState, setCombatState] = useState(createEmptyCombatState());
+  const [resolvedDamageEvent, setResolvedDamageEvent] = useState(null);
   const [brutalStrikeSelection, setBrutalStrikeSelection] = useState('');
   const brutalStrikeSubmittingRef = useRef(false);
   const [campaignCharacters, setCampaignCharacters] = useState({});
@@ -4168,6 +4169,9 @@ export default function ZombiesCharacterSheet() {
         },
         notify,
       });
+      // Feed the exact authoritative event used by the incoming-damage toast
+      // into the shared Retaliation evaluator after this health update renders.
+      if (update.resolvedDamage) setResolvedDamageEvent(update.resolvedDamage);
 
       if (updateIdentifiers.includes(characterId)) {
         setForm((prev) => prev ? {
@@ -5589,6 +5593,13 @@ export default function ZombiesCharacterSheet() {
     });
     if (nextState !== combatState) await persistCombatState(nextState);
   }, [activeMapTokens, campaignCharacters, characterId, combatState, enemies, form, persistCombatState, resolvedCharacterId]);
+
+  useEffect(() => {
+    if (!resolvedDamageEvent) return;
+    handleResolvedCombatDamage(resolvedDamageEvent).catch((error) => {
+      notify(error?.message || 'The Retaliation decision could not be saved.', 'danger');
+    });
+  }, [handleResolvedCombatDamage, resolvedDamageEvent]);
 
   const retaliationDecision = (combatState.pendingDecisions || []).find((decision) =>
     decision.type === 'retaliation' &&
