@@ -1,6 +1,6 @@
 import {
   advanceTurn, applyActiveEffect, createCombatState, durationToExpiration,
-  endCombat, endConcentration, getEffectiveSpeed, removeCombatant, resolveCombatEvent, undoTurn,
+  endCombat, endConcentration, getEffectiveSpeed, hasActiveEffect, removeCombatant, resolveCombatEvent, undoTurn,
 } from './combatTimeline';
 
 const participants = ['source', 'other', 'target'].map((characterId, index) => ({ characterId, initiative: 20 - index }));
@@ -12,6 +12,12 @@ const effect = (overrides = {}) => ({
 });
 
 describe('combat timeline effects', () => {
+  test('queries active effects by target and definition', () => {
+    const state = applyActiveEffect(stateAtSource(), effect({ definitionId: 'reckless-attack' }));
+    expect(hasActiveEffect(state, 'target', 'reckless-attack')).toBe(true);
+    expect(hasActiveEffect(state, 'other', 'reckless-attack')).toBe(false);
+  });
+
   test('source start effects survive application and other turns, then expire next source turn', () => {
     let state = applyActiveEffect(stateAtSource(), effect());
     expect(state.activeEffects).toHaveLength(1);

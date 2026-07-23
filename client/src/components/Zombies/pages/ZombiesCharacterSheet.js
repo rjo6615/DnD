@@ -47,7 +47,7 @@ import Features from "../attributes/Features";
 import SpellSlots from "../attributes/SpellSlots";
 import { fullCasterSlots, pactMagic } from '../../../utils/spellSlots';
 import { getMonkFocusPoints } from '../../../utils/monk';
-import { activateRage, applyRageRest, declareRecklessAttack, endRage, endRecklessAttack, getBarbarianLevel, getRageBenefits, getRageState, getRecklessAttackState, hasHeavyArmorEquipped } from '../utils/barbarian';
+import { activateRage, activateRecklessAttack, applyRageRest, canActivateRecklessAttack, endRage, endRecklessAttack, getBarbarianLevel, getRageBenefits, getRageState, getRecklessAttackState, hasHeavyArmorEquipped } from '../utils/barbarian';
 import { FaDiceD20 } from "react-icons/fa";
 import { Backpack, BookOpen, CircleHelp, Dice5, Dumbbell, Gem, HeartPulse, Package, Settings, Shield, Sparkles, Swords, UserRound } from "lucide-react";
 import { Button as HudButton, Dock, IconButton, Panel, Toolbar } from "../common/HudPrimitives";
@@ -913,6 +913,14 @@ export default function ZombiesCharacterSheet() {
     return candidates.find(Boolean) || null;
   }, [characterId, form]);
   const resolvedCharacterIdRef = useRef(resolvedCharacterId);
+
+  useEffect(() => {
+    if (!resolvedCharacterId || !getRecklessAttackState(form).active) return;
+    const isParticipant = combatState.participants.some((participant) => participant.characterId === resolvedCharacterId);
+    const timelineActive = combatState.activeEffects.some((effect) =>
+      effect?.definitionId === 'reckless-attack' && effect?.targetCombatantId === resolvedCharacterId);
+    if (isParticipant && !timelineActive) setForm((previous) => endRecklessAttack(previous));
+  }, [combatState.activeEffects, combatState.participants, form, resolvedCharacterId]);
 
   useEffect(() => {
     resolvedCharacterIdRef.current = resolvedCharacterId;
@@ -3071,12 +3079,22 @@ export default function ZombiesCharacterSheet() {
     setForm((prev) => endRage(prev));
   }, []);
 
-  const handleToggleRecklessAttack = useCallback(() => {
-    setForm((prev) => {
-      const state = getRecklessAttackState(prev);
-      return state.active ? endRecklessAttack(prev) : declareRecklessAttack(prev);
-    });
-  }, []);
+  const handleToggleRecklessAttack = useCallback(async () => {
+    try {
+      const activated = activateRecklessAttack(form, combatState, resolvedCharacterId || characterId);
+      setForm(activated.character);
+      setCombatState(activated.combatState);
+      if (encodedCampaignId) {
+        const response = await apiFetch(`/campaigns/${encodedCampaignId}/combat`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(activated.combatState),
+        });
+        if (!response.ok) throw new Error(response.statusText || 'Failed to activate Reckless Attack.');
+        setCombatState(normalizeCombatState(await response.json()));
+      }
+    } catch (error) {
+      window.alert(error.message);
+    }
+  }, [characterId, combatState, encodedCampaignId, form, resolvedCharacterId]);
 
   const rollSpellDamage = useCallback(
     async (damageString, extraDice, levelsAbove = 0) => {
@@ -6046,6 +6064,7 @@ export default function ZombiesCharacterSheet() {
                 onBeginTargeting={(selection) => setCombatTargeting({ status: 'selecting-target', ...selection })}
                 onApplyTargetDamage={handleApplyTargetDamage}
                 onCancelTargeting={() => setCombatTargeting(INACTIVE_COMBAT_TARGETING)}
+                combatState={combatState}
               />
             </div>
           </div>
@@ -6152,12 +6171,12 @@ export default function ZombiesCharacterSheet() {
                             type="button"
                             className="combat-hud-resource-tile"
                             style={{ '--hud-resource-accent': resource.color }}
-                            title={isRageResource ? (resource.active ? `End Rage: ${resource.current ?? '—'}/${resource.max ?? '—'} uses remaining` : hasHeavyArmorEquipped(form) ? 'Cannot rage while wearing Heavy Armor' : Number(resource.current) <= 0 ? 'No Rage uses remaining' : `Activate Rage: ${resource.current ?? '—'}/${resource.max ?? '—'} uses remaining`) : isFocusResource ? `${resource.name}: click to spend, right-click to restore, double-click to reset` : `${resource.name}: ${resource.current ?? '—'}/${resource.max ?? '—'}`}
+                            title={isRecklessAttackResource ? (resource.active ? 'Reckless Attack active. Attack rolls against this character have Advantage until the start of their next turn.' : canActivateRecklessAttack(form).reason || 'Activate Reckless Attack. Attacks against you have Advantage until the start of your next turn.') : isRageResource ? (resource.active ? `End Rage: ${resource.current ?? '—'}/${resource.max ?? '—'} uses remaining` : hasHeavyArmorEquipped(form) ? 'Cannot rage while wearing Heavy Armor' : Number(resource.current) <= 0 ? 'No Rage uses remaining' : `Activate Rage: ${resource.current ?? '—'}/${resource.max ?? '—'} uses remaining`) : isFocusResource ? `${resource.name}: click to spend, right-click to restore, double-click to reset` : `${resource.name}: ${resource.current ?? '—'}/${resource.max ?? '—'}`}
                             aria-label={`${resource.name}: ${resource.current ?? '—'} of ${resource.max ?? '—'}`}
                             onClick={(event) => handleResourceActivate(event, event.shiftKey ? 'restore' : 'spend')}
                             onContextMenu={(event) => handleResourceActivate(event, 'restore')}
                             onDoubleClick={(event) => handleResourceActivate(event, 'reset')}
-                            disabled={(!isFocusResource && !isRageResource && !isRecklessAttackResource) || resource.disabled || (isRageResource && !resource.active && (Number(resource.current) <= 0 || hasHeavyArmorEquipped(form)))}
+                            disabled={(!isFocusResource && !isRageResource && !isRecklessAttackResource) || resource.disabled || (isRecklessAttackResource && (!canActivateRecklessAttack(form).allowed || resource.active)) || (isRageResource && !resource.active && (Number(resource.current) <= 0 || hasHeavyArmorEquipped(form)))}
                           >
                             <span className="combat-hud-resource-tile__icon" aria-hidden="true">{resource.icon}</span>
                             <span className="combat-hud-resource-tile__name">

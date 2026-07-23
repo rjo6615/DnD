@@ -1,4 +1,4 @@
-import { resolveAttack } from './attackResolution';
+import { getAttackRollMode, resolveAttack } from './attackResolution';
 
 const base = (naturalRoll, total) => ({
   attackerId: 'hero', targetId: 'troll',
@@ -32,4 +32,20 @@ it('logs HP returned by the canonical damage writer', async () => {
   const result = await resolveAttack(input);
   expect(result).toMatchObject({ hpBefore: 12, hpAfter: 4, damageApplied: 8 });
   expect(input.writeLog).toHaveBeenCalledWith(expect.objectContaining({ hpBefore: 12, hpAfter: 4 }));
+});
+
+it('centrally grants and cancels Advantage against a Reckless target', () => {
+  const combatState = { activeEffects: [{ definitionId: 'reckless-attack', targetCombatantId: 'barbarian' }] };
+  expect(getAttackRollMode({ targetId: 'barbarian', combatState })).toMatchObject({
+    mode: 'advantage', advantageSources: ['Target used Reckless Attack'],
+  });
+  expect(getAttackRollMode({ targetId: 'barbarian', combatState, disadvantageSources: ['Poisoned'] }).mode).toBe('normal');
+  expect(getAttackRollMode({ targetId: 'other', combatState }).mode).toBe('normal');
+});
+
+it('passes the shared target roll mode to every attack producer', async () => {
+  const input = base(10, 15);
+  input.combatState = { activeEffects: [{ definitionId: 'reckless-attack', targetCombatantId: 'troll' }] };
+  await resolveAttack(input);
+  expect(input.rollAttack).toHaveBeenCalledWith(input.attack, expect.objectContaining({ mode: 'advantage' }));
 });

@@ -91,6 +91,10 @@ export const removeActiveEffect = (inputState, effectId) => {
   return { ...state, activeEffects: state.activeEffects.filter((effect) => effect.id !== effectId) };
 };
 
+export const hasActiveEffect = (combatState, combatantId, definitionId) =>
+  Boolean(combatantId && definitionId && (combatState?.activeEffects || []).some((effect) =>
+    effect?.targetCombatantId === combatantId && effect?.definitionId === definitionId));
+
 export const removeCombatant = (inputState, combatantId) => {
   const state = createCombatState(inputState);
   const activeId = state.participants[state.activeTurn]?.characterId;

@@ -2956,7 +2956,7 @@ export default function ZombiesDM() {
     }, []);
 
     const handleEnemyAttackRoll = useCallback(
-      async (enemy, action) => {
+      async (enemy, action, rollModeResult = {}) => {
         if (!enemy || !action) {
           return;
         }
@@ -2964,14 +2964,15 @@ export default function ZombiesDM() {
         const rawBonus = Number(action.attack_bonus);
         const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
         await showEnemyDiceOverlay();
-        const { result, d20 } = await rollSkillWithDiceBox(bonus, {
+        const { result, d20, keptD20, rolledD20s, rollMode } = await rollSkillWithDiceBox(bonus, {
           diceColor: DEFAULT_DICE_COLOR,
+          rollMode: rollModeResult.mode,
         });
         const enemyName = enemy.name || enemy.displayType || enemy.enemyId || 'Enemy';
         const actionName = action.name || 'Action';
-        const naturalRoll = d20;
+        const naturalRoll = keptD20 ?? d20;
         const isCriticalHit = isCriticalAttackRoll(naturalRoll);
-        const segments = [`${naturalRoll} (d20)`];
+        const segments = [rollMode === 'advantage' || rollMode === 'disadvantage' ? `${naturalRoll} (d20) (Rolled ${(rolledD20s || [d20]).join(' and ')})` : `${naturalRoll} (d20)`];
         if (bonus) {
           const sign = bonus >= 0 ? '+' : '-';
           segments.push(`${sign} ${Math.abs(bonus)} Attack Bonus`);
@@ -2986,6 +2987,9 @@ export default function ZombiesDM() {
               critical: isCriticalHit,
               fumble: naturalRoll === 1,
               rollLabel: 'Attack Roll',
+              rollMode: rollMode || rollModeResult.mode,
+              advantageSources: rollModeResult.advantageSources,
+              disadvantageSources: rollModeResult.disadvantageSources,
               diceRolls: [
                 {
                   sides: 20,
@@ -3805,7 +3809,8 @@ export default function ZombiesDM() {
           targetId,
           attack,
           target: { ...target, currentHp, armorClass },
-          rollAttack: () => handleEnemyAttackRoll(attacker, action),
+          combatState,
+          rollAttack: (_selected, rollMode) => handleEnemyAttackRoll(attacker, action, rollMode),
           rollDamage: () => handleEnemyDamageRoll(attacker, action),
           applyDamage: async ({ damageApplied }) => {
             const nextHp = Math.max(0, currentHp - damageApplied);

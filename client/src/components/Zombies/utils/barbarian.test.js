@@ -19,6 +19,8 @@ import {
   markBarbarianAttackRoll,
   qualifiesForRecklessAttack,
   resolveAttackRollMode,
+  activateRecklessAttack,
+  canActivateRecklessAttack,
   getAvailableBarbarianSubclasses,
   getActiveBarbarianSubclassFeatures,
   canUsePrimalKnowledgeForSkill,
@@ -235,19 +237,19 @@ describe("barbarian level 2 features", () => {
   });
 
   it("toggles Reckless Attack manually without automatic first-attack tracking", () => {
-    const declared = declareRecklessAttack(barbarian2());
+    const declared = declareRecklessAttack(activateRage(barbarian2()));
     expect(getRecklessAttackState(declared)).toMatchObject({ active: true, declared: true, firstAttackMade: false });
-    expect(getRageState(declared).current).toBe(2);
+    expect(getRageState(declared).current).toBe(1);
     const attacked = markBarbarianAttackRoll(declared);
     expect(attacked).toBe(declared);
     expect(getRecklessAttackState(attacked)).toMatchObject({ active: true, firstAttackMade: false });
     const reset = endRecklessAttack(attacked);
     expect(getRecklessAttackState(reset)).toMatchObject({ active: false, firstAttackMade: false });
-    expect(getRecklessAttackState(declareRecklessAttack(markBarbarianAttackRoll(barbarian2())))).toMatchObject({ active: true, firstAttackMade: false });
+    expect(getRecklessAttackState(declareRecklessAttack(markBarbarianAttackRoll(activateRage(barbarian2()))))).toMatchObject({ active: true, firstAttackMade: false });
   });
 
   it("adds Reckless Attack through the shared roll mode using the resolved attack ability", () => {
-    const declared = declareRecklessAttack(barbarian2());
+    const declared = declareRecklessAttack(activateRage(barbarian2()));
     const melee = { isMeleeAttack: true };
     expect(resolveAttackRollMode(declared, { ...melee, attackAbility: "str", type: "weapon attack" })).toMatchObject({ mode: "advantage", advantageSources: ["Reckless Attack"] });
     expect(resolveAttackRollMode(declared, { ...melee, attackAbility: "str", type: "unarmed strike" }).mode).toBe("advantage");
@@ -268,7 +270,7 @@ describe("barbarian level 2 features", () => {
   });
 
   it("keeps every attack in the activating turn eligible and rejects attacks outside it", () => {
-    const declared = declareRecklessAttack(barbarian2());
+    const declared = declareRecklessAttack(activateRage(barbarian2()));
     const attack = { attackAbility: "strength", isMeleeAttack: true, isSourceCurrentTurn: true };
     expect(resolveAttackRollMode(declared, attack).mode).toBe("advantage");
     expect(resolveAttackRollMode(markBarbarianAttackRoll(declared), attack).mode).toBe("advantage");
@@ -279,10 +281,28 @@ describe("barbarian level 2 features", () => {
   });
 
   it("does not replace Reckless Attack when another temporary state is added", () => {
-    const declared = declareRecklessAttack(barbarian2());
+    const declared = declareRecklessAttack(activateRage(barbarian2()));
     const withAnotherEffect = { ...declared, activeEffects: [{ id: "bless" }] };
     expect(getRecklessAttackState(withAnotherEffect).active).toBe(true);
     expect(resolveAttackRollMode(withAnotherEffect, { attackAbility: "str", isMeleeAttack: true }).advantageSources).toContain("Reckless Attack");
+  });
+
+  it("requires active Rage in both eligibility and programmatic activation", () => {
+    const inactive = barbarian2();
+    expect(canActivateRecklessAttack(inactive)).toMatchObject({ allowed: false, reason: "Reckless Attack requires Rage to be active." });
+    expect(declareRecklessAttack(inactive)).toBe(inactive);
+    expect(() => activateRecklessAttack(inactive, { participants: [] }, 'barbarian')).toThrow('requires Rage');
+  });
+
+  it("creates one next-source-turn combat effect and does not duplicate it", () => {
+    const raging = activateRage(barbarian2());
+    const combat = { participants: [{ characterId: 'barbarian' }, { characterId: 'monster' }], activeTurn: 0, round: 1, turnSequence: 1 };
+    const first = activateRecklessAttack(raging, combat, 'barbarian');
+    const second = activateRecklessAttack(first.character, first.combatState, 'barbarian');
+    expect(second.combatState.activeEffects).toHaveLength(1);
+    expect(second.combatState.activeEffects[0]).toMatchObject({
+      definitionId: 'reckless-attack', expiration: { type: 'sourceTurn', combatantId: 'barbarian', boundary: 'start' },
+    });
   });
 });
 
