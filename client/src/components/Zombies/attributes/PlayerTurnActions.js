@@ -1947,6 +1947,13 @@ const manualCriticalRef = useRef(false);
       isUnarmedStrike: isUnarmedAttack(weapon),
     };
     const rollModeResult = resolveAttackRollMode(form, attackContext, targetRollMode);
+    if (targetRollMode.brutalStrike && !isBrutalStrikeEligibleAttack({
+      attack: attackContext,
+      ability: abilityKey,
+      rollMode: rollModeResult.mode,
+    })) {
+      throw new Error('Brutal Strike requires a Strength-based attack that does not have Disadvantage.');
+    }
     await prepareDiceRollSurface('Roll');
     const { result, d20, rolledD20s, keptD20, rollMode } = await rollSkillWithDiceBox(bonus, {
       diceColor: diceFaceColor,
@@ -2609,7 +2616,10 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
       if (!attack) throw new Error('The selected attack is no longer available.');
       const ability = attack.kind === 'weapon' || attack.kind === 'unarmed' ? getAbilityKeyForWeapon(attack.slot, attack.weapon) : '';
       const pendingBrutalStrike = getBrutalStrikePendingEffect(combatState, characterId);
-      const usesBrutalStrike = Boolean(pendingBrutalStrike && isBrutalStrikeEligibleAttack({ attack, ability, rollMode: 'normal' }));
+      const usesBrutalStrike = Boolean(pendingBrutalStrike);
+      if (usesBrutalStrike && (!isActiveTurn || !isBrutalStrikeEligibleAttack({ attack, ability, rollMode: 'normal' }))) {
+        throw new Error('Brutal Strike requires a Strength-based attack that does not have Disadvantage.');
+      }
       return resolveAttack({
         attackerId: characterId, targetId, attack, target,
         combatState,
@@ -2652,7 +2662,7 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
         onAttackResolved,
       });
     },
-  }), [abilityForWeapon, attackArsenalItems, characterId, form, getAbilityKeyForWeapon, getDamageStringForHandSelection, getSpellAttackDetails, handleShowAttack, isActiveTurn, onApplyTargetDamage, onAttackResolved, onCharacterChange, rollDamageExpression]);
+  }), [abilityForWeapon, attackArsenalItems, characterId, combatState, form, getAbilityKeyForWeapon, getDamageStringForHandSelection, getSpellAttackDetails, handleShowAttack, isActiveTurn, onApplyTargetDamage, onAttackResolved, onCharacterChange, rollDamageExpression]);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div

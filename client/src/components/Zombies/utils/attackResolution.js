@@ -12,6 +12,10 @@ export const getAttackRollMode = ({ targetId, combatState, advantageSources = []
     mode: resolvedAdvantages.length && !disadvantages.length ? 'advantage' : disadvantages.length && !resolvedAdvantages.length ? 'disadvantage' : 'normal',
     advantageSources: resolvedAdvantages,
     disadvantageSources: disadvantages,
+    // Preserve source-level suppressions for the attack producer, which adds
+    // attacker-specific sources (such as Reckless Attack) immediately before
+    // the dice are rolled.
+    suppressedAdvantageSources: [...suppressedAdvantageSources],
   };
 };
 
@@ -44,7 +48,8 @@ export async function resolveAttack({
   if (validation?.valid === false) throw new Error(validation.reason || 'That target is not valid.');
 
   const rollMode = getAttackRollMode({ targetId, combatState, advantageSources, disadvantageSources, suppressedAdvantageSources });
-  if (brutalStrike && rollMode.mode === 'disadvantage') throw new Error('Brutal Strike cannot be used on an attack with Disadvantage.');
+  if (brutalStrike) rollMode.brutalStrike = true;
+  if (brutalStrike && rollMode.mode === 'disadvantage') throw new Error('Brutal Strike requires a Strength-based attack that does not have Disadvantage.');
   const rolledAttack = await rollAttack(attack, rollMode);
   const naturalRoll = Number(rolledAttack?.naturalRoll);
   const attackTotal = Number(rolledAttack?.total);

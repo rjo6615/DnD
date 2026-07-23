@@ -49,3 +49,28 @@ it('passes the shared target roll mode to every attack producer', async () => {
   await resolveAttack(input);
   expect(input.rollAttack).toHaveBeenCalledWith(input.attack, expect.objectContaining({ mode: 'advantage' }));
 });
+
+it('forwards offensive source suppression to the attack producer without hiding Reckless defense', async () => {
+  const input = base(10, 15);
+  input.combatState = { activeEffects: [{ definitionId: 'reckless-attack', targetCombatantId: 'troll' }] };
+  input.suppressedAdvantageSources = ['Reckless Attack'];
+  input.brutalStrike = true;
+  await resolveAttack(input);
+  expect(input.rollAttack).toHaveBeenCalledWith(input.attack, expect.objectContaining({
+    mode: 'advantage',
+    advantageSources: ['Target used Reckless Attack'],
+    suppressedAdvantageSources: ['Reckless Attack'],
+    brutalStrike: true,
+  }));
+  expect(input.rollDamage).toHaveBeenCalledWith(input.attack, { critical: false, brutalStrike: true });
+});
+
+it('does not roll or consume a queued Brutal Strike when final Disadvantage remains', async () => {
+  const input = base(10, 15);
+  input.brutalStrike = true;
+  input.disadvantageSources = ['Prone'];
+  input.onAttackResolved = jest.fn();
+  await expect(resolveAttack(input)).rejects.toThrow('Brutal Strike requires a Strength-based attack that does not have Disadvantage.');
+  expect(input.rollAttack).not.toHaveBeenCalled();
+  expect(input.onAttackResolved).not.toHaveBeenCalled();
+});

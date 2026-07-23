@@ -6087,7 +6087,6 @@ export default function ZombiesCharacterSheet() {
                 onApplyTargetDamage={handleApplyTargetDamage}
                 onCancelTargeting={() => {
                   setCombatTargeting(INACTIVE_COMBAT_TARGETING);
-                  setCombatState((state) => consumeBrutalStrikeOnAttackResolution(state, resolvedCharacterId || characterId));
                 }}
                 onAttackResolved={(result) => {
                   if (result.brutalStrike) setCombatState((state) => consumeBrutalStrikeOnAttackResolution(state, resolvedCharacterId || characterId));

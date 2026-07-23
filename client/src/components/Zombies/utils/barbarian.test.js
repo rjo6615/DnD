@@ -65,8 +65,18 @@ describe('Brutal Strike rules', () => {
     expect(pending.activeEffects.some((effect) => effect.definitionId === 'reckless-attack')).toBe(true);
     expect(() => activateBrutalStrike({ character: character(), combatState: pending, combatantId: 'barbarian' })).toThrow('already ready');
     expect(resolveAttackRollMode(character(), attack, { advantageSources: ['Hidden'], suppressedAdvantageSources: ['Reckless Attack'] })).toMatchObject({ mode: 'advantage', advantageSources: ['Hidden'] });
+    expect(resolveAttackRollMode(character(), attack, { suppressedAdvantageSources: ['Reckless Attack'] })).toMatchObject({ mode: 'normal', advantageSources: [] });
+    expect(resolveAttackRollMode(character(), attack, { disadvantageSources: ['Prone'], suppressedAdvantageSources: ['Reckless Attack'] })).toMatchObject({ mode: 'disadvantage' });
+    expect(resolveAttackRollMode(character(), attack, { advantageSources: ['Hidden'], disadvantageSources: ['Prone'], suppressedAdvantageSources: ['Reckless Attack'] })).toMatchObject({ mode: 'normal' });
     expect(consumeBrutalStrikeOnAttackResolution(pending, 'barbarian').activeEffects.some((effect) => effect.definitionId === 'brutal-strike-pending')).toBe(false);
     expect(character().classState.barbarian.recklessAttack.active).toBe(true);
+  });
+
+  it('rejects direct activation after Reckless Attack expires', () => {
+    const expired = advanceTurn(advanceTurn(combat));
+    expect(expired.activeEffects.some((effect) => effect.definitionId === 'reckless-attack')).toBe(false);
+    expect(() => activateBrutalStrike({ character: character(), combatState: expired, combatantId: 'barbarian', currentTurnCombatantId: 'barbarian' }))
+      .toThrow('Brutal Strike requires Reckless Attack to be active.');
   });
 
   it('clears an unused pending strike at turn end and combat end', () => {
