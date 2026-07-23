@@ -231,7 +231,7 @@ const emitEnemiesUpdate = (campaignId, enemies) => {
   io.to(getCampaignRoom(normalizedId)).emit('campaign:enemies:update', payload);
 };
 
-const emitCharacterHealthUpdate = ({ campaignId, characterId, tempHealth, health, deathState, deathEvent, combatLogEntry, rollLogEntry }) => {
+const emitCharacterHealthUpdate = ({ campaignId, characterId, tempHealth, health, deathState, deathEvent, combatLogEntry, rollLogEntry, resolvedDamage }) => {
   if (!io) {
     logger.warn('Socket.io server not initialized; cannot emit character health update');
     return;
@@ -269,6 +269,9 @@ const emitCharacterHealthUpdate = ({ campaignId, characterId, tempHealth, health
   }
   if (rollLogEntry !== undefined) {
     payload.rollLogEntry = rollLogEntry;
+  }
+  if (resolvedDamage !== undefined) {
+    payload.resolvedDamage = resolvedDamage;
   }
 
   io.to(getCampaignRoom(normalizedCampaignId)).emit('character:health:update', payload);
@@ -329,4 +332,3 @@ module.exports = {
   emitCharacterHealthUpdate,
   emitCharacterMetadataUpdate,
 };
-
