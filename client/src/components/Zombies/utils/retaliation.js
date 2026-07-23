@@ -33,7 +33,8 @@ export const createRetaliationOpportunity = ({ combatState, character, damageEve
   if ((combatState?.resolvedDecisionIds || []).includes(eventId) || (combatState?.pendingDecisions || []).some((item) => item.damageEventId === eventId)) return null;
   return {
     id: `retaliation:${eventId}`, type: 'retaliation', status: 'pending', damageEventId: eventId,
-    sourceCombatantId: sourceId, targetCombatantId: targetId, attackId: damageEvent.attackId,
+    sourceCombatantId: sourceId, targetCombatantId: targetId, ownerCombatantId: targetId,
+    triggeringCombatantId: sourceId, attackId: damageEvent.attackId,
     attackName: damageEvent.attackName || '', actualHpLost, damageTaken: actualHpLost,
     sourceName: sourceCombatant?.name || sourceCombatant?.characterName || '',
     sourcePosition: damageEvent.sourcePosition, targetPosition: damageEvent.targetPosition,

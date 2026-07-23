@@ -472,6 +472,7 @@ const PlayerTurnActions = React.forwardRef(
       onCancelTargeting = () => {},
       combatState = null,
       onAttackResolved = async () => {},
+      onDamageResolved = async () => {},
     },
     ref
   ) => {
@@ -2622,7 +2623,7 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
         throw new Error('Brutal Strike requires a Strength-based attack that does not have Disadvantage.');
       }
       return resolveAttack({
-        attackerId: characterId, targetId, attack, target,
+        attackerId: characterId, sourceType: 'character', targetId, attack, target,
         combatState,
         rollAttack: (selected, targetRollMode) => selected.kind === 'weapon' || selected.kind === 'unarmed'
           ? handleWeaponAttackRoll(selected.slot, selected.weapon, targetRollMode)
@@ -2660,10 +2661,11 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
         },
         applyDamage: onApplyTargetDamage,
         writeLog: async (entry) => setDamageLog((previous) => [...previous, entry]),
+        onDamageResolved,
         onAttackResolved,
       });
     },
-  }), [abilityForWeapon, attackArsenalItems, characterId, combatState, form, getAbilityKeyForWeapon, getDamageStringForHandSelection, getSpellAttackDetails, handleShowAttack, isActiveTurn, onApplyTargetDamage, onAttackResolved, onCharacterChange, rollDamageExpression]);
+  }), [abilityForWeapon, attackArsenalItems, characterId, combatState, form, getAbilityKeyForWeapon, getDamageStringForHandSelection, getSpellAttackDetails, handleShowAttack, isActiveTurn, onApplyTargetDamage, onAttackResolved, onCharacterChange, onDamageResolved, rollDamageExpression]);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div

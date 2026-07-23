@@ -16,8 +16,9 @@ const getGridDimensions = (mapState = {}) => ({
 
 const tokenFor = (combatant, mapState) => {
   const tokens = mapState?.tokens ?? mapState?.campaignMap?.tokens ?? [];
-  const values = Array.isArray(tokens) ? tokens : Object.values(tokens || {});
-  return values.find((token) => idOf(token) === idOf(combatant)) || combatant?.token || combatant;
+  const entries = Array.isArray(tokens) ? tokens.map((token) => ['', token]) : Object.entries(tokens || {});
+  const match = entries.find(([key, token]) => idOf(token) === idOf(combatant) || String(key) === idOf(combatant));
+  return match?.[1] || combatant?.token || combatant;
 };
 
 /** Logical grid footprint. Token coordinates are top-left normalized map coordinates. */
