@@ -1,15 +1,16 @@
 export const INACTIVE_COMBAT_TARGETING = Object.freeze({ status: 'inactive' });
 
-export const getAttackRollMode = ({ targetId, combatState, advantageSources = [], disadvantageSources = [] } = {}) => {
+export const getAttackRollMode = ({ targetId, combatState, advantageSources = [], disadvantageSources = [], suppressedAdvantageSources = [] } = {}) => {
   const advantages = [...advantageSources];
   const disadvantages = [...disadvantageSources];
   if ((combatState?.activeEffects || []).some((effect) =>
     effect?.definitionId === 'reckless-attack' && effect?.targetCombatantId === targetId)) {
     advantages.push('Target used Reckless Attack');
   }
+  const resolvedAdvantages = advantages.filter((source) => !suppressedAdvantageSources.includes(source));
   return {
-    mode: advantages.length && !disadvantages.length ? 'advantage' : disadvantages.length && !advantages.length ? 'disadvantage' : 'normal',
-    advantageSources: advantages,
+    mode: resolvedAdvantages.length && !disadvantages.length ? 'advantage' : disadvantages.length && !resolvedAdvantages.length ? 'disadvantage' : 'normal',
+    advantageSources: resolvedAdvantages,
     disadvantageSources: disadvantages,
   };
 };
@@ -31,6 +32,9 @@ export async function resolveAttack({
   combatState,
   advantageSources,
   disadvantageSources,
+  suppressedAdvantageSources,
+  brutalStrike,
+  onAttackResolved,
 }) {
   if (!attackerId || !targetId || !attack?.id) throw new Error('Attack participants or attack are missing.');
   const armorClass = Number(target?.armorClass);
@@ -39,7 +43,8 @@ export async function resolveAttack({
   const validation = validateTarget({ attackerId, targetId, attack, target });
   if (validation?.valid === false) throw new Error(validation.reason || 'That target is not valid.');
 
-  const rollMode = getAttackRollMode({ targetId, combatState, advantageSources, disadvantageSources });
+  const rollMode = getAttackRollMode({ targetId, combatState, advantageSources, disadvantageSources, suppressedAdvantageSources });
+  if (brutalStrike && rollMode.mode === 'disadvantage') throw new Error('Brutal Strike cannot be used on an attack with Disadvantage.');
   const rolledAttack = await rollAttack(attack, rollMode);
   const naturalRoll = Number(rolledAttack?.naturalRoll);
   const attackTotal = Number(rolledAttack?.total);
@@ -49,7 +54,7 @@ export async function resolveAttack({
   let rawDamage = 0;
   let damageApplied = 0;
   if (hit) {
-    rawDamage = Number(await rollDamage(attack, { critical }));
+    rawDamage = Number(await rollDamage(attack, { critical, brutalStrike }));
     if (!Number.isFinite(rawDamage)) throw new Error('The damage roll could not be completed.');
     damageApplied = Math.max(0, Number(calculateAppliedDamage({ rawDamage, damageType: attack.damageType, target })) || 0);
   }
@@ -74,5 +79,6 @@ export async function resolveAttack({
     }
   }
   await writeLog(result);
+  await onAttackResolved?.({ ...result, brutalStrike: Boolean(brutalStrike) });
   return result;
 }

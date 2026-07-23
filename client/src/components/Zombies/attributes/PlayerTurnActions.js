@@ -35,7 +35,7 @@ import {
   normalizeDiceColor,
   resolveDamageTypeColor,
 } from '../../../utils/diceColors';
-import { getFrenzyDamageDice, getRageDamageBonus, markBarbarianAttackRoll, markFrenzyUsed, resolveAttackRollMode } from '../utils/barbarian';
+import { getBrutalStrikePendingEffect, getFrenzyDamageDice, getRageDamageBonus, isBrutalStrikeEligibleAttack, markBarbarianAttackRoll, markFrenzyUsed, resolveAttackRollMode } from '../utils/barbarian';
 import { resolveAttack } from '../utils/attackResolution';
 
 // Dice rolling helper used by calculateDamage and component actions
@@ -424,6 +424,16 @@ export function calculateDamage(
     frenzyApplied = true;
   }
 
+  let brutalStrikeApplied = false;
+  if (options?.brutalStrike) {
+    const inheritedType = results.find((entry) => entry.type && entry.type !== 'Rage' && !entry.type.startsWith('Frenzy'))?.type || options?.attack?.damageType || '';
+    const brutalRolls = normalizeRollArray(roll(1, 10), 1);
+    const brutalValue = brutalRolls.reduce((sum, value) => sum + value, 0);
+    recordDiceRolls(brutalRolls, 10, inheritedType, 'brutal-strike');
+    results.push({ value: brutalValue, type: `Brutal Strike${inheritedType ? ` ${inheritedType}` : ''}` });
+    brutalStrikeApplied = true;
+  }
+
   const total = results.reduce((sum, r) => sum + r.value, 0);
   return {
     total,
@@ -432,8 +442,10 @@ export function calculateDamage(
     modifiers: [
       ...(rageBonus > 0 ? [{ label: 'Rage', value: rageBonus }] : []),
       ...(frenzyApplied ? [{ label: 'Frenzy', value: results[results.length - 1].value }] : []),
+      ...(brutalStrikeApplied ? [{ label: 'Brutal Strike', value: results.find((entry) => entry.type.startsWith('Brutal Strike'))?.value || 0 }] : []),
     ],
     frenzyApplied,
+    brutalStrikeApplied,
   };
 }
 
@@ -458,6 +470,7 @@ const PlayerTurnActions = React.forwardRef(
       onApplyTargetDamage = async () => {},
       onCancelTargeting = () => {},
       combatState = null,
+      onAttackResolved = async () => {},
     },
     ref
   ) => {
@@ -2576,6 +2589,14 @@ const runAttackRoll = useCallback((item) => {
 const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item.id); if (item.kind === 'weapon' || item.kind === 'unarmed') handleWeaponAttack(item.slot, item.weapon); else if (item.id === 'feature:breath-weapon') handleBreathWeaponAttack(); else if (item.spell) handleSpellsButtonClick(item.spell); handleCloseAttack(); }, [handleBreathWeaponAttack, handleSpellsButtonClick, makeRecent]);
 
   useImperativeHandle(ref, () => ({
+    getAttackContext: (attackId) => {
+      const selected = attackArsenalItems.find((candidate) => candidate.id === attackId);
+      if (!selected) return null;
+      return {
+        attack: { ...selected, attackAbility: selected.kind === 'weapon' || selected.kind === 'unarmed' ? getAbilityKeyForWeapon(selected.slot, selected.weapon) : '' },
+        ability: selected.kind === 'weapon' || selected.kind === 'unarmed' ? getAbilityKeyForWeapon(selected.slot, selected.weapon) : '',
+      };
+    },
     updateDamageValueWithAnimation,
     openAttackModal: handleShowAttack,
     openDiceRoller: handleShowDiceRoller,
@@ -2586,13 +2607,18 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
     resolveTargetedAttack: async ({ attackId, targetId, target }) => {
       const attack = attackArsenalItems.find((candidate) => candidate.id === attackId);
       if (!attack) throw new Error('The selected attack is no longer available.');
+      const ability = attack.kind === 'weapon' || attack.kind === 'unarmed' ? getAbilityKeyForWeapon(attack.slot, attack.weapon) : '';
+      const pendingBrutalStrike = getBrutalStrikePendingEffect(combatState, characterId);
+      const usesBrutalStrike = Boolean(pendingBrutalStrike && isBrutalStrikeEligibleAttack({ attack, ability, rollMode: 'normal' }));
       return resolveAttack({
         attackerId: characterId, targetId, attack, target,
         combatState,
         rollAttack: (selected, targetRollMode) => selected.kind === 'weapon' || selected.kind === 'unarmed'
           ? handleWeaponAttackRoll(selected.slot, selected.weapon, targetRollMode)
           : handleSpellAttackRoll(selected.spell, targetRollMode),
-        rollDamage: async (selected, { critical }) => {
+        suppressedAdvantageSources: usesBrutalStrike ? ['Reckless Attack'] : [],
+        brutalStrike: usesBrutalStrike,
+        rollDamage: async (selected, { critical, brutalStrike }) => {
           if (selected.kind === 'weapon' || selected.kind === 'unarmed') {
             const result = await rollDamageExpression({
               damageString: getDamageStringForHandSelection(selected.slot, selected.weapon),
@@ -2609,6 +2635,7 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
                   isOwnTurn: isActiveTurn,
                   damageType: selected.damageType,
                 },
+                brutalStrike,
               },
             });
             if (result?.frenzyApplied) onCharacterChange?.((previous) => markFrenzyUsed(previous || form));
@@ -2622,9 +2649,10 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
         },
         applyDamage: onApplyTargetDamage,
         writeLog: async (entry) => setDamageLog((previous) => [...previous, entry]),
+        onAttackResolved,
       });
     },
-  }), [abilityForWeapon, attackArsenalItems, characterId, form, getAbilityKeyForWeapon, getDamageStringForHandSelection, getSpellAttackDetails, handleShowAttack, isActiveTurn, onApplyTargetDamage, onCharacterChange, rollDamageExpression]);
+  }), [abilityForWeapon, attackArsenalItems, characterId, form, getAbilityKeyForWeapon, getDamageStringForHandSelection, getSpellAttackDetails, handleShowAttack, isActiveTurn, onApplyTargetDamage, onAttackResolved, onCharacterChange, rollDamageExpression]);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div
