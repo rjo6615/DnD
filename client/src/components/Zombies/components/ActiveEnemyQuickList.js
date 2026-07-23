@@ -1,6 +1,8 @@
 import React from 'react';
 import { Card, Button, Badge, Modal } from 'react-bootstrap';
 import { FiList, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { Sparkles } from 'lucide-react';
+import CombatConditionsModal from './CombatConditionsModal';
 import { sanitizeIdentifierForTestId } from '../utils/sanitizeIdentifierForTestId';
 
 export function ActiveEnemyQuickCard({
@@ -8,6 +10,7 @@ export function ActiveEnemyQuickCard({
   challengeText,
   sizeDisplay,
   armorClassDisplay,
+  speedDisplay,
   maxHpValue,
   resolvedCurrentHp,
   healthSummary,
@@ -26,8 +29,10 @@ export function ActiveEnemyQuickCard({
   formatAttackBonus,
   getEnemyActionDamageString,
   latestEnemyRoll,
+  conditions = [],
 }) {
   const [showAttacksModal, setShowAttacksModal] = React.useState(false);
+  const [showConditionsModal, setShowConditionsModal] = React.useState(false);
 
   const rawEnemyId = typeof enemy?.enemyId === 'string' ? enemy.enemyId : '';
   const normalizedEnemyId = rawEnemyId.trim() !== '' ? rawEnemyId.trim() : null;
@@ -152,6 +157,8 @@ export function ActiveEnemyQuickCard({
         <div className="enemy-quick-card__meta-line">
           <span className="enemy-card__summary-label">Size:</span>
           <span aria-hidden="true">{sizeDisplay}</span>
+          <span className="enemy-card__summary-label">Speed:</span>
+          <span>{speedDisplay || '—'}</span>
         </div>
         <div className="enemy-card__health">
           <div
@@ -277,6 +284,22 @@ export function ActiveEnemyQuickCard({
           >
             Details
           </Button>
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            className="d-inline-flex align-items-center gap-1"
+            onClick={() => setShowConditionsModal(true)}
+            disabled={conditions.length === 0}
+          >
+            <Sparkles size={16} aria-hidden="true" />
+            {conditions.length} {conditions.length === 1 ? 'Condition' : 'Conditions'}
+          </Button>
+          <CombatConditionsModal
+            show={showConditionsModal}
+            onHide={() => setShowConditionsModal(false)}
+            conditions={conditions}
+            combatantName={label}
+          />
         </div>
       </Card.Body>
     </Card>
@@ -414,6 +437,7 @@ export function ActiveEnemyQuickList({
   formatAttackBonus,
   getEnemyActionDamageString,
   latestEnemyRoll,
+  getConditionsForEnemy,
 }) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
@@ -541,6 +565,7 @@ export function ActiveEnemyQuickList({
             challengeText={summary.challengeText}
             sizeDisplay={summary.sizeDisplay}
             armorClassDisplay={summary.armorClassDisplay}
+            speedDisplay={summary.speedDisplay}
             maxHpValue={summary.maxHpValue}
             resolvedCurrentHp={summary.resolvedCurrentHp}
             healthSummary={summary.healthSummary}
@@ -559,6 +584,7 @@ export function ActiveEnemyQuickList({
             formatAttackBonus={formatAttackBonus}
             getEnemyActionDamageString={getEnemyActionDamageString}
             latestEnemyRoll={latestEnemyRoll}
+            conditions={getConditionsForEnemy ? getConditionsForEnemy(summary.enemy.enemyId || summary.enemy._id) : []}
           />
         ))}
       </div>

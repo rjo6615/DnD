@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { io } from "socket.io-client";
 import apiFetch from '../../../utils/apiFetch';
-import { createCombatState as normalizeTimelineState, advanceTurn } from '../utils/combatTimeline';
+import { createCombatState as normalizeTimelineState, advanceTurn, getActiveConditionsForCombatant, getEffectiveSpeed } from '../utils/combatTimeline';
 import { useParams } from "react-router-dom";
 import { Navbar, Container, Modal, Card, Button as BootstrapButton } from 'react-bootstrap';
 import '../../../App.scss';
@@ -78,6 +78,7 @@ import { notify } from '../../../utils/notification';
 import { bindCriticalRollTransport } from '../../../utils/criticalRolls';
 import { emitCriticalRollEvent } from '../../../utils/criticalRolls';
 import CombatTurnHeader, { HEADER_PADDING } from "../components/CombatTurnHeader";
+import CombatConditionsModal from '../components/CombatConditionsModal';
 
 const MIN_DOCKED_MODAL_WIDTH = 320;
 const DOCKED_MODAL_VIEWPORT_PADDING = 32;
@@ -610,7 +611,7 @@ export const getFooterConditionSummary = (conditions) => {
   };
 };
 
-export const buildFooterConditions = (character, normalizeCollection, combatState, combatantId) => {
+export const buildFooterConditions = (character, normalizeCollection, combatState, combatantId, resolveCombatantName) => {
   const normalize = typeof normalizeCollection === 'function' ? normalizeCollection : (value) => value || [];
   const conditions = normalize(character?.conditions || character?.statusConditions);
   const recklessActive = getRecklessAttackState(character).active;
@@ -620,6 +621,8 @@ export const buildFooterConditions = (character, normalizeCollection, combatStat
   if (getBrutalStrikePendingEffect(combatState, combatantId)) {
     withReckless = [{ id: 'brutal-strike-pending', icon: '👊', name: 'Brutal Strike', duration: 'Until end of turn', color: '#dc6047' }, ...withReckless];
   }
+  const combatConditions = getActiveConditionsForCombatant(combatantId, combatState, resolveCombatantName);
+  withReckless = [...combatConditions, ...withReckless];
   if (!getRageState(character).active) {
     return withReckless;
   }
@@ -631,54 +634,6 @@ export const buildFooterConditions = (character, normalizeCollection, combatStat
     : [{ id: 'rage-condition', icon: '🔥', name: 'Rage', color: '#f0733f' }, ...withReckless];
 };
 
-
-function ActiveConditionsModal({ show, onHide, conditions = [] }) {
-  return (
-    <Modal
-      className="dnd-modal modern-modal"
-      show={show}
-      onHide={onHide}
-      centered
-      scrollable
-      fullscreen="sm-down"
-    >
-      <Card className="modern-card active-conditions-modal">
-        <Card.Header className="modal-header">
-          <Card.Title className="modal-title">Active Conditions</Card.Title>
-        </Card.Header>
-        <Card.Body className="modal-body active-conditions-modal__body">
-          {conditions.length === 0 ? (
-            <p className="active-conditions-modal__empty">No conditions</p>
-          ) : (
-            <ul className="active-conditions-modal__list">
-              {conditions.map((condition, index) => {
-                const name = condition?.name || condition?.label || condition?.id || 'Condition';
-                const key = condition?.id || `${name}-${index}`;
-                const secondaryText = condition?.source || condition?.duration || condition?.description;
-                return (
-                  <li className="active-conditions-modal__item" key={key}>
-                    <span className="active-conditions-modal__icon" aria-hidden="true">
-                      {condition?.icon || '✦'}
-                    </span>
-                    <span className="active-conditions-modal__content">
-                      <strong>{name}</strong>
-                      {secondaryText && <small>{secondaryText}</small>}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card.Body>
-        <Card.Footer className="modal-footer">
-          <BootstrapButton className="action-btn close-btn" onClick={onHide}>
-            Close
-          </BootstrapButton>
-        </Card.Footer>
-      </Card>
-    </Modal>
-  );
-}
 
 export default function ZombiesCharacterSheet() {
   const params = useParams();
@@ -5227,8 +5182,8 @@ export default function ZombiesCharacterSheet() {
     [form, totalLevel]
   );
   const footerMovementSpeed = useMemo(
-    () => calculateCharacterMovementSpeed(form),
-    [form]
+    () => getEffectiveSpeed(calculateCharacterMovementSpeed(form), combatState, resolvedCharacterId || characterId),
+    [characterId, combatState, form, resolvedCharacterId]
   );
   const footerInitiativeModifier = useMemo(
     () => calculateCharacterInitiative(form),
@@ -5552,8 +5507,9 @@ export default function ZombiesCharacterSheet() {
     [form?.activeBonuses, form?.bonuses, form?.activeEffects, normalizeFooterCollection]
   );
   const footerConditions = useMemo(
-    () => buildFooterConditions(form, normalizeFooterCollection, combatState, resolvedCharacterId || characterId),
-    [characterId, combatState, form, normalizeFooterCollection, resolvedCharacterId]
+    () => buildFooterConditions(form, normalizeFooterCollection, combatState, resolvedCharacterId || characterId,
+      (id) => id === (resolvedCharacterId || characterId) ? (form?.name || form?.characterName) : campaignCharacters?.[id]?.name || campaignCharacters?.[id]?.characterName),
+    [campaignCharacters, characterId, combatState, form, normalizeFooterCollection, resolvedCharacterId]
   );
   const footerConditionSummary = useMemo(
     () => getFooterConditionSummary(footerConditions),
@@ -6324,7 +6280,7 @@ export default function ZombiesCharacterSheet() {
               </Dock>
             </Container>
           </Navbar>
-          <ActiveConditionsModal
+          <CombatConditionsModal
             show={showActiveConditionsModal}
             onHide={handleCloseActiveConditionsModal}
             conditions={footerConditions}

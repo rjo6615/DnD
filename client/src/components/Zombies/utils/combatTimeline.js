@@ -152,5 +152,46 @@ export const endConcentration = (inputState, concentrationId) => {
 };
 
 export const getEffectiveSpeed = (baseSpeed, effects, targetCombatantId) => Math.max(0,
-  (Number(baseSpeed) || 0) + (effects || []).filter((effect) => effect.targetCombatantId === targetCombatantId).flatMap((effect) => effect.modifiers || []).filter((modifier) => modifier.type === 'speed' && modifier.operation === 'add').reduce((sum, modifier) => sum + (Number(modifier.value) || 0), 0)
+  (Number(baseSpeed) || 0) + (Array.isArray(effects) ? effects : effects?.activeEffects || []).filter((effect) => effect.targetCombatantId === targetCombatantId).flatMap((effect) => effect.modifiers || []).filter((modifier) => modifier.type === 'speed' && modifier.operation === 'add').reduce((sum, modifier) => sum + (Number(modifier.value) || 0), 0)
 );
+
+/** Apply the shared speed pipeline without changing the persisted movement block. */
+export const getEffectiveMovement = (baseMovement, combatState, targetCombatantId) => {
+  const apply = (value) => {
+    if (typeof value === 'number') return getEffectiveSpeed(value, combatState, targetCombatantId);
+    if (typeof value === 'string') {
+      const match = value.match(/-?\d+(?:\.\d+)?/);
+      if (!match) return value;
+      return value.replace(match[0], String(getEffectiveSpeed(Number(match[0]), combatState, targetCombatantId)));
+    }
+    return value;
+  };
+  if (Array.isArray(baseMovement)) return baseMovement.map((mode) => ({ ...mode, value: apply(mode?.value ?? mode?.speed ?? mode?.distance) }));
+  if (baseMovement && typeof baseMovement === 'object') {
+    return Object.fromEntries(Object.entries(baseMovement).map(([mode, value]) => [mode, apply(value)]));
+  }
+  return apply(baseMovement);
+};
+
+const INTERNAL_EFFECTS = new Set(['brutal-strike-pending', 'brutal-strike-choice-pending']);
+
+/** The single condition selector used by character and enemy UIs. */
+export const getActiveConditionsForCombatant = (combatantId, combatState, resolveCombatantName = () => null) =>
+  (combatState?.activeEffects || [])
+    .filter((effect) => effect?.targetCombatantId === combatantId && effect.userVisible !== false && !INTERNAL_EFFECTS.has(effect.definitionId))
+    .map((effect) => {
+      const sourceName = effect.sourceCombatantId ? resolveCombatantName(effect.sourceCombatantId) : null;
+      const expiration = effect.expiration || {};
+      const duration = expiration.type === 'sourceTurn' && expiration.boundary === 'start'
+        ? `Until the start of ${sourceName || 'the source'}'s next turn`
+        : effect.duration;
+      return {
+        ...effect,
+        icon: effect.icon || '✦',
+        source: sourceName ? `Source: ${sourceName}` : effect.source,
+        duration,
+        description: effect.description || (effect.definitionId === 'hamstring-blow'
+          ? `Speed reduced by 15 feet until the start of ${sourceName || 'the source'}'s next turn.`
+          : undefined),
+      };
+    });
