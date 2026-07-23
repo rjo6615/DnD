@@ -29,6 +29,7 @@ import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
 import DamageDiceCanvas from '../attributes/DamageDiceCanvas';
 import { calculateDamage, createCriticalDamageFormula, isCriticalAttackRoll } from '../attributes/PlayerTurnActions';
+import { INACTIVE_COMBAT_TARGETING, resolveAttack } from '../utils/attackResolution';
 import { rollSkillWithDiceBox } from '../attributes/Skills';
 import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
 import { bindCriticalRollTransport } from '../../../utils/criticalRolls';
@@ -942,25 +943,24 @@ function EnemyCard({
                     </div>
                     <div className="attack-card__actions">
                       <Button
-                        variant="link"
-                        className="attack-card__roll"
+                        className="combat-roll-button combat-roll-button--attack"
                         onClick={() => onEnemyAttackRoll(enemy, action)}
                         aria-label={`Roll attack for ${actionLabel}`}
                       >
-                        <i className="fa-solid fa-bullseye" aria-hidden="true"></i>
+                        🎲 Roll Attack
                       </Button>
                       <Button
-                        variant="link"
-                        className="attack-card__roll"
+                        className="combat-roll-button"
                         onClick={() => onEnemyDamageRoll(enemy, action)}
                         aria-label={`Roll damage for ${actionLabel}`}
                       >
-                        <i className="fa-solid fa-dice-d20" aria-hidden="true"></i>
+                        💥 Roll Damage
                       </Button>
                     </div>
                     {isLatestRoll && latestEnemyRoll?.breakdown && (
-                      <div className="mt-2 small fw-semibold text-primary">
-                        {`${latestEnemyRoll.rollType === 'attack' ? 'Attack' : 'Damage'}: ${latestEnemyRoll.total} (${latestEnemyRoll.breakdown})`}
+                      <div className="mt-2 small fw-semibold text-primary" role="status">
+                        <div>{`${latestEnemyRoll.rollType === 'attack' ? 'Attack' : 'Damage'}: ${latestEnemyRoll.total} (${latestEnemyRoll.breakdown})`}</div>
+                        {latestEnemyRoll.targetName && <div>{`Target: ${latestEnemyRoll.targetName} • AC ${latestEnemyRoll.targetArmorClass} • ${latestEnemyRoll.outcome === 'critical-hit' ? 'Critical Hit' : latestEnemyRoll.outcome === 'hit' ? 'Hit' : 'Miss'}`}</div>}
                       </div>
                     )}
                   </div>
@@ -1776,6 +1776,8 @@ export default function ZombiesDM() {
     const [enemyHealthSaving, setEnemyHealthSaving] = useState({});
     const [latestEnemyRoll, setLatestEnemyRoll] = useState(null);
     const [pendingEnemyCriticalAttack, setPendingEnemyCriticalAttack] = useState(null);
+    const [combatTargeting, setCombatTargeting] = useState(INACTIVE_COMBAT_TARGETING);
+    const targetingLockRef = useRef(false);
     const [showEnemyTokenPicker, setShowEnemyTokenPicker] = useState(false);
     const [enemyTokenSelection, setEnemyTokenSelection] = useState({
       figurineImageUrl: null,
@@ -3026,6 +3028,7 @@ export default function ZombiesDM() {
           naturalRoll,
           total: result,
         });
+        return { naturalRoll, total: result };
       },
       [displayEnemyDiceResults, showEnemyDiceOverlay]
     );
@@ -3152,10 +3155,22 @@ export default function ZombiesDM() {
         if (pendingEnemyCriticalAttack?.enemyId === enemy.enemyId && pendingEnemyCriticalAttack?.actionName === actionName) {
           setPendingEnemyCriticalAttack(null);
         }
-
+        return result.total;
       },
       [displayEnemyDiceResults, getEnemyActionDamageString, pendingEnemyCriticalAttack, setStatus, showEnemyDiceOverlay]
     );
+
+    const beginEnemyTargeting = useCallback((enemy, action) => {
+      const attackerId = enemy?.enemyId || enemy?._id;
+      if (!attackerId || !action) return;
+      setCombatTargeting({
+        status: 'selecting-target',
+        sourceCombatantId: attackerId,
+        attackId: `${attackerId}:${action.name || 'action'}`,
+        attacker: enemy,
+        action,
+      });
+    }, []);
 
     const challengeRatingOptions = useMemo(() => {
       if (!Array.isArray(monsterCatalog) || monsterCatalog.length === 0) {
@@ -3759,6 +3774,85 @@ export default function ZombiesDM() {
       }
       return map;
     }, [combinedRecords, getEntityId]);
+
+    const handleEnemyTargetClick = useCallback(async (targetId) => {
+      if (combatTargeting.status !== 'selecting-target' || targetingLockRef.current) return;
+      if (!targetId || targetId === combatTargeting.sourceCombatantId) return;
+      const target = characterLookup.get(targetId);
+      const currentHp = toFiniteNumberOrNull(target?.currentHp ?? target?.tempHealth ?? target?.health ?? target?.maxHp ?? target?.hitPoints);
+      if (!target || currentHp === null || currentHp <= 0) return;
+      const armorClass = toFiniteNumberOrNull(target?.armorClass ?? target?.ac);
+      if (armorClass === null) {
+        setStatus({ type: 'warning', message: 'That target does not have an armor class.' });
+        return;
+      }
+
+      targetingLockRef.current = true;
+      setCombatTargeting((previous) => ({ ...previous, status: 'resolving', targetCombatantId: targetId }));
+      try {
+        const { attacker, action, attackId } = combatTargeting;
+        const attack = {
+          id: attackId,
+          name: action?.name || 'Action',
+          damageType: action?.damage_type?.name || action?.damage_type || '',
+        };
+        const result = await resolveAttack({
+          attackerId: combatTargeting.sourceCombatantId,
+          targetId,
+          attack,
+          target: { ...target, currentHp, armorClass },
+          rollAttack: () => handleEnemyAttackRoll(attacker, action),
+          rollDamage: () => handleEnemyDamageRoll(attacker, action),
+          applyDamage: async ({ damageApplied }) => {
+            const nextHp = Math.max(0, currentHp - damageApplied);
+            if (target.entityType === 'enemy') {
+              await updateEnemyHealth(targetId, nextHp);
+            } else {
+              const response = await apiFetch(`/characters/update-temphealth/${encodeURIComponent(targetId)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tempHealth: nextHp }),
+              });
+              if (!response.ok) throw new Error(response.statusText || 'Failed to update character health.');
+              setRecords((previous) => previous.map((record) =>
+                getEntityId(record) === targetId ? { ...record, tempHealth: nextHp } : record));
+            }
+            return { previousHp: currentHp, currentHp: nextHp, appliedDamage: damageApplied };
+          },
+          writeLog: async () => {},
+        });
+        const targetName = target.characterName || target.name || targetId;
+        setLatestEnemyRoll({
+          enemyId: attacker?.enemyId || attacker?._id,
+          enemyName: attacker?.name || attacker?.displayType || 'Enemy',
+          actionName: action?.name || 'Action',
+          total: result.attackTotal,
+          naturalRoll: result.naturalRoll,
+          attackBonus: Number(action?.attack_bonus) || 0,
+          breakdown: `${result.naturalRoll} (d20) ${Number(action?.attack_bonus) >= 0 ? '+' : '-'} ${Math.abs(Number(action?.attack_bonus) || 0)} Attack Bonus`,
+          rollType: 'attack',
+          targetId,
+          targetName,
+          targetArmorClass: result.targetArmorClass,
+          outcome: result.outcome,
+          damage: result.damageApplied,
+        });
+      } catch (error) {
+        setStatus({ type: 'danger', message: error?.message || 'The attack could not be resolved.' });
+      } finally {
+        targetingLockRef.current = false;
+        setCombatTargeting(INACTIVE_COMBAT_TARGETING);
+      }
+    }, [characterLookup, combatTargeting, getEntityId, handleEnemyAttackRoll, handleEnemyDamageRoll, updateEnemyHealth]);
+
+    useEffect(() => {
+      if (combatTargeting.status === 'inactive') return undefined;
+      const cancelTargeting = (event) => {
+        if (event.key === 'Escape') setCombatTargeting(INACTIVE_COMBAT_TARGETING);
+      };
+      window.addEventListener('keydown', cancelTargeting);
+      return () => window.removeEventListener('keydown', cancelTargeting);
+    }, [combatTargeting.status]);
 
     const resolveDisplayName = useCallback(
       (characterId) => {
@@ -6890,6 +6984,8 @@ const resolveIcon = (category, iconMap, fallback) => {
             tokens={boardTokens}
             disabled={!shouldShowCampaignTokens || mapPlacementSaving}
             allowWheelZoom
+            targeting={combatTargeting.status !== 'inactive'}
+            onTokenClick={handleEnemyTargetClick}
             onTokenPositionChange={
               shouldShowCampaignTokens && !mapPlacementSaving
                 ? handleTokenPositionChange
@@ -6908,6 +7004,12 @@ const resolveIcon = (category, iconMap, fallback) => {
           </div>
         )}
       </div>
+      {combatTargeting.status !== 'inactive' && (
+        <div className="combat-targeting-instruction" role="status" aria-live="polite">
+          <strong>{combatTargeting.status === 'resolving' ? 'Rolling attack…' : 'Select a target'}</strong>
+          <span>{combatTargeting.status === 'resolving' ? 'Resolving hit and damage.' : 'Click a living combatant to attack. Esc to cancel.'}</span>
+        </div>
+      )}
 
       <div className="zombies-dm-page__chrome">
         {status && (
@@ -7034,7 +7136,7 @@ const resolveIcon = (category, iconMap, fallback) => {
           onApplyEnemyHealthAdjustment={handleApplyEnemyHealthAdjustment}
           onResetEnemyHealth={handleResetEnemyHealth}
           onEnemyDamageRoll={handleEnemyDamageRoll}
-          onEnemyAttackRoll={handleEnemyAttackRoll}
+          onEnemyAttackRoll={beginEnemyTargeting}
           formatAttackBonus={formatAttackBonus}
           getEnemyActionDamageString={getEnemyActionDamageString}
           latestEnemyRoll={latestEnemyRoll}
@@ -8242,7 +8344,7 @@ const resolveIcon = (category, iconMap, fallback) => {
                       legendaryActionsList={legendaryActionsList}
                       latestEnemyRoll={latestEnemyRoll}
                       onEnemyDamageRoll={handleEnemyDamageRoll}
-                      onEnemyAttackRoll={handleEnemyAttackRoll}
+                      onEnemyAttackRoll={beginEnemyTargeting}
                       onEnemyAdjustmentInputChange={handleEnemyAdjustmentInputChange}
                       onApplyEnemyHealthAdjustment={handleApplyEnemyHealthAdjustment}
                       onResetEnemyHealth={handleResetEnemyHealth}
