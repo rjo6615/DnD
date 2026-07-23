@@ -68,6 +68,7 @@ import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 import { sanitizeInventoryItemsForUpdate } from "../attributes/inventorySanitization";
 import MapModal from "../attributes/MapModal";
 import { INACTIVE_COMBAT_TARGETING } from '../utils/attackResolution';
+import { declineRetaliation, startReactionAttack } from '../utils/retaliation';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
@@ -1659,6 +1660,7 @@ export default function ZombiesCharacterSheet() {
   const handleTargetTokenClick = useCallback(async (targetId) => {
     if (combatTargeting.status !== 'selecting-target' || targetingLockRef.current) return;
     if (!targetId || targetId === combatTargeting.sourceCombatantId) return;
+    if (combatTargeting.lockedTargetCombatantId && targetId !== combatTargeting.lockedTargetCombatantId) return;
     const target = targetingTokenLookupRef.current[targetId];
     if (!target || Number(target.currentHp) <= 0) return;
     targetingLockRef.current = true;
@@ -5541,6 +5543,45 @@ export default function ZombiesCharacterSheet() {
     setCombatState(normalizeCombatState(await response.json()));
   }, [encodedCampaignId]);
 
+  const retaliationDecision = (combatState.pendingDecisions || []).find((decision) =>
+    decision.type === 'retaliation' &&
+    decision.status === 'pending' &&
+    String(decision.targetCombatantId) === String(resolvedCharacterId || characterId));
+  const declinePendingRetaliation = useCallback(async () => {
+    if (!retaliationDecision) return;
+    try {
+      await persistCombatState(declineRetaliation(combatState, retaliationDecision.id));
+    } catch (error) {
+      notify(error?.message || 'The Retaliation decision could not be saved.', 'danger');
+    }
+  }, [combatState, persistCombatState, retaliationDecision]);
+  const acceptPendingRetaliation = useCallback(async () => {
+    if (!retaliationDecision) return;
+    const combatants = Object.fromEntries((combatState.participants || []).map((participant) => [
+      String(participant.characterId || participant.combatantId || participant.enemyId || participant._id || participant.id),
+      targetingTokenLookupRef.current[String(participant.characterId || participant.combatantId || participant.enemyId || participant._id || participant.id)] || participant,
+    ]));
+    const result = startReactionAttack({
+      combatState,
+      decisionId: retaliationDecision.id,
+      combatants,
+      mapState: { tokens: targetingTokenLookupRef.current },
+      attacks: [{ id: 'unarmed-strike', name: 'Unarmed Strike', kind: 'unarmed', isUnarmedStrike: true }],
+    });
+    if (result.error) {
+      notify(result.error, 'warning');
+      if (result.state !== combatState) await persistCombatState(result.state);
+      return;
+    }
+    try {
+      await persistCombatState(result.state);
+      setCombatTargeting({ status: 'selecting-target', attackId: 'unarmed-strike', ...result.attackSelection });
+      notify('Retaliation committed. Select the locked attacker with a melee weapon or Unarmed Strike.', 'info');
+    } catch (error) {
+      notify(error?.message || 'The Retaliation decision could not be saved.', 'danger');
+    }
+  }, [combatState, persistCombatState, retaliationDecision]);
+
   const confirmBrutalStrikeChoice = useCallback(async () => {
     if (!brutalStrikeChoice || !brutalStrikeSelection || brutalStrikeSubmittingRef.current) return;
     brutalStrikeSubmittingRef.current = true;
@@ -6471,6 +6512,17 @@ export default function ZombiesCharacterSheet() {
       </Modal.Body>
       <Modal.Footer>
         <BootstrapButton disabled={!brutalStrikeSelection || brutalStrikeSubmittingRef.current} onClick={confirmBrutalStrikeChoice}>Confirm</BootstrapButton>
+      </Modal.Footer>
+    </Modal>
+    <Modal className="dnd-modal" centered show={Boolean(retaliationDecision)} onHide={() => {}} backdrop="static" keyboard={false}>
+      <Modal.Header><Modal.Title>Use Retaliation?</Modal.Title></Modal.Header>
+      <Modal.Body>
+        <p>{retaliationDecision?.sourceName || 'The attacking creature'} damaged you while within 5 feet.</p>
+        <p>You can use your Reaction to make one melee attack against it.</p>
+      </Modal.Body>
+      <Modal.Footer>
+        <BootstrapButton variant="secondary" onClick={declinePendingRetaliation}>No</BootstrapButton>
+        <BootstrapButton onClick={acceptPendingRetaliation}>Yes</BootstrapButton>
       </Modal.Footer>
     </Modal>
     {dockedModalElements}

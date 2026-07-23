@@ -89,13 +89,15 @@ export async function resolveAttack({
     }
   }
   if (result.damageApplied > 0) {
+    const actualHpLost = Math.max(0, result.hpBefore - result.hpAfter);
     await onDamageResolved?.({
       damageEventId: result.resolutionId,
       sourceCombatantId: attackerId,
       targetCombatantId: targetId,
       attackId: result.attackId,
       attackName: result.attackName,
-      damageTaken: Math.max(0, result.hpBefore - result.hpAfter),
+      actualHpLost,
+      damageTaken: actualHpLost,
       sourcePosition: result.sourcePosition,
       targetPosition: result.targetPosition,
       result,

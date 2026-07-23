@@ -30,6 +30,7 @@ import MapModal from '../attributes/MapModal';
 import DamageDiceCanvas from '../attributes/DamageDiceCanvas';
 import { calculateDamage, createCriticalDamageFormula, isCriticalAttackRoll } from '../attributes/PlayerTurnActions';
 import { INACTIVE_COMBAT_TARGETING, resolveAttack } from '../utils/attackResolution';
+import { processRetaliationDamageEvent } from '../utils/retaliation';
 import { rollSkillWithDiceBox } from '../attributes/Skills';
 import { rollDiceWithBox, setDiceBoxThemeColor } from '../../../utils/diceBoxManager';
 import { bindCriticalRollTransport } from '../../../utils/criticalRolls';
@@ -3828,6 +3829,20 @@ export default function ZombiesDM() {
             }
             return { previousHp: currentHp, currentHp: nextHp, appliedDamage: damageApplied };
           },
+          onDamageResolved: async (damageEvent) => {
+            // Damage has been persisted at this point. Queue the reaction in the
+            // campaign combat document so the character's client, not just the DM,
+            // receives the decision.
+            const nextState = processRetaliationDamageEvent({
+              combatState,
+              character: target,
+              damageEvent,
+              sourceCombatant: attacker,
+              targetCombatant: target,
+              mapState: { tokens: activeMapTokens },
+            });
+            if (nextState !== combatState) await persistCombatState(nextState);
+          },
           writeLog: async () => {},
         });
         const targetName = target.characterName || target.name || targetId;
@@ -3852,7 +3867,7 @@ export default function ZombiesDM() {
         targetingLockRef.current = false;
         setCombatTargeting(INACTIVE_COMBAT_TARGETING);
       }
-    }, [characterLookup, combatTargeting, getEntityId, handleEnemyAttackRoll, handleEnemyDamageRoll, updateEnemyHealth]);
+    }, [activeMapTokens, characterLookup, combatState, combatTargeting, getEntityId, handleEnemyAttackRoll, handleEnemyDamageRoll, persistCombatState, updateEnemyHealth]);
 
     useEffect(() => {
       if (combatTargeting.status === 'inactive') return undefined;
