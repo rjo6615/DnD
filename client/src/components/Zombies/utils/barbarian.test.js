@@ -33,6 +33,8 @@ import {
   canActivateBrutalStrike,
   createRecklessAttackEffect,
   consumeBrutalStrikeOnAttackResolution,
+  applyBrutalStrikeChoice,
+  resolveBrutalStrikeAttack,
 } from "./barbarian";
 import { advanceTurn, applyActiveEffect, endCombat } from './combatTimeline';
 
@@ -90,6 +92,21 @@ describe('Brutal Strike rules', () => {
     const second = applyHamstringBlow(first, { sourceCombatantId: 'two', targetCombatantId: 'target' });
     expect(second.activeEffects).toHaveLength(1);
     expect(second.activeEffects[0]).toMatchObject({ sourceCombatantId: 'two', modifiers: [{ type: 'speed', value: -15 }] });
+  });
+
+  it('preserves a hit as an idempotent pending choice and applies Hamstring once', () => {
+    const pending = activateBrutalStrike({ character: character(), combatState: combat, combatantId: 'barbarian' });
+    const resolved = resolveBrutalStrikeAttack(pending, { resolutionId: 'roll-1', sourceCombatantId: 'barbarian', targetCombatantId: 'target', attackId: 'axe', attackName: 'Greataxe', damageType: 'slashing', brutalStrikeDamage: 8, outcome: 'hit' });
+    expect(resolved.activeEffects).toEqual(expect.arrayContaining([expect.objectContaining({ definitionId: 'brutal-strike-choice-pending', targetCombatantId: 'target', brutalStrikeDamage: 8 })]));
+    const chosen = applyBrutalStrikeChoice(resolved, { resolutionId: 'roll-1', choice: 'hamstring' });
+    expect(chosen.activeEffects.filter((effect) => effect.definitionId === 'hamstring-blow')).toHaveLength(1);
+    expect(applyBrutalStrikeChoice(chosen, { resolutionId: 'roll-1', choice: 'hamstring' })).toBe(chosen);
+  });
+
+  it('consumes a missed strike without creating a choice', () => {
+    const pending = activateBrutalStrike({ character: character(), combatState: combat, combatantId: 'barbarian' });
+    const missed = resolveBrutalStrikeAttack(pending, { resolutionId: 'miss-1', sourceCombatantId: 'barbarian', targetCombatantId: 'target', outcome: 'miss' });
+    expect(missed.activeEffects.some((effect) => /brutal-strike-(pending|choice-pending)/.test(effect.definitionId))).toBe(false);
   });
 });
 

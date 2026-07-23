@@ -446,6 +446,7 @@ export function calculateDamage(
     ],
     frenzyApplied,
     brutalStrikeApplied,
+    brutalStrikeDamage: brutalStrikeApplied ? (results.find((entry) => entry.type.startsWith('Brutal Strike'))?.value || 0) : 0,
   };
 }
 
@@ -2650,7 +2651,7 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
             });
             if (result?.frenzyApplied) onCharacterChange?.((previous) => markFrenzyUsed(previous || form));
             if (result) updateDamageValueWithAnimation(result.total, result.breakdown, selected.name, { diceRolls: result.diceRolls });
-            return result?.total;
+            return result;
           }
           const details = getSpellAttackDetails(selected.spell);
           const result = await rollDamageExpression({ damageString: selected.damageText, ability: details?.abilityBonus || 0, crit: critical });

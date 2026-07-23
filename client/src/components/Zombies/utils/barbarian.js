@@ -695,6 +695,37 @@ export const consumeBrutalStrikeOnAttackResolution = (combatState, combatantId) 
   return pending ? removeActiveEffect(combatState, pending.id) : combatState;
 };
 
+export const createBrutalStrikeChoice = ({ resolutionId, sourceCombatantId, targetCombatantId, attackId, attackName, damageType, brutalStrikeDamage }) => ({
+  id: `brutal-strike-choice:${resolutionId}`,
+  definitionId: 'brutal-strike-choice-pending',
+  name: 'Brutal Strike choice pending',
+  resolutionId, sourceCombatantId, targetCombatantId, attackId, attackName, damageType,
+  brutalStrikeDamage: Number(brutalStrikeDamage) || 0,
+  expiration: { type: 'combatEnd' },
+  stackKey: `brutal-strike-choice:${resolutionId}`,
+  stackPolicy: 'ignore',
+});
+
+export const resolveBrutalStrikeAttack = (combatState, resolution) => {
+  const consumed = consumeBrutalStrikeOnAttackResolution(combatState, resolution.sourceCombatantId);
+  if (resolution.outcome === 'miss') return consumed;
+  return applyActiveEffect(consumed, createBrutalStrikeChoice(resolution));
+};
+
+export const getBrutalStrikeChoice = (combatState, sourceCombatantId) =>
+  (combatState?.activeEffects || []).find((effect) => effect.definitionId === 'brutal-strike-choice-pending' && effect.sourceCombatantId === sourceCombatantId);
+
+export const applyBrutalStrikeChoice = (combatState, { resolutionId, choice }) => {
+  const pending = (combatState?.activeEffects || []).find((effect) => effect.definitionId === 'brutal-strike-choice-pending' && effect.resolutionId === resolutionId);
+  if (!pending) return combatState;
+  let next = removeActiveEffect(combatState, pending.id);
+  if (choice === 'hamstring') next = applyHamstringBlow(next, pending);
+  return { ...next, eventLog: [...next.eventLog, {
+    type: 'brutalStrikeChoiceResolved', resolutionId, choice,
+    sourceCombatantId: pending.sourceCombatantId, targetCombatantId: pending.targetCombatantId,
+  }] };
+};
+
 export const createHamstringBlowEffect = ({ sourceCombatantId, targetCombatantId }) => ({
   id: `hamstring-blow:${targetCombatantId}:${Date.now()}`,
   definitionId: 'hamstring-blow',
