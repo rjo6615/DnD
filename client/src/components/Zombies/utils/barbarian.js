@@ -551,20 +551,42 @@ export const endRecklessAttack = (character) => {
 
 export const markBarbarianAttackRoll = (character) => character;
 
+/**
+ * Reckless Attack is evaluated from the resolved attack, after any choice of
+ * attack ability has been made.  Callers should provide isMeleeAttack on new
+ * attack models; the kind fallback keeps older attack producers compatible.
+ */
+export const qualifiesForRecklessAttack = (attack = {}, context = {}) => {
+  const ability = normalize(
+    attack.attackAbility ?? attack.ability ?? attack.abilityKey ?? attack.stat
+  );
+  const kind = normalize(attack.kind ?? attack.type ?? attack.attackType);
+  const range = normalize(attack.rangeType ?? attack.range ?? attack.category);
+  const isMeleeAttack = typeof attack.isMeleeAttack === "boolean"
+    ? attack.isMeleeAttack
+    : typeof context.isMeleeAttack === "boolean"
+      ? context.isMeleeAttack
+      : !range.includes("ranged") && (
+        kind.includes("melee") ||
+        kind.includes("weapon") ||
+        kind.includes("unarmed") ||
+        attack.isWeaponAttack ||
+        attack.isUnarmedStrike
+      );
+
+  return context.isSourceCurrentTurn !== false &&
+    (ability === "str" || ability === "strength") &&
+    isMeleeAttack &&
+    !attack.isDamageRoll;
+};
+
 export const getRecklessAttackAdvantageSources = (character, attack = {}) => {
   const state = getRecklessAttackState(character);
   if (!state.active) return [];
-  const ability = normalize(attack.ability ?? attack.abilityKey ?? attack.stat);
-  const kind = normalize(attack.kind ?? attack.type ?? attack.attackType);
-  const isQualifyingKind =
-    kind.includes("weapon") ||
-    kind.includes("unarmed") ||
-    attack.isWeaponAttack ||
-    attack.isUnarmedStrike;
-  if (ability !== "str" || attack.isSpellAttack || !isQualifyingKind || attack.isDamageRoll) {
-    return [];
-  }
-  return ["Reckless Attack"];
+  return qualifiesForRecklessAttack(attack, {
+    isSourceCurrentTurn: attack.isSourceCurrentTurn,
+    isMeleeAttack: attack.isMeleeAttack,
+  }) ? ["Reckless Attack"] : [];
 };
 
 export const resolveAttackRollMode = (character, attack = {}, options = {}) => {

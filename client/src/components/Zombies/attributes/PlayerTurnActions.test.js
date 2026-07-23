@@ -853,6 +853,64 @@ describe('PlayerTurnActions weapon damage display', () => {
     }
   });
 
+  test('active Reckless Attack rolls a resolved Strength melee attack with advantage', async () => {
+    const weapon = {
+      name: 'Greatsword',
+      damage: '2d6 slashing',
+      category: 'Martial Melee Weapon',
+      source: 'weapon',
+      properties: ['Heavy', 'Two-Handed'],
+    };
+    const onRoll = jest.fn();
+    window.addEventListener('damage-roll', onRoll);
+    const baseForm = {
+      diceColor: '#000000',
+      equipment: { mainHand: weapon },
+      spells: [],
+      occupation: [{ Name: 'Barbarian', Level: 5 }],
+      classState: { barbarian: { recklessAttack: { active: false } } },
+    };
+    const { actionsRef, rerender } = render(
+      <PlayerTurnActions
+        form={baseForm}
+        strMod={4}
+        dexMod={1}
+      />
+    );
+
+    // Reproduce activating Reckless Attack after this attack UI mounted. The
+    // regression retained the initial form in runAttackRoll's callback.
+    rerender(
+      <PlayerTurnActions
+        ref={actionsRef}
+        form={{
+          ...baseForm,
+          classState: { barbarian: { recklessAttack: { active: true, declared: true } } },
+        }}
+        strMod={4}
+        dexMod={1}
+      />
+    );
+
+    openAttackModal(actionsRef);
+    const card = screen.getByText('Greatsword').closest('.attack-card');
+    expect(card).not.toBeNull();
+    rollDiceWithBox.mockResolvedValueOnce({ rolls: [[7, 16]] });
+    await act(async () => {
+      fireEvent.click(within(card).getByLabelText(/Roll to hit/i));
+    });
+
+    await waitFor(() => {
+      expect(rollDiceWithBox).toHaveBeenCalledWith([{ count: 2, sides: 20 }]);
+    });
+    const detail = onRoll.mock.calls.at(-1)?.[0]?.detail;
+    expect(detail).toMatchObject({
+      rollMode: 'advantage',
+      advantageSources: ['Reckless Attack'],
+    });
+    window.removeEventListener('damage-roll', onRoll);
+  });
+
   test('ranged spell attack roll uses spell ability and proficiency bonus', async () => {
     const spell = {
       name: 'Fire Bolt',

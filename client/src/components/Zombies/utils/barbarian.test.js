@@ -17,6 +17,7 @@ import {
   endRecklessAttack,
   getRecklessAttackState,
   markBarbarianAttackRoll,
+  qualifiesForRecklessAttack,
   resolveAttackRollMode,
   getAvailableBarbarianSubclasses,
   getActiveBarbarianSubclassFeatures,
@@ -245,15 +246,43 @@ describe("barbarian level 2 features", () => {
     expect(getRecklessAttackState(declareRecklessAttack(markBarbarianAttackRoll(barbarian2())))).toMatchObject({ active: true, firstAttackMade: false });
   });
 
-  it("adds Reckless Attack advantage only to Strength weapon and unarmed attack rolls", () => {
+  it("adds Reckless Attack through the shared roll mode using the resolved attack ability", () => {
     const declared = declareRecklessAttack(barbarian2());
-    expect(resolveAttackRollMode(declared, { ability: "str", type: "weapon attack" })).toMatchObject({ mode: "advantage", advantageSources: ["Reckless Attack"] });
-    expect(resolveAttackRollMode(declared, { ability: "str", type: "unarmed strike" }).mode).toBe("advantage");
-    expect(resolveAttackRollMode(declared, { ability: "dex", type: "weapon attack" }).mode).toBe("normal");
-    expect(resolveAttackRollMode(declared, { ability: "str", type: "spell attack", isSpellAttack: true }).mode).toBe("normal");
+    const melee = { isMeleeAttack: true };
+    expect(resolveAttackRollMode(declared, { ...melee, attackAbility: "str", type: "weapon attack" })).toMatchObject({ mode: "advantage", advantageSources: ["Reckless Attack"] });
+    expect(resolveAttackRollMode(declared, { ...melee, attackAbility: "str", type: "unarmed strike" }).mode).toBe("advantage");
+    expect(resolveAttackRollMode(declared, { ...melee, attackAbility: "str", type: "ability attack" }).mode).toBe("advantage");
+    expect(resolveAttackRollMode(declared, { ...melee, attackAbility: "dex", type: "weapon attack" }).mode).toBe("normal");
+    expect(resolveAttackRollMode(declared, { ...melee, attackAbility: "cha", type: "spell attack" }).mode).toBe("normal");
+    expect(resolveAttackRollMode(declared, { attackAbility: "str", isMeleeAttack: false, type: "weapon attack" }).mode).toBe("normal");
     expect(resolveAttackRollMode(declared, { ability: "str", type: "weapon attack" }, { disadvantageSources: ["Prone"] }).mode).toBe("normal");
     expect(resolveAttackRollMode(declared, { ability: "str", type: "weapon attack" }, { advantageSources: ["Help"] }).mode).toBe("advantage");
     expect(resolveAttackRollMode(endRecklessAttack(declared), { ability: "str", type: "weapon attack" }).mode).toBe("normal");
+  });
+
+  it("bases finesse eligibility on the selected ability, not the available abilities", () => {
+    const finesseAttack = { type: "weapon attack", isMeleeAttack: true, availableAbilities: ["str", "dex"] };
+    expect(qualifiesForRecklessAttack({ ...finesseAttack, attackAbility: "str" })).toBe(true);
+    expect(qualifiesForRecklessAttack({ ...finesseAttack, attackAbility: "dex" })).toBe(false);
+    expect(qualifiesForRecklessAttack(finesseAttack)).toBe(false);
+  });
+
+  it("keeps every attack in the activating turn eligible and rejects attacks outside it", () => {
+    const declared = declareRecklessAttack(barbarian2());
+    const attack = { attackAbility: "strength", isMeleeAttack: true, isSourceCurrentTurn: true };
+    expect(resolveAttackRollMode(declared, attack).mode).toBe("advantage");
+    expect(resolveAttackRollMode(markBarbarianAttackRoll(declared), attack).mode).toBe("advantage");
+    const afterMovementAndBonusAction = { ...declared, movementUsed: 20, bonusActionUsed: true };
+    expect(resolveAttackRollMode(afterMovementAndBonusAction, attack).mode).toBe("advantage");
+    expect(resolveAttackRollMode(declared, { ...attack, isSourceCurrentTurn: false }).mode).toBe("normal");
+    expect(resolveAttackRollMode(endRecklessAttack(declared), attack).mode).toBe("normal");
+  });
+
+  it("does not replace Reckless Attack when another temporary state is added", () => {
+    const declared = declareRecklessAttack(barbarian2());
+    const withAnotherEffect = { ...declared, activeEffects: [{ id: "bless" }] };
+    expect(getRecklessAttackState(withAnotherEffect).active).toBe(true);
+    expect(resolveAttackRollMode(withAnotherEffect, { attackAbility: "str", isMeleeAttack: true }).advantageSources).toContain("Reckless Attack");
   });
 });
 

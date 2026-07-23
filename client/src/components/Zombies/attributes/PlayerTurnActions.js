@@ -1924,7 +1924,8 @@ const manualCriticalRef = useRef(false);
     const bonus = Number.isFinite(rawBonus) ? rawBonus : 0;
     const abilityKey = getAbilityKeyForWeapon(slot, weapon);
     const attackContext = {
-      ability: abilityKey,
+      attackAbility: abilityKey,
+      isMeleeAttack: isUnarmedAttack(weapon) || isMeleeWeapon(weapon),
       kind: isUnarmedAttack(weapon) ? 'unarmed' : 'weapon',
       isWeaponAttack: !isUnarmedAttack(weapon),
       isUnarmedStrike: isUnarmedAttack(weapon),
@@ -2569,7 +2570,7 @@ const visibleAttackItems = useMemo(() => {
 
 const selectedAttack = useMemo(() => attackArsenalItems.find((item) => item.id === selectedAttackId) || null, [attackArsenalItems, selectedAttackId]);
 
-const runAttackRoll = useCallback((item) => { if (!item) return; makeRecent(item.id); if (item.kind === 'weapon' || item.kind === 'unarmed') handleWeaponAttackRoll(item.slot, item.weapon); else if (item.spell) handleSpellAttackRoll(item.spell); handleCloseAttack(); }, [handleSpellAttackRoll, makeRecent]);
+const runAttackRoll = useCallback((item) => { if (!item) return; makeRecent(item.id); if (item.kind === 'weapon' || item.kind === 'unarmed') handleWeaponAttackRoll(item.slot, item.weapon); else if (item.spell) handleSpellAttackRoll(item.spell); handleCloseAttack(); }, [handleSpellAttackRoll, handleWeaponAttackRoll, makeRecent]);
 const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item.id); if (item.kind === 'weapon' || item.kind === 'unarmed') handleWeaponAttack(item.slot, item.weapon); else if (item.id === 'feature:breath-weapon') handleBreathWeaponAttack(); else if (item.spell) handleSpellsButtonClick(item.spell); handleCloseAttack(); }, [handleBreathWeaponAttack, handleSpellsButtonClick, makeRecent]);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
