@@ -6,10 +6,11 @@ const handleValidationErrors = require('../../middleware/validation');
 const logger = require('../../utils/logger');
 const { emitCharacterHealthUpdate } = require('../../utils/socket');
 const { items: itemCatalog } = require('../../data/items');
+const { characterLevel, constitutionModifier, resolveCharacterMaxHp, resolveHitDie } = require('../../utils/characterHealth');
 const { applyHealthChange, applyDeathSaveResult, normalizeDeathState, reviveCharacter, markCharacterDead, clearDeathState } = require('../../utils/deathState');
 
 const resolveCurrentHp = (character) => Number(character?.tempHealth ?? character?.health ?? 0);
-const resolveMaxHp = (character) => Number(character?.health ?? 0);
+const resolveMaxHp = resolveCharacterMaxHp;
 
 /**
  * Persist an HP delta against the latest character document.  Damage, rests and
@@ -157,15 +158,26 @@ module.exports = (router) => {
         if (character.hpEventIds?.includes(eventId)) {
           return res.json({ success: true, duplicate: true, previousHp: resolveCurrentHp(character), currentHp: resolveCurrentHp(character), actualHealing: 0, eventId });
         }
-        const requested = type === 'long' ? resolveMaxHp(character) : healingAmount;
+        const level = Math.max(1, characterLevel(character));
+        const usedHitDice = Math.max(0, Math.floor(Number(character.hitDiceUsed) || 0));
+        const canSpendHitDie = type === 'short'
+          && usedHitDice < level
+          && resolveCurrentHp(character) < resolveMaxHp(character);
+        const rolledHealing = canSpendHitDie
+          ? Math.max(0, Math.floor(Math.random() * resolveHitDie(character)) + 1 + constitutionModifier(character))
+          : 0;
+        const requested = type === 'long' ? resolveMaxHp(character) : rolledHealing;
         const outcome = buildHealingOutcome(character, requested);
+        const nextHitDiceUsed = type === 'long'
+          ? Math.max(0, usedHitDice - Math.max(1, Math.ceil(level / 2)))
+          : usedHitDice + (canSpendHitDie ? 1 : 0);
         const result = await collection.updateOne(
           { ...id, hpEventIds: { $ne: eventId }, tempHealth: character.tempHealth },
-          { $set: { tempHealth: outcome.currentHp, deathState: applyHealthChange(character, outcome.currentHp, character.tempHealth).character.deathState }, $push: { hpEventIds: { $each: [eventId], $slice: -100 } } }
+          { $set: { tempHealth: outcome.currentHp, hitDiceUsed: nextHitDiceUsed, deathState: applyHealthChange(character, outcome.currentHp, character.tempHealth).character.deathState }, $push: { hpEventIds: { $each: [eventId], $slice: -100 } } }
         );
         if (!result?.matchedCount) return res.status(409).json({ message: 'Rest state changed concurrently; retry the rest.' });
         await notifyCharacterHealthUpdate(req.db, id._id);
-        res.json({ success: true, type, ...outcome, eventId });
+        res.json({ success: true, type, ...outcome, hitDiceUsed: nextHitDiceUsed, hitDieSpent: canSpendHitDie, rolledHealing, eventId });
       } catch (err) { next(err); }
     }
   );

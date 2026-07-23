@@ -79,6 +79,40 @@ describe('Health routes validation', () => {
     );
   });
 
+  test('uses derived max HP and atomically spends a Hit Die on a short rest', async () => {
+    const random = jest.spyOn(Math, 'random').mockReturnValue(0);
+    const character = {
+      _id: '507f1f77bcf86cd799439011', campaign: 'Test', health: 10, tempHealth: 8,
+      con: 14, occupation: [{ Level: 2, Health: 10 }], hitDiceUsed: 0, hpEventIds: [],
+    };
+    const updateOne = jest.fn().mockResolvedValue({ matchedCount: 1 });
+    dbo.mockResolvedValue({ collection: () => ({ findOne: async () => character, updateOne }) });
+
+    const res = await request(app).put('/characters/rest/507f1f77bcf86cd799439011')
+      .send({ type: 'short', eventId: 'short-rest-1' });
+
+    expect(res.body).toMatchObject({ previousHp: 8, currentHp: 11, maxHp: 14, actualHealing: 3, hitDieSpent: true, hitDiceUsed: 1 });
+    expect(updateOne).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ $set: expect.objectContaining({ tempHealth: 11, hitDiceUsed: 1 }) })
+    );
+    random.mockRestore();
+  });
+
+  test('healing clamps against derived max HP rather than base health', async () => {
+    const character = {
+      _id: '507f1f77bcf86cd799439011', campaign: 'Test', health: 10, tempHealth: 12,
+      con: 14, occupation: [{ Level: 3, Health: 10 }], hpEventIds: [],
+    };
+    const updateOne = jest.fn().mockResolvedValue({ matchedCount: 1 });
+    dbo.mockResolvedValue({ collection: () => ({ findOne: async () => character, updateOne }) });
+
+    const res = await request(app).put('/characters/heal/507f1f77bcf86cd799439011')
+      .send({ amount: 20, eventId: 'heal-derived-max' });
+
+    expect(res.body).toMatchObject({ previousHp: 12, currentHp: 16, maxHp: 16, actualHealing: 4 });
+  });
+
   test('update temphealth invalid id', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app)

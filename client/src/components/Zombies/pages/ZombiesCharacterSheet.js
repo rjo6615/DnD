@@ -3039,7 +3039,11 @@ export default function ZombiesCharacterSheet() {
       if (!response.ok) throw new Error('The healing could not be saved. No character resources were changed.');
       const saved = await response.json();
       handleHealthChange(Number(saved.currentHp));
-      setForm((prev) => applyRageRest(prev, type));
+      setForm((prev) => ({
+        ...applyRageRest(prev, type),
+        tempHealth: Number(saved.currentHp),
+        ...(Number.isInteger(saved.hitDiceUsed) ? { hitDiceUsed: saved.hitDiceUsed } : {}),
+      }));
       if (type === 'long') setLongRestCount((count) => count + 1);
       else setShortRestCount((count) => count + 1);
     } catch (error) {

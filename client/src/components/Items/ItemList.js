@@ -653,6 +653,8 @@ function ItemList({
           healingAmount: Number(healingResult?.value) || 0,
         });
         setOwnedEntries(Array.isArray(savedEntries) ? savedEntries : nextEntries);
+        dispatchConsumablePotionUsed(item);
+        onClose?.();
        } catch (useError) {
         setError({ message: useError?.message || 'The healing could not be saved. No character resources were changed.' });
        }
@@ -665,7 +667,7 @@ function ItemList({
       if (typeof onChange === 'function') onChange(nextEntries);
     }
 
-    if (isConsumablePotion(item)) {
+    if (isConsumablePotion(item) && typeof onUseConsumable !== 'function') {
       dispatchConsumablePotionUsed(item);
       if (typeof onClose === 'function') {
         onClose();
