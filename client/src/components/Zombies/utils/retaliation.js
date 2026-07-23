@@ -5,6 +5,8 @@ export const RETALIATION_DESCRIPTION = 'After you take damage from a creature wi
 const idOf = (value) => String(value?.characterId ?? value?.combatantId ?? value?.enemyId ?? value?._id ?? value?.id ?? value ?? '');
 const participants = (state) => state?.participants || [];
 const inCombat = (state, id) => participants(state).some((entry) => idOf(entry) === String(id));
+const retaliationResolutionKey = (damageEventId, targetCombatantId) =>
+  `retaliation:${damageEventId}:${targetCombatantId}`;
 
 export const hasRetaliation = (character) => isPathOfTheBerserker(character) &&
   getActiveBarbarianSubclassFeatures(character).some((feature) => feature.id === 'berserker-retaliation');
@@ -32,7 +34,11 @@ export const createRetaliationOpportunity = ({ combatState, character, damageEve
   if (!eventId || !eventSourceId || !sourceId || !targetId || sourceId !== eventSourceId || sourceId === targetId || actualHpLost <= 0) return null;
   if (!hasRetaliation(character) || !inCombat(combatState, sourceId) || !inCombat(combatState, targetId) || !isReactionAvailable(combatState, targetId)) return null;
   if (getGridDistanceFeet(sourceCombatant || sourceId, targetCombatant || targetId, mapState) > 5) return null;
-  if ((combatState?.resolvedDecisionIds || []).includes(eventId) || (combatState?.pendingDecisions || []).some((item) => item.damageEventId === eventId)) return null;
+  const resolutionKey = retaliationResolutionKey(eventId, targetId);
+  if ((combatState?.resolvedDecisionIds || []).some((id) => id === eventId || id === resolutionKey) ||
+      (combatState?.pendingDecisions || []).some((item) =>
+        item.type === 'retaliation' && item.damageEventId === eventId &&
+        String(item.ownerCombatantId || item.targetCombatantId) === targetId)) return null;
   return {
     id: `retaliation:${eventId}`, type: 'retaliation', status: 'pending', damageEventId: eventId,
     sourceCombatantId: sourceId, targetCombatantId: targetId, ownerCombatantId: targetId,
@@ -55,7 +61,10 @@ export const queueRetaliation = (state, opportunity) => opportunity ?
 const resolveDecision = (state, decision) => ({
   ...state,
   pendingDecisions: (state.pendingDecisions || []).filter((item) => item.id !== decision.id),
-  resolvedDecisionIds: [...new Set([...(state.resolvedDecisionIds || []), decision.damageEventId])],
+  resolvedDecisionIds: [...new Set([
+    ...(state.resolvedDecisionIds || []),
+    retaliationResolutionKey(decision.damageEventId, decision.ownerCombatantId || decision.targetCombatantId),
+  ])],
 });
 
 export const declineRetaliation = (state, decisionId) => {

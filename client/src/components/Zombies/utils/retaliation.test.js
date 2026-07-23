@@ -86,6 +86,18 @@ it('declining does not spend the Reaction', () => {
   const state = declineRetaliation(queueRetaliation(baseState, opportunity), opportunity.id);
   expect(state.reactions.barbarian).toBeUndefined();
   expect(state.pendingDecisions).toHaveLength(0);
+  expect(createRetaliationOpportunity({ combatState: state, character: character(), damageEvent: event, sourceCombatant: source, targetCombatant: target })).toBeNull();
+});
+
+it('deduplicates only the same Retaliation target and damage event', () => {
+  const unrelatedDecision = {
+    id: 'other', type: 'other-reaction', status: 'pending', damageEventId: event.resolutionId,
+    ownerCombatantId: 'barbarian',
+  };
+  expect(createRetaliationOpportunity({
+    combatState: { ...baseState, pendingDecisions: [unrelatedDecision] },
+    character: character(), damageEvent: event, sourceCombatant: source, targetCombatant: target,
+  })).not.toBeNull();
 });
 
 it('committing spends the Reaction, filters attacks, and locks the triggering target', () => {
