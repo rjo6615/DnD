@@ -26,17 +26,25 @@ export const createRetaliationOpportunity = ({ combatState, character, damageEve
   const eventSourceId = idOf(damageEvent?.sourceCombatantId || damageEvent?.attackerId);
   const sourceId = eventSourceId && idOf(sourceCombatant || eventSourceId);
   const targetId = idOf(targetCombatant || damageEvent?.targetCombatantId || damageEvent?.targetId);
-  if (!eventId || !eventSourceId || !sourceId || !targetId || sourceId !== eventSourceId || sourceId === targetId || Number(damageEvent?.damageTaken ?? damageEvent?.damageApplied) <= 0) return null;
+  const actualHpLost = Number(damageEvent?.actualHpLost ?? damageEvent?.damageTaken ?? damageEvent?.damageApplied);
+  if (!eventId || !eventSourceId || !sourceId || !targetId || sourceId !== eventSourceId || sourceId === targetId || actualHpLost <= 0) return null;
   if (!hasRetaliation(character) || !inCombat(combatState, sourceId) || !inCombat(combatState, targetId) || !isReactionAvailable(combatState, targetId)) return null;
   if (getGridDistanceFeet(sourceCombatant || sourceId, targetCombatant || targetId, mapState) > 5) return null;
   if ((combatState?.resolvedDecisionIds || []).includes(eventId) || (combatState?.pendingDecisions || []).some((item) => item.damageEventId === eventId)) return null;
   return {
     id: `retaliation:${eventId}`, type: 'retaliation', status: 'pending', damageEventId: eventId,
     sourceCombatantId: sourceId, targetCombatantId: targetId, attackId: damageEvent.attackId,
-    attackName: damageEvent.attackName || '', damageTaken: Number(damageEvent.damageTaken ?? damageEvent.damageApplied),
+    attackName: damageEvent.attackName || '', actualHpLost, damageTaken: actualHpLost,
+    sourceName: sourceCombatant?.name || sourceCombatant?.characterName || '',
     sourcePosition: damageEvent.sourcePosition, targetPosition: damageEvent.targetPosition,
   };
 };
+
+/** Converts the authoritative post-HP-update event into shared combat state. */
+export const processRetaliationDamageEvent = ({ combatState, character, damageEvent, sourceCombatant, targetCombatant, mapState }) =>
+  queueRetaliation(combatState, createRetaliationOpportunity({
+    combatState, character, damageEvent, sourceCombatant, targetCombatant, mapState,
+  }));
 
 export const queueRetaliation = (state, opportunity) => opportunity ?
   { ...state, pendingDecisions: [...(state.pendingDecisions || []), opportunity] } : state;
