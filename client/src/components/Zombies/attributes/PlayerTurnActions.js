@@ -36,6 +36,7 @@ import {
   resolveDamageTypeColor,
 } from '../../../utils/diceColors';
 import { getFrenzyDamageDice, getRageDamageBonus, markBarbarianAttackRoll, markFrenzyUsed, resolveAttackRollMode } from '../utils/barbarian';
+import { resolveAttack } from '../utils/attackResolution';
 
 // Dice rolling helper used by calculateDamage and component actions
 function rollDice(numberOfDiceValue, sidesOfDiceValue) {
@@ -452,6 +453,9 @@ const PlayerTurnActions = React.forwardRef(
       longRestCount = 0,
       shortRestCount = 0,
       characterId = null,
+      onBeginTargeting = () => {},
+      onApplyTargetDamage = async () => {},
+      onCancelTargeting = () => {},
     },
     ref
   ) => {
@@ -465,7 +469,7 @@ const PlayerTurnActions = React.forwardRef(
   const [favoriteAttackIds, setFavoriteAttackIds] = useState(() => new Set());
   const [recentAttackIds, setRecentAttackIds] = useState([]);
   const [showDiceRoller, setShowDiceRoller] = useState(false);
-  const handleCloseAttack = () => setShowAttack(false);
+  const handleCloseAttack = () => { setShowAttack(false); onCancelTargeting(); };
   const handleShowAttack = useCallback(() => setShowAttack(true), []);
   const handleCloseDiceRoller = () => setShowDiceRoller(false);
   const handleShowDiceRoller = useCallback(() => setShowDiceRoller(true), []);
@@ -1904,6 +1908,7 @@ const manualCriticalRef = useRef(false);
       if (pendingCriticalAttack?.attackId === attackRollId) {
         setPendingCriticalAttack(null);
       }
+      return result.total;
     },
     [
       abilityForWeapon,
@@ -1986,6 +1991,7 @@ const manualCriticalRef = useRef(false);
       isNaturalOne: naturalRoll === 1,
       sourceLabel: weaponLabel,
     });
+    return { naturalRoll, total: result };
   };
 
   const handleSpellAttackRoll = useCallback(
@@ -2042,6 +2048,7 @@ const manualCriticalRef = useRef(false);
         isNaturalOne: d20 === 1,
         sourceLabel: spell?.name || 'Spell',
       });
+      return { naturalRoll: d20, total: result };
     },
     [
       diceFaceColor,
@@ -2306,20 +2313,6 @@ const updateDamageValueWithAnimation = (
   }
 };
 
-useImperativeHandle(
-  ref,
-  () => ({
-    updateDamageValueWithAnimation,
-    openAttackModal: handleShowAttack,
-    openDiceRoller: handleShowDiceRoller,
-    openDamageLog: () => setShowLog(true),
-    toggleCritical: handleDamageClick,
-    setCritical: setCriticalState,
-    clearDamageDice,
-  }),
-  [handleShowAttack, handleShowDiceRoller, handleDamageClick, setCriticalState, clearDamageDice],
-);
-
 const [pulseClass, setPulseClass] = useState('');
 
 useEffect(() => {
@@ -2570,8 +2563,49 @@ const visibleAttackItems = useMemo(() => {
 
 const selectedAttack = useMemo(() => attackArsenalItems.find((item) => item.id === selectedAttackId) || null, [attackArsenalItems, selectedAttackId]);
 
-const runAttackRoll = useCallback((item) => { if (!item) return; makeRecent(item.id); if (item.kind === 'weapon' || item.kind === 'unarmed') handleWeaponAttackRoll(item.slot, item.weapon); else if (item.spell) handleSpellAttackRoll(item.spell); handleCloseAttack(); }, [handleSpellAttackRoll, handleWeaponAttackRoll, makeRecent]);
+const runAttackRoll = useCallback((item) => {
+  if (!item) return;
+  makeRecent(item.id); setSelectedAttackId(item.id);
+  onBeginTargeting({ sourceCombatantId: characterId, actionType: 'attack', attackId: item.id });
+  setShowAttack(false);
+}, [characterId, makeRecent, onBeginTargeting]);
 const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item.id); if (item.kind === 'weapon' || item.kind === 'unarmed') handleWeaponAttack(item.slot, item.weapon); else if (item.id === 'feature:breath-weapon') handleBreathWeaponAttack(); else if (item.spell) handleSpellsButtonClick(item.spell); handleCloseAttack(); }, [handleBreathWeaponAttack, handleSpellsButtonClick, makeRecent]);
+
+  useImperativeHandle(ref, () => ({
+    updateDamageValueWithAnimation,
+    openAttackModal: handleShowAttack,
+    openDiceRoller: handleShowDiceRoller,
+    openDamageLog: () => setShowLog(true),
+    toggleCritical: handleDamageClick,
+    setCritical: setCriticalState,
+    clearDamageDice,
+    resolveTargetedAttack: async ({ attackId, targetId, target }) => {
+      const attack = attackArsenalItems.find((candidate) => candidate.id === attackId);
+      if (!attack) throw new Error('The selected attack is no longer available.');
+      return resolveAttack({
+        attackerId: characterId, targetId, attack, target,
+        rollAttack: (selected) => selected.kind === 'weapon' || selected.kind === 'unarmed'
+          ? handleWeaponAttackRoll(selected.slot, selected.weapon)
+          : handleSpellAttackRoll(selected.spell),
+        rollDamage: async (selected, { critical }) => {
+          if (selected.kind === 'weapon' || selected.kind === 'unarmed') {
+            const result = await rollDamageExpression({
+              damageString: getDamageStringForHandSelection(selected.slot, selected.weapon),
+              ability: abilityForWeapon(selected.weapon, selected.slot), crit: critical,
+            });
+            if (result) updateDamageValueWithAnimation(result.total, result.breakdown, selected.name, { diceRolls: result.diceRolls });
+            return result?.total;
+          }
+          const details = getSpellAttackDetails(selected.spell);
+          const result = await rollDamageExpression({ damageString: selected.damageText, ability: details?.abilityBonus || 0, crit: critical });
+          if (result) updateDamageValueWithAnimation(result.total, result.breakdown, selected.name, { diceRolls: result.diceRolls });
+          return result?.total;
+        },
+        applyDamage: onApplyTargetDamage,
+        writeLog: async (entry) => setDamageLog((previous) => [...previous, entry]),
+      });
+    },
+  }), [abilityForWeapon, attackArsenalItems, characterId, getDamageStringForHandSelection, getSpellAttackDetails, handleShowAttack, onApplyTargetDamage, rollDamageExpression]);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div
@@ -2652,7 +2686,14 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
                 <li key={idx} className="roll-separator" />
               ) : (
                 <li key={idx}>
-                  <div>
+                  {entry.type === 'attack-resolution' ? (
+                    <div className="attack-resolution-log">
+                      <strong>{entry.outcome === 'critical-hit' ? 'Critical Hit' : entry.outcome === 'hit' ? 'Hit' : 'Miss'}</strong>
+                      <div>Attack: {entry.naturalRoll === 20 ? 'Natural 20' : entry.attackTotal} vs AC {entry.targetArmorClass}</div>
+                      {entry.outcome !== 'miss' && <div>Damage: {entry.damageApplied}{entry.damageType ? ` ${entry.damageType}` : ''}</div>}
+                      <div>HP: {entry.hpBefore} → {entry.hpAfter}</div>
+                    </div>
+                  ) : <div>
                     {entry.source ? (
                       <>
                         {entry.source}
@@ -2663,7 +2704,7 @@ const runDamageRoll = useCallback((item) => { if (!item) return; makeRecent(item
                     ) : (
                       entry.total
                     )}
-                  </div>
+                  </div>}
                   {(entry.actionLabel && entry.expression) ||
                   entry.breakdown ||
                   (Array.isArray(entry.rollValues) && entry.rollValues.length > 0) ||

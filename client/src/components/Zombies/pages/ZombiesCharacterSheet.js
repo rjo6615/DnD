@@ -66,6 +66,7 @@ import {
 import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 import { sanitizeInventoryItemsForUpdate } from "../attributes/inventorySanitization";
 import MapModal from "../attributes/MapModal";
+import { INACTIVE_COMBAT_TARGETING } from '../utils/attackResolution';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
@@ -690,6 +691,9 @@ export default function ZombiesCharacterSheet() {
   const [campaignMap, setCampaignMap] = useState(null);
   const [campaignMapTokens, setCampaignMapTokens] = useState({});
   const [activeMapTokens, setActiveMapTokens] = useState({});
+  const [combatTargeting, setCombatTargeting] = useState(INACTIVE_COMBAT_TARGETING);
+  const targetingLockRef = useRef(false);
+  const targetingTokenLookupRef = useRef({});
   const [showCharacterInfo, setShowCharacterInfo] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSkill, setShowSkill] = useState(false); // State for skills modal
@@ -1653,6 +1657,42 @@ export default function ZombiesCharacterSheet() {
     },
     [activeCharacterIds]
   );
+
+  const handleApplyTargetDamage = useCallback(async ({ targetId, hpAfter }) => {
+    setEnemies((previous) => previous.map((enemy) => {
+      const id = enemy?.enemyId || enemy?._id;
+      return id === targetId ? { ...enemy, currentHp: hpAfter } : enemy;
+    }));
+    setCampaignCharacters((previous) => {
+      if (!previous?.[targetId]) return previous;
+      return { ...previous, [targetId]: { ...previous[targetId], currentHp: hpAfter, tempHealth: hpAfter } };
+    });
+    if (targetId === resolvedCharacterId) handleHealthChange(hpAfter);
+  }, [handleHealthChange, resolvedCharacterId]);
+
+  const handleTargetTokenClick = useCallback(async (targetId) => {
+    if (combatTargeting.status !== 'selecting-target' || targetingLockRef.current) return;
+    if (!targetId || targetId === combatTargeting.sourceCombatantId) return;
+    const target = targetingTokenLookupRef.current[targetId];
+    if (!target || Number(target.currentHp) <= 0) return;
+    targetingLockRef.current = true;
+    setCombatTargeting({ ...combatTargeting, status: 'resolving', targetCombatantId: targetId });
+    try {
+      await playerTurnActionsRef.current?.resolveTargetedAttack({ attackId: combatTargeting.attackId, targetId, target });
+    } catch (error) {
+      notify(error?.message || 'The attack could not be resolved.', 'danger');
+    } finally {
+      targetingLockRef.current = false;
+      setCombatTargeting(INACTIVE_COMBAT_TARGETING);
+    }
+  }, [combatTargeting]);
+
+  useEffect(() => {
+    if (combatTargeting.status === 'inactive') return undefined;
+    const cancel = (event) => { if (event.key === 'Escape') setCombatTargeting(INACTIVE_COMBAT_TARGETING); };
+    window.addEventListener('keydown', cancel);
+    return () => window.removeEventListener('keydown', cancel);
+  }, [combatTargeting.status]);
 
   useEffect(() => {
     const handlePass = () => {
@@ -4611,6 +4651,7 @@ export default function ZombiesCharacterSheet() {
           entityType,
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
+          armorClass: toFiniteNumberOrNull(value?.armorClass ?? value?.ac ?? value?.armorClassTotal),
           ...(recordSize ? { size: recordSize } : {}),
           ...(figurineImageUrl ? { figurineImageUrl } : {}),
           ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
@@ -4660,6 +4701,7 @@ export default function ZombiesCharacterSheet() {
           entityType: 'enemy',
           currentHp: enemyCurrentHp !== null ? enemyCurrentHp : null,
           maxHp: enemyMaxHp !== null ? enemyMaxHp : null,
+          armorClass: toFiniteNumberOrNull(Array.isArray(enemy.armorClass) ? enemy.armorClass[0]?.value : (enemy.armorClass ?? enemy.ac)),
           ...(enemySize ? { size: enemySize } : {}),
           ...(figurineImageUrl ? { figurineImageUrl } : {}),
           ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
@@ -4703,6 +4745,7 @@ export default function ZombiesCharacterSheet() {
           entityType: 'character',
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
+          armorClass: toFiniteNumberOrNull(form?.armorClass ?? form?.ac) ?? 10,
           ...(fallbackSize ? { size: fallbackSize } : {}),
           ...(figurineImageUrl ? { figurineImageUrl } : {}),
           ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
@@ -4749,6 +4792,7 @@ export default function ZombiesCharacterSheet() {
 
     return lookup;
   }, [campaignCharacters, enemies, form, resolvedCharacterId]);
+  targetingTokenLookupRef.current = tokenMetaById;
 
   const collectMapIdentifiers = useCallback((map) => {
     const identifiers = new Set();
@@ -5869,12 +5913,20 @@ export default function ZombiesCharacterSheet() {
           characterLookup={tokenMetaById}
           onTokenMove={handleTokenMove}
           onTokenRemove={handleTokenRemove}
+          onTokenClick={handleTargetTokenClick}
+          targeting={combatTargeting.status !== 'inactive'}
           displayMode="background"
           isDocked={Boolean(mapDockedSide)}
           dockedSide={mapDockedSide}
           onDockChange={(side) => handleDockChange('map', side)}
           onDockClose={() => handleDockClose('map')}
         />
+        {combatTargeting.status !== 'inactive' && (
+          <div className="combat-targeting-instruction" role="status" aria-live="polite">
+            <strong>{combatTargeting.status === 'resolving' ? 'Rolling attack…' : 'Select a target'}</strong>
+            <span>{combatTargeting.status === 'resolving' ? 'Resolving hit and damage.' : 'Click a living combatant to attack. Esc to cancel.'}</span>
+          </div>
+        )}
       </div>
       <div
         ref={rootContainerRef}
@@ -5972,6 +6024,9 @@ export default function ZombiesCharacterSheet() {
                 availableSlots={availableSlots}
                 longRestCount={longRestCount}
                 shortRestCount={shortRestCount}
+                onBeginTargeting={(selection) => setCombatTargeting({ status: 'selecting-target', ...selection })}
+                onApplyTargetDamage={handleApplyTargetDamage}
+                onCancelTargeting={() => setCombatTargeting(INACTIVE_COMBAT_TARGETING)}
               />
             </div>
           </div>
