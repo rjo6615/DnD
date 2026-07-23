@@ -9,6 +9,9 @@ export const createCombatState = (state = {}) => ({
   activeEffects: Array.isArray(state.activeEffects) ? state.activeEffects : [],
   eventLog: Array.isArray(state.eventLog) ? state.eventLog : [],
   undoStack: Array.isArray(state.undoStack) ? state.undoStack : [],
+  reactions: state.reactions && typeof state.reactions === 'object' ? state.reactions : {},
+  pendingDecisions: Array.isArray(state.pendingDecisions) ? state.pendingDecisions : [],
+  resolvedDecisionIds: Array.isArray(state.resolvedDecisionIds) ? state.resolvedDecisionIds : [],
 });
 
 const eventFor = (type, state, combatantId) => ({
@@ -102,7 +105,7 @@ export const removeCombatant = (inputState, combatantId) => {
   const activeId = state.participants[state.activeTurn]?.characterId;
   const participants = state.participants.filter((item) => item.characterId !== combatantId);
   const activeTurn = activeId === combatantId ? null : participants.findIndex((item) => item.characterId === activeId);
-  return { ...state, participants, activeTurn: activeTurn < 0 ? null : activeTurn, activeEffects: state.activeEffects.filter((effect) => effect.targetCombatantId !== combatantId && effect.sourceCombatantId !== combatantId && effect.expiration?.combatantId !== combatantId) };
+  return { ...state, participants, activeTurn: activeTurn < 0 ? null : activeTurn, activeEffects: state.activeEffects.filter((effect) => effect.targetCombatantId !== combatantId && effect.sourceCombatantId !== combatantId && effect.expiration?.combatantId !== combatantId), pendingDecisions: state.pendingDecisions.filter((item) => item.sourceCombatantId !== combatantId && item.targetCombatantId !== combatantId) };
 };
 
 export const advanceTurn = (inputState, { nextCombatantId } = {}) => {
@@ -122,6 +125,7 @@ export const advanceTurn = (inputState, { nextCombatantId } = {}) => {
     state = emit(state, eventFor('roundStarted', state));
   }
   state = { ...state, activeTurn: nextIndex, turnSequence: state.turnSequence + 1 };
+  state = { ...state, reactions: { ...state.reactions, [state.participants[nextIndex].characterId]: { used: false } } };
   return emit(state, eventFor('turnStarted', state, state.participants[nextIndex].characterId));
 };
 
@@ -139,6 +143,7 @@ export const endCombat = (inputState) => {
     ...state,
     activeTurn: null,
     activeEffects: state.activeEffects.filter((effect) => effect.definitionId !== 'brutal-strike-pending'),
+    pendingDecisions: [],
   };
 };
 

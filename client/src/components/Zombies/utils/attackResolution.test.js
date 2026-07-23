@@ -36,6 +36,15 @@ it('retains Brutal Strike damage and target resolution context after damage reso
   expect(result.resolutionId).toEqual(expect.any(String));
 });
 
+it('emits authoritative damage context after HP is applied and not for zero damage', async () => {
+  const input = base(10, 15);
+  input.onDamageResolved = jest.fn();
+  input.applyDamage.mockResolvedValue({ previousHp: 10, currentHp: 4, appliedDamage: 6 });
+  await resolveAttack(input);
+  expect(input.onDamageResolved).toHaveBeenCalledWith(expect.objectContaining({ sourceCombatantId: 'hero', targetCombatantId: 'troll', damageTaken: 6 }));
+  expect(input.applyDamage.mock.invocationCallOrder[0]).toBeLessThan(input.onDamageResolved.mock.invocationCallOrder[0]);
+});
+
 it('logs HP returned by the canonical damage writer', async () => {
   const input = base(10, 15);
   input.applyDamage.mockResolvedValue({ previousHp: 12, currentHp: 4, appliedDamage: 8 });

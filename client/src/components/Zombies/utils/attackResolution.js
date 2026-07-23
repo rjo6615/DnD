@@ -39,6 +39,7 @@ export async function resolveAttack({
   suppressedAdvantageSources,
   brutalStrike,
   onAttackResolved,
+  onDamageResolved,
 }) {
   if (!attackerId || !targetId || !attack?.id) throw new Error('Attack participants or attack are missing.');
   const armorClass = Number(target?.armorClass);
@@ -86,6 +87,19 @@ export async function resolveAttack({
       if (Number.isFinite(Number(applied.appliedDamage))) result.damageApplied = Number(applied.appliedDamage);
       hpAfter = result.hpAfter;
     }
+  }
+  if (result.damageApplied > 0) {
+    await onDamageResolved?.({
+      damageEventId: result.resolutionId,
+      sourceCombatantId: attackerId,
+      targetCombatantId: targetId,
+      attackId: result.attackId,
+      attackName: result.attackName,
+      damageTaken: Math.max(0, result.hpBefore - result.hpAfter),
+      sourcePosition: result.sourcePosition,
+      targetPosition: result.targetPosition,
+      result,
+    });
   }
   await writeLog(result);
   await onAttackResolved?.({ ...result, brutalStrike: Boolean(brutalStrike) });

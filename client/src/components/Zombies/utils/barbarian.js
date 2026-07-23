@@ -176,7 +176,8 @@ export const BARBARIAN_SUBCLASSES = [
         description:
           "You have Immunity to the Charmed and Frightened conditions while your Rage is active. If you’re Charmed or Frightened when you enter your Rage, the condition ends on you.",
       },
-      { id: "berserker-retaliation", name: "Retaliation", level: 10 },
+      { id: "berserker-retaliation", name: "Retaliation", level: 10, type: "reaction", hideUseButton: true,
+        description: "After you take damage from a creature within 5 feet, you can use your Reaction to make one melee attack against it." },
       { id: "berserker-intimidating-presence", name: "Intimidating Presence", level: 14 },
     ],
   },
