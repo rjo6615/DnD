@@ -510,6 +510,8 @@ const CampaignMapBoard = ({
   onTokenPositionChange,
   onBackgroundClick,
   onTokenRemove,
+  onTokenClick,
+  targeting,
   disabled,
   className,
   children,
@@ -2135,7 +2137,8 @@ const CampaignMapBoard = ({
       className={classNames(
         'campaign-map-board',
         className,
-        interactionDisabled && 'campaign-map-board--disabled'
+        interactionDisabled && 'campaign-map-board--disabled',
+        targeting && 'campaign-map-board--targeting'
       )}
       style={boardStyle}
       onWheel={handleWheel}
@@ -2324,6 +2327,7 @@ const CampaignMapBoard = ({
                       isRotationActive && 'lastDragged',
                       isRotationVisible && 'campaign-map-board__token--rotation-visible',
                       isRotationDragging && 'campaign-map-board__token--rotation-active'
+                      , targeting && numericCurrentHp > 0 && 'campaign-map-board__token--targetable'
                     )}
                     style={{
                       left: `${(position?.x ?? 0) * 100}%`,
@@ -2334,6 +2338,12 @@ const CampaignMapBoard = ({
                       '--rotation-handle-angle': rotationHandleStyleValue,
                     }}
                     title={displayLabel || undefined}
+                    onClick={(event) => {
+                      if (onTokenClick) {
+                        event.stopPropagation();
+                        onTokenClick(characterId, token);
+                      }
+                    }}
                     onPointerDown={(event) => {
                       if (characterId) {
                         setActiveLabelTokenId(characterId);
@@ -2792,6 +2802,8 @@ CampaignMapBoard.propTypes = {
   onTokenPositionChange: PropTypes.func,
   onBackgroundClick: PropTypes.func,
   onTokenRemove: PropTypes.func,
+  onTokenClick: PropTypes.func,
+  targeting: PropTypes.bool,
   disabled: PropTypes.bool,
   className: PropTypes.string,
   children: PropTypes.node,
@@ -2807,6 +2819,8 @@ CampaignMapBoard.defaultProps = {
   onTokenPositionChange: null,
   onBackgroundClick: null,
   onTokenRemove: null,
+  onTokenClick: null,
+  targeting: false,
   disabled: false,
   className: '',
   children: null,

@@ -521,6 +521,8 @@ const MapModal = ({
   characterLookup,
   onTokenMove,
   onTokenRemove,
+  onTokenClick,
+  targeting,
   readOnly,
   isDocked = false,
   dockedSide = null,
@@ -2028,6 +2030,8 @@ const MapModal = ({
             onTokenRemove={
               canHandleTokenRemoval ? handleTokenRemove : undefined
             }
+            onTokenClick={onTokenClick}
+            targeting={targeting}
           />
           {canManipulateTokens && placementPending && (
             <div
@@ -2216,6 +2220,8 @@ MapModal.propTypes = {
   ),
   onTokenMove: PropTypes.func,
   onTokenRemove: PropTypes.func,
+  onTokenClick: PropTypes.func,
+  targeting: PropTypes.bool,
   readOnly: PropTypes.bool,
   isDocked: PropTypes.bool,
   dockedSide: PropTypes.oneOf(['left', 'right']),
@@ -2250,6 +2256,8 @@ MapModal.defaultProps = {
   onDockClose: null,
   onDockChange: null,
   displayMode: 'modal',
+  onTokenClick: null,
+  targeting: false,
 };
 
 export default MapModal;
