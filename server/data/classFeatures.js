@@ -231,11 +231,6 @@ A Rage can last for up to 10 minutes.`
     {
       name: 'Brutal Strike',
       description: 'If you use Reckless Attack, you can forgo its Advantage on one eligible Strength-based attack. On a hit, the attack deals an extra 1d10 damage and you choose Forceful Blow or Hamstring Blow.'
-    },
-    {
-      name: 'Brutal Critical (1 die)',
-      description:
-        'You can roll one additional weapon damage die when determining the extra damage for a critical hit.'
     }
   ],
  10: [
