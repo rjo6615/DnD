@@ -773,12 +773,20 @@ describe('CampaignMapBoard pointer interactions', () => {
     }
 
     expect(boardElement.style.getPropertyValue('--campaign-map-zoom')).toBe('1');
+    expect(boardElement.style.getPropertyValue('--campaign-map-grid-extent')).toBe('100%');
+    expect(boardElement.style.getPropertyValue('--campaign-map-grid-origin')).toBe('0%');
 
     fireEvent.wheel(boardElement, { deltaY: -240 });
 
     await waitFor(() => {
       const zoomValue = boardElement.style.getPropertyValue('--campaign-map-zoom');
       expect(parseFloat(zoomValue)).toBeGreaterThan(1);
+      expect(parseFloat(boardElement.style.getPropertyValue('--campaign-map-grid-extent'))).toBeCloseTo(
+        parseFloat(zoomValue) * 100
+      );
+      expect(parseFloat(boardElement.style.getPropertyValue('--campaign-map-grid-origin'))).toBeCloseTo(
+        (1 - parseFloat(zoomValue)) * 50
+      );
     });
   });
 });
