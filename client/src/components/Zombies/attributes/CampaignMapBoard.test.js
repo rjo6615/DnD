@@ -29,11 +29,72 @@ describe('CampaignMapBoard pointer interactions', () => {
         onTokenPositionChange={overrides.onTokenPositionChange}
         onBackgroundClick={overrides.onBackgroundClick}
         onTokenRemove={overrides.onTokenRemove}
+        onTokenClick={overrides.onTokenClick}
+        targeting={overrides.targeting}
       />
     );
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('prioritizes target selection over dragging and restores dragging afterward', () => {
+    const onTokenClick = jest.fn();
+    const onTokenDragStart = jest.fn();
+    const { container, rerender } = renderBoard({
+      targeting: true,
+      onTokenClick,
+      onTokenDragStart,
+    });
+    let tokenElement = container.querySelector('[data-token-id="char-1"]');
+    const pointerDownEvent = createEvent.pointerDown(tokenElement, {
+      button: 0,
+      pointerId: 1,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    fireEvent(tokenElement, pointerDownEvent);
+    fireEvent.click(tokenElement);
+
+    expect(pointerDownEvent.defaultPrevented).toBe(true);
+    expect(onTokenDragStart).not.toHaveBeenCalled();
+    expect(onTokenClick).toHaveBeenCalledWith(
+      'char-1',
+      expect.objectContaining({ characterId: 'char-1' })
+    );
+
+    rerender(
+      <CampaignMapBoard
+        map={baseMap}
+        tokens={[baseToken]}
+        onTokenClick={onTokenClick}
+        onTokenDragStart={onTokenDragStart}
+        targeting={false}
+      />
+    );
+    tokenElement = container.querySelector('[data-token-id="char-1"]');
+    fireEvent.pointerDown(tokenElement, { button: 0, pointerId: 2 });
+
+    expect(onTokenDragStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not initiate repositioning from the map background while targeting', () => {
+    const onBackgroundClick = jest.fn();
+    const { container } = renderBoard({ targeting: true, onBackgroundClick });
+    const layer = container.querySelector('.campaign-map-board__tokens-layer');
+    const pointerDownEvent = createEvent.pointerDown(layer, {
+      button: 0,
+      pointerId: 4,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    fireEvent(layer, pointerDownEvent);
+    fireEvent.pointerUp(layer, { button: 0, pointerId: 4 });
+
+    expect(pointerDownEvent.defaultPrevented).toBe(true);
+    expect(onBackgroundClick).not.toHaveBeenCalled();
   });
 
   it('ignores non-primary pointer input and does not start a drag', () => {

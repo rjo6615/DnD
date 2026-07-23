@@ -1198,6 +1198,15 @@ const CampaignMapBoard = ({
 
   const handlePointerDown = useCallback(
     (event, token) => {
+      // Target selection takes precedence over every map editing interaction. The
+      // subsequent click owns target selection, while pointer down must never
+      // initialize a drag (including for DM-controlled movable tokens).
+      if (targeting) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
       if (interactionDisabled || !token || token.isMovable === false) {
         return;
       }
@@ -1240,7 +1249,7 @@ const CampaignMapBoard = ({
         }
       }
     },
-    [interactionDisabled, onTokenDragStart]
+    [interactionDisabled, onTokenDragStart, targeting]
   );
 
   const updateDragPosition = useCallback((tokenId, nextPosition) => {
@@ -1351,6 +1360,11 @@ const CampaignMapBoard = ({
       setActiveLabelTokenId(null);
       setLastDraggedTokenId(null);
       setHoveredTokenId(null);
+      if (targeting) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (interactionDisabled) {
         return;
       }
@@ -1398,7 +1412,7 @@ const CampaignMapBoard = ({
       event.preventDefault();
       event.stopPropagation();
     },
-    [getNormalizedCoordinates, interactionDisabled, onBackgroundClick]
+    [getNormalizedCoordinates, interactionDisabled, onBackgroundClick, targeting]
   );
 
   const handleLayerPointerMove = useCallback((event) => {
@@ -2235,7 +2249,7 @@ const CampaignMapBoard = ({
                   isActiveTurn,
                   size,
                 } = token;
-                const draggable = !interactionDisabled && token.isMovable !== false;
+                const draggable = !targeting && !interactionDisabled && token.isMovable !== false;
                 const normalizedLabel = normalizeText(label);
                 const displayLabel = normalizedLabel || normalizeText(characterId) || characterId;
                 const isLabelActive = activeLabelTokenId === characterId;
@@ -2339,6 +2353,14 @@ const CampaignMapBoard = ({
                     }}
                     title={displayLabel || undefined}
                     onClick={(event) => {
+                      if (targeting) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (onTokenClick) {
+                          onTokenClick(characterId, token);
+                        }
+                        return;
+                      }
                       if (onTokenClick) {
                         event.stopPropagation();
                         onTokenClick(characterId, token);
