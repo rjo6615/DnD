@@ -68,7 +68,7 @@ import { normalizeEquipmentMap } from "../attributes/equipmentNormalization";
 import { sanitizeInventoryItemsForUpdate } from "../attributes/inventorySanitization";
 import MapModal from "../attributes/MapModal";
 import { INACTIVE_COMBAT_TARGETING } from '../utils/attackResolution';
-import { declineRetaliation, startReactionAttack } from '../utils/retaliation';
+import { declineRetaliation, processRetaliationDamageEvent, startReactionAttack } from '../utils/retaliation';
 import { ENEMY_FIGURINE_COLOR } from '../constants/tokenAppearance';
 import { mergeTokenPayload } from "./utils/mergeTokenPayload";
 import proficiencyBonus from '../../../utils/proficiencyBonus';
@@ -5543,10 +5543,36 @@ export default function ZombiesCharacterSheet() {
     setCombatState(normalizeCombatState(await response.json()));
   }, [encodedCampaignId]);
 
+  const handleResolvedCombatDamage = useCallback(async (damageEvent) => {
+    const sourceId = String(damageEvent?.sourceCombatantId || '');
+    const targetId = String(damageEvent?.targetCombatantId || '');
+    if (!sourceId || !targetId) return;
+    const defenderCharacter = targetId === String(resolvedCharacterId || characterId)
+      ? form
+      : campaignCharacters?.[targetId];
+    const sourceRecord = campaignCharacters?.[sourceId]
+      || enemies.find((enemy) => String(enemy?.enemyId || enemy?._id) === sourceId)
+      || {};
+    const targetRecord = campaignCharacters?.[targetId]
+      || enemies.find((enemy) => String(enemy?.enemyId || enemy?._id) === targetId)
+      || {};
+    const sourceCombatant = { ...sourceRecord, ...targetingTokenLookupRef.current[sourceId], characterId: sourceId };
+    const targetCombatant = { ...targetRecord, ...targetingTokenLookupRef.current[targetId], characterId: targetId };
+    const nextState = processRetaliationDamageEvent({
+      combatState,
+      character: defenderCharacter,
+      damageEvent,
+      sourceCombatant,
+      targetCombatant,
+      mapState: { tokens: activeMapTokens },
+    });
+    if (nextState !== combatState) await persistCombatState(nextState);
+  }, [activeMapTokens, campaignCharacters, characterId, combatState, enemies, form, persistCombatState, resolvedCharacterId]);
+
   const retaliationDecision = (combatState.pendingDecisions || []).find((decision) =>
     decision.type === 'retaliation' &&
     decision.status === 'pending' &&
-    String(decision.targetCombatantId) === String(resolvedCharacterId || characterId));
+    String(decision.ownerCombatantId || decision.targetCombatantId) === String(resolvedCharacterId || characterId));
   const declinePendingRetaliation = useCallback(async () => {
     if (!retaliationDecision) return;
     try {
@@ -6121,6 +6147,7 @@ export default function ZombiesCharacterSheet() {
                 shortRestCount={shortRestCount}
                 onBeginTargeting={(selection) => setCombatTargeting({ status: 'selecting-target', ...selection })}
                 onApplyTargetDamage={handleApplyTargetDamage}
+                onDamageResolved={handleResolvedCombatDamage}
                 onCancelTargeting={() => {
                   setCombatTargeting(INACTIVE_COMBAT_TARGETING);
                 }}

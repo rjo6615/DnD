@@ -1,5 +1,6 @@
-import { createRetaliationOpportunity, declineRetaliation, getRetaliationAttacks, hasRetaliation, queueRetaliation, startReactionAttack } from './retaliation';
+import { createRetaliationOpportunity, declineRetaliation, getRetaliationAttacks, hasRetaliation, processRetaliationDamageEvent, queueRetaliation, startReactionAttack } from './retaliation';
 import { advanceTurn, createCombatState, removeCombatant } from './combatTimeline';
+import { getGridDistanceFeet } from './gridSpatial';
 
 const character = (level = 10, subclass = 'path-of-the-berserker') => ({
   occupation: [{ Name: 'Barbarian', Level: level }], classState: { barbarian: { subclass } },
@@ -17,9 +18,35 @@ it('grants Retaliation only to a level 10 Path of the Berserker Barbarian', () =
 
 it('creates one post-damage opportunity for an adjacent creature', () => {
   const opportunity = createRetaliationOpportunity({ combatState: baseState, character: character(), damageEvent: event, sourceCombatant: source, targetCombatant: target });
-  expect(opportunity).toMatchObject({ damageEventId: 'hit-1', sourceCombatantId: 'troll', targetCombatantId: 'barbarian', damageTaken: 7 });
+  expect(opportunity).toMatchObject({ damageEventId: 'hit-1', sourceCombatantId: 'troll', targetCombatantId: 'barbarian', ownerCombatantId: 'barbarian', triggeringCombatantId: 'troll', damageTaken: 7 });
   const queued = queueRetaliation(baseState, opportunity);
   expect(createRetaliationOpportunity({ combatState: queued, character: character(), damageEvent: event, sourceCombatant: source, targetCombatant: target })).toBeNull();
+});
+
+it.each([
+  ['player character', { characterId: 'mega-action', gridX: 5, gridY: 5 }],
+  ['monster', { enemyId: 'mega-action', gridX: 5, gridY: 5 }],
+])('uses the same normalized post-damage path for a %s source', (_sourceType, attacker) => {
+  const defender = { characterId: 'barbarian', gridX: 4, gridY: 5 };
+  const state = createCombatState({ participants: [defender, attacker], activeTurn: 1 });
+  const damageEvent = {
+    damageEventId: 'mega-hit', sourceCombatantId: 'mega-action', targetCombatantId: 'barbarian',
+    actualHpLost: 6, attackId: 'sword', attackName: 'Sword', damageType: 'slashing',
+  };
+  const resolved = processRetaliationDamageEvent({
+    combatState: state, character: character(), damageEvent,
+    sourceCombatant: attacker, targetCombatant: defender,
+  });
+  expect(resolved.pendingDecisions).toHaveLength(1);
+  expect(resolved.pendingDecisions[0]).toMatchObject({
+    damageEventId: 'mega-hit', sourceCombatantId: 'mega-action', targetCombatantId: 'barbarian',
+    ownerCombatantId: 'barbarian', status: 'pending', actualHpLost: 6,
+  });
+});
+
+it('resolves adjacent dictionary-keyed map tokens in the shared grid coordinate space', () => {
+  const mapState = { tokens: { 'mega-action': { gridX: 5, gridY: 5 }, barbarian: { gridX: 4, gridY: 5 } } };
+  expect(getGridDistanceFeet({ characterId: 'mega-action' }, { characterId: 'barbarian' }, mapState)).toBe(5);
 });
 
 it.each([

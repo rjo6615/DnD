@@ -3807,6 +3807,7 @@ export default function ZombiesDM() {
         };
         const result = await resolveAttack({
           attackerId: combatTargeting.sourceCombatantId,
+          sourceType: attacker?.entityType === 'character' ? 'character' : 'monster',
           targetId,
           attack,
           target: { ...target, currentHp, armorClass },

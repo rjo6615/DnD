@@ -24,6 +24,7 @@ export const getAttackRollMode = ({ targetId, combatState, advantageSources = []
 // processing are deliberate extension points for range/cover and resistances later.
 export async function resolveAttack({
   attackerId,
+  sourceType = null,
   targetId,
   attack,
   target,
@@ -94,8 +95,10 @@ export async function resolveAttack({
       damageEventId: result.resolutionId,
       sourceCombatantId: attackerId,
       targetCombatantId: targetId,
+      sourceType,
       attackId: result.attackId,
       attackName: result.attackName,
+      damageType: result.damageType,
       actualHpLost,
       damageTaken: actualHpLost,
       sourcePosition: result.sourcePosition,
