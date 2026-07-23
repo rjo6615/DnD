@@ -215,7 +215,7 @@ const FooterCharacterSlot = ({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            tempHealth: next,
+            delta: next - resolvedCurrent,
           }),
         });
 
@@ -223,13 +223,14 @@ const FooterCharacterSlot = ({
           throw new Error(response.statusText || 'Failed to update health.');
         }
 
+        const payload = await response.json();
         if (typeof onHealthChange === 'function') {
-          onHealthChange(next);
+          onHealthChange(Number(payload.currentHp));
         }
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(err);
-        setError('Failed to update health.');
+        setError('The HP update could not be saved. No combat state was changed.');
         setPendingHealth(null);
       } finally {
         setIsUpdating(false);

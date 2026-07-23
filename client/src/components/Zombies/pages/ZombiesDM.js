@@ -2755,7 +2755,7 @@ export default function ZombiesDM() {
     }, []);
 
     const updateEnemyHealth = useCallback(
-      async (enemyId, nextHp) => {
+      async (enemyId, nextHp, options = {}) => {
         if (!enemyId || !encodedCampaign) {
           return;
         }
@@ -2769,7 +2769,9 @@ export default function ZombiesDM() {
             {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ currentHp: nextHp }),
+              body: JSON.stringify(options.delta !== undefined
+                ? { delta: options.delta, eventId: options.eventId }
+                : { currentHp: nextHp }),
             }
           );
 
@@ -2855,7 +2857,7 @@ export default function ZombiesDM() {
           }
         }
 
-        updateEnemyHealth(enemyId, nextValue);
+        updateEnemyHealth(enemyId, nextValue, { delta: direction * adjustment });
       },
       [enemyHealthAdjustments, enemies, updateEnemyHealth]
     );
@@ -3814,21 +3816,29 @@ export default function ZombiesDM() {
           combatState,
           rollAttack: (_selected, rollMode) => handleEnemyAttackRoll(attacker, action, rollMode),
           rollDamage: () => handleEnemyDamageRoll(attacker, action),
-          applyDamage: async ({ damageApplied }) => {
-            const nextHp = Math.max(0, currentHp - damageApplied);
+          applyDamage: async ({ damageApplied, result }) => {
+            let resolved;
             if (target.entityType === 'enemy') {
-              await updateEnemyHealth(targetId, nextHp);
+              const response = await apiFetch(`/campaigns/${encodedCampaign}/enemies/${encodeURIComponent(targetId)}/health`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ delta: -damageApplied, eventId: result?.resolutionId }),
+              });
+              if (!response.ok) throw new Error('The HP update could not be saved. No combat state was changed.');
+              resolved = await response.json();
+              if (resolved.enemy) setEnemies((items) => items.map((item) => item.enemyId === targetId ? { ...item, ...resolved.enemy } : item));
             } else {
               const response = await apiFetch(`/characters/update-temphealth/${encodeURIComponent(targetId)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tempHealth: nextHp }),
+                body: JSON.stringify({ delta: -damageApplied, eventId: result?.resolutionId }),
               });
-              if (!response.ok) throw new Error(response.statusText || 'Failed to update character health.');
+              if (!response.ok) throw new Error('The HP update could not be saved. No combat state was changed.');
+              resolved = await response.json();
+              const nextHp = Number(resolved.currentHp);
               setRecords((previous) => previous.map((record) =>
                 getEntityId(record) === targetId ? { ...record, tempHealth: nextHp } : record));
             }
-            return { previousHp: currentHp, currentHp: nextHp, appliedDamage: damageApplied };
+            return { previousHp: Number(resolved.previousHp), currentHp: Number(resolved.currentHp), appliedDamage: Number(resolved.actualHpLost) };
           },
           onDamageResolved: async (damageEvent) => {
             // Damage has been persisted at this point. Queue the reaction in the
@@ -3868,7 +3878,7 @@ export default function ZombiesDM() {
         targetingLockRef.current = false;
         setCombatTargeting(INACTIVE_COMBAT_TARGETING);
       }
-    }, [activeMapTokens, characterLookup, combatState, combatTargeting, getEntityId, handleEnemyAttackRoll, handleEnemyDamageRoll, persistCombatState, updateEnemyHealth]);
+    }, [activeMapTokens, characterLookup, combatState, combatTargeting, encodedCampaign, getEntityId, handleEnemyAttackRoll, handleEnemyDamageRoll, persistCombatState, setEnemies]);
 
     useEffect(() => {
       if (combatTargeting.status === 'inactive') return undefined;

@@ -66,22 +66,27 @@ export default function HealthDefense({
   async function tempHealthUpdate(offset) {
     const updatedHealthValue = (Number.isFinite(health) ? health : 0) + offset;
     try {
-      await apiFetch(`/characters/update-temphealth/${params.id}`, {
+      const response = await apiFetch(`/characters/update-temphealth/${params.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          tempHealth: updatedHealthValue,
+          delta: offset,
         }),
       });
+      if (!response.ok) throw new Error('The HP update could not be saved. No combat state was changed.');
+      const payload = await response.json();
+      const savedHealth = Number(payload.currentHp);
+      setHealth(savedHealth);
       setError(null);
       if (typeof onTempHealthChange === 'function') {
-        onTempHealthChange(updatedHealthValue);
+        onTempHealthChange(savedHealth);
       }
     } catch (error) {
       console.error(error);
-      setError("Failed to update health.");
+      setHealth(Number.isFinite(computedCurrentHp) ? computedCurrentHp : 0);
+      setError("The HP update could not be saved. No combat state was changed.");
     }
   }
 
@@ -345,4 +350,3 @@ export default function HealthDefense({
     </div>
   );
 }
-

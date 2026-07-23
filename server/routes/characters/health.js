@@ -80,7 +80,15 @@ module.exports = (router) => {
 
   // This section will update tempHealth.
   characterRouter.route('/update-temphealth/:id').put(
-    [body('tempHealth').isInt().withMessage('tempHealth must be an integer').toInt()],
+    [
+      body('tempHealth').optional().isInt().withMessage('tempHealth must be an integer').toInt(),
+      body('delta').optional().isInt().withMessage('delta must be an integer').toInt(),
+      body('eventId').optional().isString().trim().isLength({ min: 1, max: 160 }),
+      body().custom((value) => {
+        if (Number.isInteger(value?.tempHealth) || Number.isInteger(value?.delta)) return true;
+        throw new Error('tempHealth or delta is required');
+      }),
+    ],
     handleValidationErrors,
     async (req, res, next) => {
       if (!ObjectId.isValid(req.params.id)) {
@@ -88,19 +96,47 @@ module.exports = (router) => {
       }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
-      const { tempHealth } = matchedData(req, { locations: ['body'] });
+      const { tempHealth, delta, eventId } = matchedData(req, { locations: ['body'] });
       try {
-        const existing = await db_connect.collection('Characters').findOne(id);
+        const collection = db_connect.collection('Characters');
+        const existing = await collection.findOne(id);
         if (!existing) {
           return res.status(404).json({ message: 'Character not found' });
         }
-        const outcome = applyHealthChange(existing, tempHealth, existing.tempHealth);
-        await db_connect.collection('Characters').updateOne(id, {
-          $set: { tempHealth: outcome.character.tempHealth, deathState: outcome.character.deathState },
-        });
+        if (eventId && Array.isArray(existing.hpEventIds) && existing.hpEventIds.includes(eventId)) {
+          return res.json({ success: true, duplicate: true, previousHp: existing.tempHealth, currentHp: existing.tempHealth, actualHpLost: 0, character: existing });
+        }
+        const authoritativePreviousHp = Number(existing.tempHealth ?? existing.health ?? 0);
+        const requested = Number.isInteger(delta)
+          ? Number(existing.tempHealth ?? existing.health ?? 0) + delta
+          : tempHealth;
+        const maxHp = Number.isFinite(Number(existing.health)) ? Number(existing.health) : requested;
+        const nextHp = Math.max(0, Math.min(requested, maxHp));
+        const outcome = applyHealthChange(existing, nextHp, existing.tempHealth);
+        const update = { $set: { tempHealth: outcome.character.tempHealth, deathState: outcome.character.deathState } };
+        if (eventId) update.$push = { hpEventIds: { $each: [eventId], $slice: -100 } };
+        // The current value is part of the filter, making this an optimistic atomic
+        // compare-and-swap. A racing delta is retried against the latest document.
+        let result = await collection.updateOne({ ...id, tempHealth: existing.tempHealth }, update);
+        if (!result?.matchedCount && Number.isInteger(delta)) {
+          const latest = await collection.findOne(id);
+          if (!latest) return res.status(404).json({ message: 'Character not found' });
+          if (eventId && latest.hpEventIds?.includes(eventId)) {
+            return res.json({ success: true, duplicate: true, previousHp: latest.tempHealth, currentHp: latest.tempHealth, actualHpLost: 0, character: latest });
+          }
+          const retryHp = Math.max(0, Math.min(Number(latest.tempHealth ?? latest.health ?? 0) + delta, Number(latest.health ?? Infinity)));
+          const retryOutcome = applyHealthChange(latest, retryHp, latest.tempHealth);
+          update.$set = { tempHealth: retryOutcome.character.tempHealth, deathState: retryOutcome.character.deathState };
+          result = await collection.updateOne({ ...id, tempHealth: latest.tempHealth }, update);
+          if (!result?.matchedCount) return res.status(409).json({ message: 'HP changed concurrently; retry the update.' });
+          outcome.character = retryOutcome.character;
+          outcome.event = retryOutcome.event;
+          outcome.previousHp = latest.tempHealth;
+        }
         await notifyCharacterHealthUpdate(db_connect, id._id);
         logger.info('character tempHealth updated');
-        res.json({ message: 'User updated successfully', deathState: outcome.character.deathState, deathEvent: outcome.event });
+        const previousHp = Number(outcome.previousHp ?? authoritativePreviousHp);
+        res.json({ success: true, message: 'User updated successfully', previousHp, currentHp: outcome.character.tempHealth, actualHpLost: Math.max(0, previousHp - outcome.character.tempHealth), character: outcome.character, deathState: outcome.character.deathState, deathEvent: outcome.event, eventId });
       } catch (err) {
         next(err);
       }
@@ -183,4 +219,3 @@ module.exports = (router) => {
 
   router.use('/characters', characterRouter);
 };
-

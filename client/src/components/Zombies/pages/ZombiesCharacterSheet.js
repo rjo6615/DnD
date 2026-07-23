@@ -1628,15 +1628,14 @@ export default function ZombiesCharacterSheet() {
     [activeCharacterIds]
   );
 
-  const handleApplyTargetDamage = useCallback(async ({ targetId, hpBefore, damageApplied }) => {
+  const handleApplyTargetDamage = useCallback(async ({ targetId, hpBefore, damageApplied, result }) => {
     const enemy = enemies.find((candidate) => (candidate?.enemyId || candidate?._id) === targetId);
     if (enemy) {
       if (!encodedCampaignId) throw new Error('Campaign is unavailable; damage was not applied.');
       const previousHp = Number(enemy.currentHp ?? enemy.maxHp ?? enemy.hitPoints);
-      const requestedHp = Math.max(0, previousHp - Math.max(0, Number(damageApplied) || 0));
       const response = await apiFetch(`/campaigns/${encodedCampaignId}/enemies/${encodeURIComponent(targetId)}/health`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentHp: requestedHp }),
+        body: JSON.stringify({ delta: -Math.max(0, Number(damageApplied) || 0), eventId: result?.resolutionId }),
       });
       if (!response.ok) throw new Error(response.statusText || 'Failed to persist monster damage.');
       const payload = await response.json();
@@ -1648,13 +1647,19 @@ export default function ZombiesCharacterSheet() {
       const currentHp = Number(updatedEnemy.currentHp);
       return { previousHp, currentHp, appliedDamage: Math.max(0, previousHp - currentHp) };
     }
-    const hpAfter = Math.max(0, Number(hpBefore) - (Number(damageApplied) || 0));
+    const response = await apiFetch(`/characters/update-temphealth/${encodeURIComponent(targetId)}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ delta: -Math.max(0, Number(damageApplied) || 0), eventId: result?.resolutionId }),
+    });
+    if (!response.ok) throw new Error('The HP update could not be saved. No combat state was changed.');
+    const payload = await response.json();
+    const hpAfter = Number(payload.currentHp);
     setCampaignCharacters((previous) => {
       if (!previous?.[targetId]) return previous;
       return { ...previous, [targetId]: { ...previous[targetId], currentHp: hpAfter, tempHealth: hpAfter } };
     });
     if (targetId === resolvedCharacterId) handleHealthChange(hpAfter);
-    return { previousHp: Number(hpBefore), currentHp: hpAfter, appliedDamage: Number(damageApplied) || 0 };
+    return { previousHp: Number(payload.previousHp), currentHp: hpAfter, appliedDamage: Number(payload.actualHpLost) || 0 };
   }, [encodedCampaignId, enemies, handleHealthChange, resolvedCharacterId]);
 
   const handleTargetTokenClick = useCallback(async (targetId) => {
