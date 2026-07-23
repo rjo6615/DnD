@@ -239,15 +239,15 @@
     linear-gradient(
       to right,
       rgba(255, 255, 255, 0.42) 0,
-      rgba(255, 255, 255, 0.42) var(--campaign-map-grid-line-width, 0.75px),
-      transparent var(--campaign-map-grid-line-width, 0.75px),
+      rgba(255, 255, 255, 0.42) 1px,
+      transparent 1px,
       transparent 100%
     ),
     linear-gradient(
       to bottom,
       rgba(255, 255, 255, 0.42) 0,
-      rgba(255, 255, 255, 0.42) var(--campaign-map-grid-line-width, 0.75px),
-      transparent var(--campaign-map-grid-line-width, 0.75px),
+      rgba(255, 255, 255, 0.42) 1px,
+      transparent 1px,
       transparent 100%
     );
   background-size:
@@ -5318,12 +5318,16 @@ h1 {
   }
 
   &__grid-overlay {
-    transform: translate(
-        var(--campaign-map-pan-x, 0),
-        var(--campaign-map-pan-y, 0)
-      )
-      scale(var(--campaign-map-zoom, 1));
-    will-change: transform;
+    // Keep the gradient in screen space so its one-CSS-pixel lines are never
+    // reduced to fractional physical pixels by map zoom. Only the spacing and
+    // origin follow the map transform; tokens and map coordinates are unchanged.
+    inset: auto;
+    top: calc(var(--campaign-map-grid-origin, 0%) + var(--campaign-map-pan-y, 0px));
+    left: calc(var(--campaign-map-grid-origin, 0%) + var(--campaign-map-pan-x, 0px));
+    width: var(--campaign-map-grid-extent, 100%);
+    height: var(--campaign-map-grid-extent, 100%);
+    transform: none;
+    will-change: top, left, width, height;
   }
 
   &__image {
@@ -10843,7 +10847,6 @@ body.character-select-scroll-enabled {
   border-radius: 0;
 }
 
-.zombies-dm-page__map-board .campaign-map-board__grid-overlay,
 .zombies-dm-page__map-board .campaign-map-board__tokens-layer {
   inset: 0;
 }
