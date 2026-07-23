@@ -29,6 +29,7 @@ export default function InventoryModal({
   onWeaponsChange,
   onArmorChange,
   onAccessoriesChange,
+  onUseConsumable,
 }) {
   const [activeTabState, setActiveTabState] = useState(
     activeTab || DEFAULT_TAB
@@ -151,6 +152,7 @@ export default function InventoryModal({
               onChange={onItemsChange}
               onClose={handleItemListClose}
               diceColor={form?.diceColor}
+              onUseConsumable={onUseConsumable}
             />
           ),
       },
@@ -185,6 +187,7 @@ export default function InventoryModal({
       onWeaponsChange,
       onArmorChange,
       onAccessoriesChange,
+      onUseConsumable,
       handleItemListClose,
     ]
   );
