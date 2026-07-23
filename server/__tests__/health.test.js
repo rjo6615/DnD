@@ -20,6 +20,28 @@ app.use((err, req, res, next) => {
 });
 
 describe('Health routes validation', () => {
+  test('applies character HP deltas and returns the authoritative value', async () => {
+    const character = { _id: '507f1f77bcf86cd799439011', campaign: 'Test', health: 20, tempHealth: 15, characterId: 'hero-1' };
+    const updateOne = jest.fn().mockImplementation(async (_filter, update) => {
+      character.tempHealth = update.$set.tempHealth;
+      character.deathState = update.$set.deathState;
+      character.hpEventIds = ['damage-1'];
+      return { matchedCount: 1 };
+    });
+    dbo.mockResolvedValue({ collection: () => ({ findOne: async () => character, updateOne }) });
+
+    const res = await request(app)
+      .put('/characters/update-temphealth/507f1f77bcf86cd799439011')
+      .send({ delta: -6, eventId: 'damage-1' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ previousHp: 15, currentHp: 9, actualHpLost: 6, eventId: 'damage-1' });
+    expect(updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({ tempHealth: 15 }),
+      expect.objectContaining({ $set: expect.objectContaining({ tempHealth: 9 }) })
+    );
+  });
+
   test('update temphealth invalid id', async () => {
     dbo.mockResolvedValue({});
     const res = await request(app)

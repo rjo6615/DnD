@@ -1861,6 +1861,12 @@ module.exports = (router) => {
 
             return true;
           }),
+        body('delta').optional().isFloat().toFloat(),
+        body('eventId').optional().isString().trim().isLength({ min: 1, max: 160 }),
+        body().custom((value) => {
+          if (value?.currentHp !== undefined || Number.isFinite(Number(value?.delta))) return true;
+          throw new Error('currentHp or delta is required');
+        }),
       ],
       handleValidationErrors,
       async (req, res, next) => {
@@ -1869,10 +1875,49 @@ module.exports = (router) => {
           const { enemyId } = req.params;
           const db_connect = req.db;
           const collection = db_connect.collection('Campaigns');
-          const campaign = await collection.findOne({ campaignName });
+          let campaign = await collection.findOne({ campaignName });
 
           if (!campaign) {
             return res.status(404).json({ message: 'Campaign not found' });
+          }
+
+          const requestedDelta = Number(req.body.delta);
+          const eventId = typeof req.body.eventId === 'string' ? req.body.eventId.trim() : '';
+          if (Number.isFinite(requestedDelta)) {
+            let previousHp;
+            let nextHp;
+            let duplicate = false;
+            for (let attempt = 0; attempt < 3; attempt += 1) {
+              if (eventId && campaign.hpEventIds?.includes(eventId)) {
+                duplicate = true;
+                break;
+              }
+              const enemy = (campaign.enemies || []).find((entry) => entry?.enemyId === enemyId);
+              if (!enemy) return res.status(404).json({ message: 'Enemy not found' });
+              const maxHp = toFiniteNumberOrNull(enemy.maxHp ?? enemy.hitPoints);
+              previousHp = toFiniteNumberOrNull(enemy.currentHp) ?? maxHp ?? 0;
+              nextHp = Math.max(0, maxHp === null ? previousHp + requestedDelta : Math.min(previousHp + requestedDelta, maxHp));
+              const filter = { campaignName, enemies: { $elemMatch: { enemyId, currentHp: enemy.currentHp } } };
+              if (eventId) filter.hpEventIds = { $ne: eventId };
+              const update = { $set: { 'enemies.$[target].currentHp': nextHp } };
+              if (eventId) update.$push = { hpEventIds: { $each: [eventId], $slice: -200 } };
+              const write = await collection.updateOne(filter, update, { arrayFilters: [{ 'target.enemyId': enemyId }] });
+              if (write?.matchedCount) break;
+              campaign = await collection.findOne({ campaignName });
+              if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
+              if (attempt === 2) return res.status(409).json({ message: 'HP changed concurrently; retry the update.' });
+            }
+            campaign = await collection.findOne({ campaignName });
+            const updatedEnemy = (campaign.enemies || []).find((entry) => entry?.enemyId === enemyId);
+            if (!updatedEnemy) return res.status(404).json({ message: 'Enemy not found' });
+            const enemyLookup = createEnemyLookup(campaign.enemies);
+            const participants = sanitizeParticipants(campaign.combat?.participants, enemyLookup);
+            const combatState = { participants, activeTurn: parseTurnIndex(campaign.combat?.activeTurn), ...timelineMetadata(campaign.combat) };
+            await collection.updateOne({ campaignName }, { $set: { combat: combatState } });
+            emitEnemiesUpdate(campaignName, campaign.enemies);
+            emitCombatUpdate(campaignName, combatState);
+            const resolvedHp = toFiniteNumberOrNull(updatedEnemy.currentHp) ?? 0;
+            return res.json({ success: true, duplicate, enemy: updatedEnemy, combat: combatState, previousHp: duplicate ? resolvedHp : previousHp, currentHp: resolvedHp, actualHpLost: duplicate ? 0 : Math.max(0, previousHp - resolvedHp), eventId: eventId || undefined });
           }
 
           const existingEnemies = Array.isArray(campaign.enemies) ? campaign.enemies : [];

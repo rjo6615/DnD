@@ -1980,6 +1980,34 @@ describe('Campaign routes', () => {
     });
   });
 
+  test('atomically applies an idempotent enemy HP delta to the deployed instance', async () => {
+    const campaign = {
+      campaignName: 'Test', hpEventIds: [],
+      enemies: [{ enemyId: 'enemy-1', name: 'Goblin', hitPoints: 30, currentHp: 30 }],
+      combat: { participants: [{ characterId: 'enemy-1', initiative: 15 }], activeTurn: 0 },
+    };
+    const updateOne = jest.fn().mockImplementation(async (_filter, update) => {
+      if (update.$set?.['enemies.$[target].currentHp'] !== undefined) {
+        campaign.enemies[0].currentHp = update.$set['enemies.$[target].currentHp'];
+        campaign.hpEventIds.push('attack-1');
+      }
+      return { matchedCount: 1 };
+    });
+    dbo.mockResolvedValue({ collection: () => ({ findOne: async () => campaign, updateOne }) });
+
+    const res = await request(app)
+      .put('/campaigns/Test/enemies/enemy-1/health')
+      .send({ delta: -7, eventId: 'attack-1' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ previousHp: 30, currentHp: 23, actualHpLost: 7, eventId: 'attack-1' });
+    expect(updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({ hpEventIds: { $ne: 'attack-1' } }),
+      expect.objectContaining({ $set: { 'enemies.$[target].currentHp': 23 } }),
+      { arrayFilters: [{ 'target.enemyId': 'enemy-1' }] }
+    );
+  });
+
   test('update enemy health validation failure', async () => {
     dbo.mockResolvedValue({
       collection: () => ({
