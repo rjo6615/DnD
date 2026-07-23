@@ -5,7 +5,36 @@ const authenticateToken = require('../../middleware/auth');
 const handleValidationErrors = require('../../middleware/validation');
 const logger = require('../../utils/logger');
 const { emitCharacterHealthUpdate } = require('../../utils/socket');
+const { items: itemCatalog } = require('../../data/items');
+const { characterLevel, constitutionModifier, resolveCharacterMaxHp, resolveHitDie } = require('../../utils/characterHealth');
 const { applyHealthChange, applyDeathSaveResult, normalizeDeathState, reviveCharacter, markCharacterDead, clearDeathState } = require('../../utils/deathState');
+
+const resolveCurrentHp = (character) => Number(character?.tempHealth ?? character?.health ?? 0);
+const resolveMaxHp = resolveCharacterMaxHp;
+
+/**
+ * Persist an HP delta against the latest character document.  Damage, rests and
+ * consumables all use tempHealth as the campaign character's authoritative
+ * current-HP field; health remains its maximum HP.
+ */
+const buildHealingOutcome = (character, requestedHealing) => {
+  const previousHp = resolveCurrentHp(character);
+  const maxHp = resolveMaxHp(character);
+  const healing = Math.max(0, Number(requestedHealing) || 0);
+  const currentHp = Math.max(0, Math.min(maxHp, previousHp + healing));
+  return { previousHp, currentHp, actualHealing: currentHp - previousHp, maxHp };
+};
+
+const normalizeItemKey = (value) => String(value || '').trim().toLowerCase();
+const findInventoryIndex = (inventory, itemKey) => inventory.findIndex((entry) => {
+  const names = [entry?.name, entry?.displayName, entry?.itemName].map(normalizeItemKey);
+  const definition = itemCatalog[itemKey];
+  return names.includes(itemKey) || (definition && names.includes(normalizeItemKey(definition.name)));
+});
+const healingMaximum = (expression) => {
+  const match = String(expression || '').match(/(\d+)d(\d+)\s*\+\s*(\d+)/i);
+  return match ? Number(match[1]) * Number(match[2]) + Number(match[3]) : 0;
+};
 
 const notifyCharacterHealthUpdate = async (db, characterObjectId, resolvedDamage) => {
   if (!db || !characterObjectId) {
@@ -22,6 +51,7 @@ const notifyCharacterHealthUpdate = async (db, characterObjectId, resolvedDamage
           health: 1,
           characterId: 1,
           deathState: 1,
+          item: 1,
         },
       }
     );
@@ -60,6 +90,7 @@ const notifyCharacterHealthUpdate = async (db, characterObjectId, resolvedDamage
       tempHealth: character.tempHealth,
       health: character.health,
       deathState: character.deathState,
+      item: character.item,
       ...(resolvedDamage ? { resolvedDamage } : {}),
     });
   } catch (error) {
@@ -78,6 +109,118 @@ module.exports = (router) => {
 
   // Apply authentication to all character routes
   characterRouter.use(authenticateToken);
+
+  characterRouter.route('/heal/:id').put(
+    [
+      body('amount').isInt({ min: 0 }).toInt(),
+      body('eventId').isString().trim().isLength({ min: 1, max: 160 }),
+      body('reason').optional().isString().trim().isLength({ min: 1, max: 100 }),
+    ],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
+      const id = { _id: ObjectId(req.params.id) };
+      const { amount, eventId } = matchedData(req, { locations: ['body'] });
+      try {
+        const collection = req.db.collection('Characters');
+        const character = await collection.findOne(id);
+        if (!character) return res.status(404).json({ message: 'Character not found' });
+        if (character.hpEventIds?.includes(eventId)) {
+          return res.json({ success: true, duplicate: true, previousHp: resolveCurrentHp(character), currentHp: resolveCurrentHp(character), actualHealing: 0, eventId });
+        }
+        const outcome = buildHealingOutcome(character, amount);
+        const result = await collection.updateOne(
+          { ...id, hpEventIds: { $ne: eventId }, tempHealth: character.tempHealth },
+          { $set: { tempHealth: outcome.currentHp, deathState: applyHealthChange(character, outcome.currentHp, character.tempHealth).character.deathState }, $push: { hpEventIds: { $each: [eventId], $slice: -100 } } }
+        );
+        if (!result?.matchedCount) return res.status(409).json({ message: 'HP changed concurrently; retry the update.' });
+        await notifyCharacterHealthUpdate(req.db, id._id);
+        res.json({ success: true, ...outcome, targetCombatantId: req.params.id, eventId });
+      } catch (err) { next(err); }
+    }
+  );
+
+  characterRouter.route('/rest/:id').put(
+    [
+      body('type').isIn(['long', 'short']),
+      body('healingAmount').optional().isInt({ min: 0 }).toInt(),
+      body('eventId').isString().trim().isLength({ min: 1, max: 160 }),
+    ],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
+      const id = { _id: ObjectId(req.params.id) };
+      const { type, healingAmount = 0, eventId } = matchedData(req, { locations: ['body'] });
+      try {
+        const collection = req.db.collection('Characters');
+        const character = await collection.findOne(id);
+        if (!character) return res.status(404).json({ message: 'Character not found' });
+        if (character.hpEventIds?.includes(eventId)) {
+          return res.json({ success: true, duplicate: true, previousHp: resolveCurrentHp(character), currentHp: resolveCurrentHp(character), actualHealing: 0, eventId });
+        }
+        const level = Math.max(1, characterLevel(character));
+        const usedHitDice = Math.max(0, Math.floor(Number(character.hitDiceUsed) || 0));
+        const canSpendHitDie = type === 'short'
+          && usedHitDice < level
+          && resolveCurrentHp(character) < resolveMaxHp(character);
+        const rolledHealing = canSpendHitDie
+          ? Math.max(0, Math.floor(Math.random() * resolveHitDie(character)) + 1 + constitutionModifier(character))
+          : 0;
+        const requested = type === 'long' ? resolveMaxHp(character) : rolledHealing;
+        const outcome = buildHealingOutcome(character, requested);
+        const nextHitDiceUsed = type === 'long'
+          ? Math.max(0, usedHitDice - Math.max(1, Math.ceil(level / 2)))
+          : usedHitDice + (canSpendHitDie ? 1 : 0);
+        const result = await collection.updateOne(
+          { ...id, hpEventIds: { $ne: eventId }, tempHealth: character.tempHealth },
+          { $set: { tempHealth: outcome.currentHp, hitDiceUsed: nextHitDiceUsed, deathState: applyHealthChange(character, outcome.currentHp, character.tempHealth).character.deathState }, $push: { hpEventIds: { $each: [eventId], $slice: -100 } } }
+        );
+        if (!result?.matchedCount) return res.status(409).json({ message: 'Rest state changed concurrently; retry the rest.' });
+        await notifyCharacterHealthUpdate(req.db, id._id);
+        res.json({ success: true, type, ...outcome, hitDiceUsed: nextHitDiceUsed, hitDieSpent: canSpendHitDie, rolledHealing, eventId });
+      } catch (err) { next(err); }
+    }
+  );
+
+  characterRouter.route('/use-healing-potion/:id').put(
+    [
+      body('itemKey').isString().trim().isLength({ min: 1, max: 100 }),
+      body('healingAmount').isInt({ min: 0 }).toInt(),
+      body('eventId').isString().trim().isLength({ min: 1, max: 160 }),
+    ],
+    handleValidationErrors,
+    async (req, res, next) => {
+      if (!ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
+      const id = { _id: ObjectId(req.params.id) };
+      const { itemKey: rawItemKey, healingAmount, eventId } = matchedData(req, { locations: ['body'] });
+      const itemKey = normalizeItemKey(rawItemKey);
+      const definition = itemCatalog[itemKey];
+      const maxRoll = healingMaximum(definition?.healing);
+      if (!definition || !definition.properties?.some((value) => normalizeItemKey(value) === 'consumable') || maxRoll < 1 || healingAmount > maxRoll) {
+        return res.status(400).json({ message: 'Invalid healing potion' });
+      }
+      try {
+        const collection = req.db.collection('Characters');
+        const character = await collection.findOne(id);
+        if (!character) return res.status(404).json({ message: 'Character not found' });
+        if (character.hpEventIds?.includes(eventId)) {
+          return res.json({ success: true, duplicate: true, previousHp: resolveCurrentHp(character), currentHp: resolveCurrentHp(character), actualHealing: 0, inventory: character.item || [], eventId });
+        }
+        const inventory = Array.isArray(character.item) ? character.item.slice() : [];
+        const inventoryIndex = findInventoryIndex(inventory, itemKey);
+        if (inventoryIndex < 0) return res.status(409).json({ message: 'The character does not own that potion.' });
+        inventory.splice(inventoryIndex, 1);
+        const outcome = buildHealingOutcome(character, healingAmount);
+        const result = await collection.updateOne(
+          { ...id, hpEventIds: { $ne: eventId }, tempHealth: character.tempHealth },
+          { $set: { tempHealth: outcome.currentHp, item: inventory, deathState: applyHealthChange(character, outcome.currentHp, character.tempHealth).character.deathState }, $push: { hpEventIds: { $each: [eventId], $slice: -100 } } }
+        );
+        if (!result?.matchedCount) return res.status(409).json({ message: 'Character state changed concurrently; the potion was not used.' });
+        await notifyCharacterHealthUpdate(req.db, id._id);
+        res.json({ success: true, ...outcome, inventory, itemKey, eventId });
+      } catch (err) { next(err); }
+    }
+  );
 
   // This section will update tempHealth.
   characterRouter.route('/update-temphealth/:id').put(

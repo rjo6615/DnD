@@ -400,6 +400,7 @@ const triggerHealingRoll = async (item, { diceColor } = {}) => {
   };
 
   window.dispatchEvent(new CustomEvent('damage-roll', { detail }));
+  return detail;
 };
 
 function ItemList({
@@ -415,6 +416,7 @@ function ItemList({
   cartCounts = null,
   diceColor,
   hiddenKeys = null,
+  onUseConsumable,
 }) {
   const [items, setItems] =
     useState/** @type {Record<string, Item & { owned?: boolean, ownedCount?: number, displayName?: string }> | null} */(null);
@@ -639,22 +641,39 @@ function ItemList({
       return;
     }
 
-    setOwnedEntries(nextEntries);
-
-    if (item?.healing) {
-      void triggerHealingRoll(item, { diceColor: normalizeDiceColor(diceColor) });
+    if (isConsumablePotion(item) && typeof onUseConsumable === 'function') {
+      void (async () => {
+       try {
+        const healingResult = item?.healing
+          ? await triggerHealingRoll(item, { diceColor: normalizeDiceColor(diceColor) })
+          : null;
+        const savedEntries = await onUseConsumable({
+          item,
+          itemKey: dataKey,
+          healingAmount: Number(healingResult?.value) || 0,
+        });
+        setOwnedEntries(Array.isArray(savedEntries) ? savedEntries : nextEntries);
+        dispatchConsumablePotionUsed(item);
+        onClose?.();
+       } catch (useError) {
+        setError({ message: useError?.message || 'The healing could not be saved. No character resources were changed.' });
+       }
+      })();
+    } else {
+      if (item?.healing) {
+        void triggerHealingRoll(item, { diceColor: normalizeDiceColor(diceColor) });
+      }
+      setOwnedEntries(nextEntries);
+      if (typeof onChange === 'function') onChange(nextEntries);
     }
 
-    if (isConsumablePotion(item)) {
+    if (isConsumablePotion(item) && typeof onUseConsumable !== 'function') {
       dispatchConsumablePotionUsed(item);
       if (typeof onClose === 'function') {
         onClose();
       }
     }
 
-    if (typeof onChange === 'function') {
-      onChange(nextEntries);
-    }
   };
 
   const handleRequestDelete = (dataKey, item) => () => {
