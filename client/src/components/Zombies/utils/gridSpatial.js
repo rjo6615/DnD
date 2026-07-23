@@ -21,6 +21,27 @@ const tokenFor = (combatant, mapState) => {
   return match?.[1] || combatant?.token || combatant;
 };
 
+/**
+ * Returns every logical cell in a creature's square footprint. `anchorCell` is
+ * always the top-left occupied cell (token positions normalize to that cell).
+ */
+export const getOccupiedGridCells = ({ anchorCell, size, sizeCategory } = {}) => {
+  const x = number(anchorCell?.x ?? anchorCell?.gridX);
+  const y = number(anchorCell?.y ?? anchorCell?.gridY);
+  if (x === null || y === null) return [];
+  const footprintSize = getOccupiedSquareSize({
+    size: sizeCategory ?? size,
+    gridSize: typeof size === 'number' ? size : undefined,
+  });
+  const cells = [];
+  for (let row = 0; row < footprintSize; row += 1) {
+    for (let column = 0; column < footprintSize; column += 1) {
+      cells.push({ x: Math.floor(x) + column, y: Math.floor(y) + row });
+    }
+  }
+  return cells;
+};
+
 /** Logical grid footprint. Token coordinates are top-left normalized map coordinates. */
 export const getOccupiedGridSpace = (combatant, mapState = {}) => {
   if (!combatant) return null;
@@ -34,7 +55,15 @@ export const getOccupiedGridSpace = (combatant, mapState = {}) => {
   const y = row ?? (normalizedY === null ? null : Math.floor(normalizedY * rows));
   if (x === null || y === null) return null;
   const size = getOccupiedSquareSize(token?.size ? token : combatant);
-  return { left: x, top: y, right: x + size - 1, bottom: y + size - 1, size };
+  const cells = getOccupiedGridCells({ anchorCell: { x, y }, size });
+  return {
+    left: cells[0].x,
+    top: cells[0].y,
+    right: cells[cells.length - 1].x,
+    bottom: cells[cells.length - 1].y,
+    size,
+    cells,
+  };
 };
 
 /** Chebyshev edge-to-edge distance, matching the board's diagonal-adjacency rule. */

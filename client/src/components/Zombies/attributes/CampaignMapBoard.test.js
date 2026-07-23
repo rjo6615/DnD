@@ -31,6 +31,7 @@ describe('CampaignMapBoard pointer interactions', () => {
         onTokenRemove={overrides.onTokenRemove}
         onTokenClick={overrides.onTokenClick}
         targeting={overrides.targeting}
+        repositionToken={overrides.repositionToken}
       />
     );
 
@@ -291,6 +292,65 @@ describe('CampaignMapBoard pointer interactions', () => {
     fireEvent(tokenElement, pointerUpEvent);
 
     expect(pointerUpEvent.defaultPrevented).toBe(true);
+  });
+
+  it('previews and commits the same snapped Large footprint, then clears it', () => {
+    const onTokenPositionChange = jest.fn();
+    const { container, queryByTestId } = renderBoard({
+      token: { size: 'large' },
+      onTokenPositionChange,
+    });
+    const layer = container.querySelector('.campaign-map-board__tokens-layer');
+    layer.getBoundingClientRect = () => ({ left: 100, top: 50, width: 480, height: 480 });
+    const token = container.querySelector('[data-token-id="char-1"]');
+
+    fireEvent.mouseDown(token, { button: 0, clientX: 200, clientY: 150 });
+    fireEvent.mouseMove(token, { clientX: 310, clientY: 260 });
+
+    const preview = queryByTestId('occupancy-preview');
+    expect(preview).not.toBeNull();
+    expect(Array.from(preview.querySelectorAll('[data-grid-cell]')).map((cell) =>
+      cell.getAttribute('data-grid-cell')
+    )).toEqual(['10,10', '11,10', '10,11', '11,11']);
+
+    fireEvent.mouseUp(token, { clientX: 310, clientY: 260 });
+    expect(onTokenPositionChange).toHaveBeenCalledWith({
+      characterId: 'char-1',
+      x: 10.5 / 24,
+      y: 10.5 / 24,
+    });
+    expect(queryByTestId('occupancy-preview')).toBeNull();
+  });
+
+  it('clears a reposition preview on Escape without committing', () => {
+    const onTokenPositionChange = jest.fn();
+    const { container, queryByTestId } = renderBoard({ onTokenPositionChange });
+    const layer = container.querySelector('.campaign-map-board__tokens-layer');
+    layer.getBoundingClientRect = () => ({ left: 0, top: 0, width: 240, height: 240 });
+    const token = container.querySelector('[data-token-id="char-1"]');
+    fireEvent.mouseDown(token, { button: 0, clientX: 60, clientY: 60 });
+    fireEvent.mouseMove(token, { clientX: 120, clientY: 120 });
+    expect(queryByTestId('occupancy-preview')).not.toBeNull();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(queryByTestId('occupancy-preview')).toBeNull();
+    expect(onTokenPositionChange).not.toHaveBeenCalled();
+    expect(token.style.left).toBe('25%');
+    expect(token.style.top).toBe('25%');
+  });
+
+  it('shows a snapped hover footprint during click-to-reposition mode', () => {
+    const { container, getByTestId } = renderBoard({
+      repositionToken: { ...baseToken, size: 'huge' },
+    });
+    const layer = container.querySelector('.campaign-map-board__tokens-layer');
+    layer.getBoundingClientRect = () => ({ left: 0, top: 0, width: 240, height: 240 });
+
+    fireEvent.mouseMove(layer, { clientX: 45, clientY: 65 });
+
+    expect(getByTestId('occupancy-preview').querySelectorAll('[data-grid-cell]')).toHaveLength(9);
+    expect(getByTestId('occupancy-preview').querySelector('[data-grid-cell="4,6"]')).not.toBeNull();
   });
 
   it('keeps rotation controls visible after a token click until background or another token hover', async () => {
