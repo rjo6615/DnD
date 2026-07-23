@@ -80,6 +80,7 @@ import { bindCriticalRollTransport } from '../../../utils/criticalRolls';
 import { emitCriticalRollEvent } from '../../../utils/criticalRolls';
 import CombatTurnHeader, { HEADER_PADDING } from "../components/CombatTurnHeader";
 import CombatConditionsModal from '../components/CombatConditionsModal';
+import { notifyIncomingDamage } from '../utils/incomingDamageNotification';
 
 const MIN_DOCKED_MODAL_WIDTH = 320;
 const DOCKED_MODAL_VIEWPORT_PADDING = 32;
@@ -648,6 +649,10 @@ export default function ZombiesCharacterSheet() {
   const brutalStrikeSubmittingRef = useRef(false);
   const [campaignCharacters, setCampaignCharacters] = useState({});
   const [enemies, setEnemies] = useState([]);
+  const campaignCharactersRef = useRef(campaignCharacters);
+  const enemiesRef = useRef(enemies);
+  campaignCharactersRef.current = campaignCharacters;
+  enemiesRef.current = enemies;
   const [campaignMaps, setCampaignMaps] = useState([]);
   const [campaignActiveMapId, setCampaignActiveMapId] = useState(null);
   const [campaignMap, setCampaignMap] = useState(null);
@@ -1649,7 +1654,7 @@ export default function ZombiesCharacterSheet() {
     }
     const response = await apiFetch(`/characters/update-temphealth/${encodeURIComponent(targetId)}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ delta: -Math.max(0, Number(damageApplied) || 0), eventId: result?.resolutionId }),
+      body: JSON.stringify({ delta: -Math.max(0, Number(damageApplied) || 0), eventId: result?.resolutionId, sourceCombatantId: result?.attackerId, rolledDamage: result?.damage }),
     });
     if (!response.ok) throw new Error('The HP update could not be saved. No combat state was changed.');
     const payload = await response.json();
@@ -4153,6 +4158,17 @@ export default function ZombiesCharacterSheet() {
         return;
       }
 
+      notifyIncomingDamage({
+        event: update.resolvedDamage,
+        controlledCombatantId: resolvedCharacterIdRef.current || characterId,
+        resolveCombatantName: (sourceId) => {
+          const source = campaignCharactersRef.current?.[sourceId]
+            || enemiesRef.current.find((enemy) => String(enemy?.enemyId || enemy?._id) === String(sourceId));
+          return source?.name || source?.characterName || source?.displayType || null;
+        },
+        notify,
+      });
+
       if (updateIdentifiers.includes(characterId)) {
         setForm((prev) => prev ? {
           ...prev,
@@ -4514,7 +4530,7 @@ export default function ZombiesCharacterSheet() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [campaignId, applyMapPayload, updateLocalDiceColor, updateLocalFigurineImage]);
+  }, [campaignId, characterId, applyMapPayload, updateLocalDiceColor, updateLocalFigurineImage]);
 
   const handleDiceColorChange = useCallback(
     (nextColor, nextTheme = null) => {

@@ -7,7 +7,7 @@ const logger = require('../../utils/logger');
 const { emitCharacterHealthUpdate } = require('../../utils/socket');
 const { applyHealthChange, applyDeathSaveResult, normalizeDeathState, reviveCharacter, markCharacterDead, clearDeathState } = require('../../utils/deathState');
 
-const notifyCharacterHealthUpdate = async (db, characterObjectId) => {
+const notifyCharacterHealthUpdate = async (db, characterObjectId, resolvedDamage) => {
   if (!db || !characterObjectId) {
     return;
   }
@@ -60,6 +60,7 @@ const notifyCharacterHealthUpdate = async (db, characterObjectId) => {
       tempHealth: character.tempHealth,
       health: character.health,
       deathState: character.deathState,
+      ...(resolvedDamage ? { resolvedDamage } : {}),
     });
   } catch (error) {
     logger.warn('Failed to emit character health update', {
@@ -84,6 +85,9 @@ module.exports = (router) => {
       body('tempHealth').optional().isInt().withMessage('tempHealth must be an integer').toInt(),
       body('delta').optional().isInt().withMessage('delta must be an integer').toInt(),
       body('eventId').optional().isString().trim().isLength({ min: 1, max: 160 }),
+      body('sourceCombatantId').optional().isString().trim().isLength({ min: 1, max: 160 }),
+      body('sourceLabel').optional().isString().trim().isLength({ min: 1, max: 100 }),
+      body('rolledDamage').optional().isFloat().toFloat(),
       body().custom((value) => {
         if (Number.isInteger(value?.tempHealth) || Number.isInteger(value?.delta)) return true;
         throw new Error('tempHealth or delta is required');
@@ -96,7 +100,7 @@ module.exports = (router) => {
       }
       const id = { _id: ObjectId(req.params.id) };
       const db_connect = req.db;
-      const { tempHealth, delta, eventId } = matchedData(req, { locations: ['body'] });
+      const { tempHealth, delta, eventId, sourceCombatantId, sourceLabel, rolledDamage } = matchedData(req, { locations: ['body'] });
       try {
         const collection = db_connect.collection('Characters');
         const existing = await collection.findOne(id);
@@ -133,10 +137,21 @@ module.exports = (router) => {
           outcome.event = retryOutcome.event;
           outcome.previousHp = latest.tempHealth;
         }
-        await notifyCharacterHealthUpdate(db_connect, id._id);
-        logger.info('character tempHealth updated');
         const previousHp = Number(outcome.previousHp ?? authoritativePreviousHp);
-        res.json({ success: true, message: 'User updated successfully', previousHp, currentHp: outcome.character.tempHealth, actualHpLost: Math.max(0, previousHp - outcome.character.tempHealth), character: outcome.character, deathState: outcome.character.deathState, deathEvent: outcome.event, eventId });
+        const actualHpLost = Math.max(0, previousHp - outcome.character.tempHealth);
+        const resolvedDamage = eventId && actualHpLost > 0 ? {
+          eventId,
+          ...(sourceCombatantId ? { sourceCombatantId } : {}),
+          ...(sourceLabel ? { sourceLabel } : {}),
+          targetCombatantId: req.params.id,
+          ...(Number.isFinite(rolledDamage) ? { rolledDamage } : {}),
+          actualHpLost,
+          previousHp,
+          currentHp: outcome.character.tempHealth,
+        } : undefined;
+        await notifyCharacterHealthUpdate(db_connect, id._id, resolvedDamage);
+        logger.info('character tempHealth updated');
+        res.json({ success: true, message: 'User updated successfully', previousHp, currentHp: outcome.character.tempHealth, actualHpLost, character: outcome.character, deathState: outcome.character.deathState, deathEvent: outcome.event, eventId });
       } catch (err) {
         next(err);
       }

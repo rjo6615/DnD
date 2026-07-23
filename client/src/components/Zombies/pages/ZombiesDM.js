@@ -3830,7 +3830,7 @@ export default function ZombiesDM() {
               const response = await apiFetch(`/characters/update-temphealth/${encodeURIComponent(targetId)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ delta: -damageApplied, eventId: result?.resolutionId }),
+                body: JSON.stringify({ delta: -damageApplied, eventId: result?.resolutionId, sourceCombatantId: result?.attackerId, rolledDamage: result?.damage }),
               });
               if (!response.ok) throw new Error('The HP update could not be saved. No combat state was changed.');
               resolved = await response.json();
