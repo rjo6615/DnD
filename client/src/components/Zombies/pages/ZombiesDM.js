@@ -23,7 +23,7 @@ import { STATS } from '../statSchema';
 import { SKILLS } from '../skillSchema';
 import { calculateCharacterInitiative, calculatePassivePerception } from '../utils/derivedStats';
 import { resolveInitiativeRollMode } from '../utils/barbarian';
-import { calculateCharacterHitPoints, calculateCharacterMovementSpeed } from '../utils/characterMetrics';
+import { calculateCharacterHitPoints, calculateCharacterMovementSpeed, resolveCombatantArmorClass } from '../utils/characterMetrics';
 import { createCombatState as normalizeTimelineState, advanceTurn, undoTurn } from '../utils/combatTimeline';
 import CampaignMapBoard from '../attributes/CampaignMapBoard';
 import MapModal from '../attributes/MapModal';
@@ -3779,9 +3779,13 @@ export default function ZombiesDM() {
       if (combatTargeting.status !== 'selecting-target' || targetingLockRef.current) return;
       if (!targetId || targetId === combatTargeting.sourceCombatantId) return;
       const target = characterLookup.get(targetId);
+      if (!target) {
+        setStatus({ type: 'warning', message: 'That map object is not a valid combat target.' });
+        return;
+      }
       const currentHp = toFiniteNumberOrNull(target?.currentHp ?? target?.tempHealth ?? target?.health ?? target?.maxHp ?? target?.hitPoints);
-      if (!target || currentHp === null || currentHp <= 0) return;
-      const armorClass = toFiniteNumberOrNull(target?.armorClass ?? target?.ac);
+      if (currentHp === null || currentHp <= 0) return;
+      const armorClass = resolveCombatantArmorClass(target);
       if (armorClass === null) {
         setStatus({ type: 'warning', message: 'That target does not have an armor class.' });
         return;

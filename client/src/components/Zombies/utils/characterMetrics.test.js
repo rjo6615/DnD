@@ -1,4 +1,4 @@
-import { calculateCharacterArmorClass, calculateCharacterHitPoints, calculateCharacterMovementSpeed } from './characterMetrics';
+import { calculateCharacterArmorClass, calculateCharacterHitPoints, calculateCharacterMovementSpeed, resolveCombatantArmorClass } from './characterMetrics';
 
 describe('calculateCharacterHitPoints', () => {
   it('calculates current and max hp using con and level', () => {
@@ -198,6 +198,29 @@ describe('calculateCharacterArmorClass barbarian unarmored defense', () => {
     const equipped = { ...requestedBase, armor: [leather], equipment: { chest: leather } };
     expect(calculateCharacterArmorClass(equipped)).toBe(14);
     expect(calculateCharacterArmorClass({ ...equipped, equipment: { chest: null } })).toBe(16);
+  });
+});
+
+describe('resolveCombatantArmorClass', () => {
+  it('uses the canonical character calculation instead of a persisted AC summary', () => {
+    const barbarian = {
+      entityType: 'character',
+      armorClass: 10,
+      dex: 14,
+      con: 16,
+      occupation: [{ Name: 'Barbarian', Level: 1 }],
+    };
+
+    expect(resolveCombatantArmorClass(barbarian)).toBe(15);
+  });
+
+  it('normalizes monster AC records used by map combatants', () => {
+    expect(resolveCombatantArmorClass({ entityType: 'enemy', armorClass: [{ value: 13 }] })).toBe(13);
+    expect(resolveCombatantArmorClass({ entityType: 'monster', ac: 17 })).toBe(17);
+  });
+
+  it('returns null when a monster genuinely has no AC', () => {
+    expect(resolveCombatantArmorClass({ entityType: 'enemy', name: 'Illusion' })).toBeNull();
   });
 });
 

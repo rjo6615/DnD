@@ -36,6 +36,7 @@ import {
 } from "../utils/derivedStats";
 import {
   calculateCharacterArmorClass,
+  resolveCombatantArmorClass,
   calculateCharacterHitPoints,
   calculateCharacterMovementSpeed,
 } from "../utils/characterMetrics";
@@ -4668,7 +4669,7 @@ export default function ZombiesCharacterSheet() {
           entityType,
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
-          armorClass: toFiniteNumberOrNull(value?.armorClass ?? value?.ac ?? value?.armorClassTotal),
+          armorClass: resolveCombatantArmorClass({ ...value, entityType }),
           ...(recordSize ? { size: recordSize } : {}),
           ...(figurineImageUrl ? { figurineImageUrl } : {}),
           ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
@@ -4718,7 +4719,7 @@ export default function ZombiesCharacterSheet() {
           entityType: 'enemy',
           currentHp: enemyCurrentHp !== null ? enemyCurrentHp : null,
           maxHp: enemyMaxHp !== null ? enemyMaxHp : null,
-          armorClass: toFiniteNumberOrNull(Array.isArray(enemy.armorClass) ? enemy.armorClass[0]?.value : (enemy.armorClass ?? enemy.ac)),
+          armorClass: resolveCombatantArmorClass({ ...enemy, entityType: 'enemy' }),
           ...(enemySize ? { size: enemySize } : {}),
           ...(figurineImageUrl ? { figurineImageUrl } : {}),
           ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
@@ -4762,7 +4763,7 @@ export default function ZombiesCharacterSheet() {
           entityType: 'character',
           currentHp: Number.isFinite(currentHp) ? currentHp : null,
           maxHp: Number.isFinite(maxHp) ? maxHp : null,
-          armorClass: toFiniteNumberOrNull(form?.armorClass ?? form?.ac) ?? 10,
+          armorClass: resolveCombatantArmorClass({ ...form, entityType: 'character' }),
           ...(fallbackSize ? { size: fallbackSize } : {}),
           ...(figurineImageUrl ? { figurineImageUrl } : {}),
           ...(figurineImagePublicId ? { figurineImagePublicId } : {}),
