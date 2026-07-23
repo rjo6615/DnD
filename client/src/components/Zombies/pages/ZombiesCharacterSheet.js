@@ -647,7 +647,6 @@ export default function ZombiesCharacterSheet() {
   const [combatState, setCombatState] = useState(createEmptyCombatState());
   const [resolvedDamageEvent, setResolvedDamageEvent] = useState(null);
   const processedRetaliationDamageIdsRef = useRef(new Set());
-  const processingRetaliationDamageIdsRef = useRef(new Set());
   const retaliationSubmittingRef = useRef(null);
   const [retaliationSubmittingId, setRetaliationSubmittingId] = useState(null);
   const [brutalStrikeSelection, setBrutalStrikeSelection] = useState('');
@@ -1729,15 +1728,7 @@ export default function ZombiesCharacterSheet() {
 
     // Clear effects on rest
     setActiveEffects([]);
-    if (didLongRestIncrement) {
-      const { maxHp } = calculateCharacterHitPoints(form);
-      const nextHealth = Number.isFinite(maxHp) ? maxHp : 0;
-      handleHealthChange(nextHealth);
-      return;
-    }
-
-    handleHealthChange(0);
-  }, [form, handleHealthChange, longRestCount, shortRestCount]);
+  }, [longRestCount, shortRestCount]);
 
   useEffect(() => {
     const hasteActive = activeEffects.some((e) => e.name === 'Haste');
@@ -3038,15 +3029,26 @@ export default function ZombiesCharacterSheet() {
     setForm((prev) => ({ ...prev, spells, spellPoints }));
   }, []);
 
-  const handleLongRest = useCallback(() => {
-    setLongRestCount((c) => c + 1);
-    setForm((prev) => applyRageRest(prev, 'long'));
-  }, []);
+  const completeRest = useCallback(async (type, healingAmount = 0) => {
+    const eventId = `${type}-rest-${characterId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    try {
+      const response = await apiFetch(`/characters/rest/${encodeURIComponent(characterId)}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, healingAmount, eventId }),
+      });
+      if (!response.ok) throw new Error('The healing could not be saved. No character resources were changed.');
+      const saved = await response.json();
+      handleHealthChange(Number(saved.currentHp));
+      setForm((prev) => applyRageRest(prev, type));
+      if (type === 'long') setLongRestCount((count) => count + 1);
+      else setShortRestCount((count) => count + 1);
+    } catch (error) {
+      notify(error.message || 'The healing could not be saved. No character resources were changed.', 'danger');
+    }
+  }, [characterId, handleHealthChange]);
 
-  const handleShortRest = useCallback(() => {
-    setShortRestCount((c) => c + 1);
-    setForm((prev) => applyRageRest(prev, 'short'));
-  }, []);
+  const handleLongRest = useCallback(() => completeRest('long'), [completeRest]);
+  const handleShortRest = useCallback(() => completeRest('short'), [completeRest]);
 
   const handleActivateRage = useCallback(() => {
     setForm((prev) => activateRage(prev));
@@ -3526,6 +3528,26 @@ export default function ZombiesCharacterSheet() {
     },
     [characterId]
   );
+
+  const handleUseConsumable = useCallback(async ({ itemKey, healingAmount }) => {
+    const eventId = `potion-${characterId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const response = await apiFetch(`/characters/use-healing-potion/${encodeURIComponent(characterId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemKey, healingAmount, eventId }),
+    });
+    if (!response.ok) {
+      throw new Error('The healing could not be saved. No character resources were changed.');
+    }
+    const saved = await response.json();
+    handleHealthChange(Number(saved.currentHp));
+    setForm((previous) => previous ? {
+      ...previous,
+      tempHealth: saved.currentHp,
+      item: saved.inventory,
+    } : previous);
+    return saved.inventory;
+  }, [characterId, handleHealthChange]);
 
   const handleAccessoriesChange = useCallback(
     async (accessories) => {
@@ -4182,6 +4204,7 @@ export default function ZombiesCharacterSheet() {
           ...prev,
           ...(update.tempHealth !== undefined ? { tempHealth: Number.isFinite(Number(update.tempHealth)) ? Number(update.tempHealth) : update.tempHealth } : {}),
           ...(update.health !== undefined ? { health: Number.isFinite(Number(update.health)) ? Number(update.health) : update.health } : {}),
+          ...(Array.isArray(update.item) ? { item: update.item } : {}),
           ...(update.deathState && typeof update.deathState === 'object' ? { deathState: update.deathState } : {}),
         } : prev);
         if (update.deathEvent?.message) notify(update.deathEvent.message, update.deathEvent.event === 'dead' ? 'danger' : 'success');
@@ -5601,26 +5624,16 @@ export default function ZombiesCharacterSheet() {
   useEffect(() => {
     if (!resolvedDamageEvent) return;
     const damageEventId = resolvedDamageEvent.eventId || resolvedDamageEvent.damageEventId || resolvedDamageEvent.resolutionId;
-    if (!damageEventId || processedRetaliationDamageIdsRef.current.has(damageEventId) ||
-        processingRetaliationDamageIdsRef.current.has(damageEventId)) return;
-    // Keep the authoritative event available until its combat-state write has
-    // completed. Clearing it before the async evaluator ran could consume the
-    // only socket notification before the pending decision reached state.
-    processingRetaliationDamageIdsRef.current.add(damageEventId);
-    handleResolvedCombatDamage(resolvedDamageEvent)
-      .then(() => {
-        processedRetaliationDamageIdsRef.current.add(damageEventId);
-        setResolvedDamageEvent((current) => {
-          const currentId = current?.eventId || current?.damageEventId || current?.resolutionId;
-          return currentId === damageEventId ? null : current;
-        });
-      })
-      .catch((error) => {
-        notify(error?.message || 'The Retaliation decision could not be saved.', 'danger');
-      })
-      .finally(() => {
-        processingRetaliationDamageIdsRef.current.delete(damageEventId);
-      });
+    if (!damageEventId || processedRetaliationDamageIdsRef.current.has(damageEventId)) return;
+    // A health notification is a one-shot event, not an enduring source of combat
+    // state. Claim it before starting the async write so Strict Mode and unrelated
+    // rerenders cannot enqueue the same decision concurrently.
+    processedRetaliationDamageIdsRef.current.add(damageEventId);
+    setResolvedDamageEvent(null);
+    handleResolvedCombatDamage(resolvedDamageEvent).catch((error) => {
+      processedRetaliationDamageIdsRef.current.delete(damageEventId);
+      notify(error?.message || 'The Retaliation decision could not be saved.', 'danger');
+    });
   }, [handleResolvedCombatDamage, resolvedDamageEvent]);
 
   const retaliationDecision = (combatState.pendingDecisions || []).find((decision) =>
@@ -5813,6 +5826,7 @@ export default function ZombiesCharacterSheet() {
           onTabChange: setInventoryTab,
           characterId,
           onItemsChange: handleItemsChange,
+          onUseConsumable: handleUseConsumable,
           onWeaponsChange: handleWeaponsChange,
           onArmorChange: handleArmorChange,
           onAccessoriesChange: handleAccessoriesChange,
@@ -5883,6 +5897,7 @@ export default function ZombiesCharacterSheet() {
       handleDockChange,
       handleEquipmentChange,
       handleItemsChange,
+      handleUseConsumable,
       handleLongRest,
       handleRollResult,
       handleShortRest,
@@ -6520,6 +6535,7 @@ export default function ZombiesCharacterSheet() {
           dockedSide={getDockedSide('inventory')}
           onDockChange={(side) => handleDockChange('inventory', side)}
           onItemsChange={handleItemsChange}
+          onUseConsumable={handleUseConsumable}
           onWeaponsChange={handleWeaponsChange}
           onArmorChange={handleArmorChange}
           onAccessoriesChange={handleAccessoriesChange}

@@ -214,8 +214,8 @@ test('use button removes a consumable item copy and triggers onChange', async ()
   expect(screen.getAllByText('Potion of healing')).toHaveLength(1);
 
   await waitFor(() => expect(dispatchSpy).toHaveBeenCalled());
+  await waitFor(() => expect(dispatchSpy.mock.calls.some(([evt]) => evt?.type === 'damage-roll')).toBe(true));
   const events = dispatchSpy.mock.calls.map(([evt]) => evt);
-
   const healingEvent = events.find((evt) => evt?.type === 'damage-roll');
   expect(healingEvent).toBeInstanceOf(CustomEvent);
   expect(healingEvent?.detail?.source).toMatch(/potion of healing/i);
